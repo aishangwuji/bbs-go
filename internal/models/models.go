@@ -20,6 +20,7 @@ var Models = []interface{}{
 	&OperateLog{}, &EmailLog{}, &EmailCode{}, &SmsCode{}, &CheckIn{}, &UserFollow{}, &UserFeed{}, &UserReport{},
 	&ForbiddenWord{},
 	&Attachment{}, &AttachmentDownloadLog{},
+	&AgentToken{}, &AgentTokenApi{},
 }
 
 type Model struct {
@@ -590,4 +591,28 @@ type AttachmentDownloadLog struct {
 	UserId       int64  `gorm:"not null;uniqueIndex:uk_attachment_download_log_ua" json:"userId" form:"userId"`                     // 下载用户 ID
 	AttachmentId string `gorm:"not null;size:64;uniqueIndex:uk_attachment_download_log_ua" json:"attachmentId" form:"attachmentId"` // 附件 ID（UUID）
 	CreateTime   int64  `gorm:"not null;default:0" json:"createTime" form:"createTime"`                                             // 首次下载（支付）时间（毫秒）
+}
+
+// AgentToken Agent 接入令牌。令牌明文只在创建时返回一次，库中仅存 sha256 哈希。
+type AgentToken struct {
+	Model
+	TokenHash     string `gorm:"size:64;unique;not null" json:"tokenHash" form:"tokenHash"`                                                                                  // 令牌哈希（sha256 hex）
+	Name          string `gorm:"size:64;not null" json:"name" form:"name"`                                                                                                   // 令牌名称
+	Remark        string `gorm:"size:256" json:"remark" form:"remark"`                                                                                                       // 备注
+	CreatorUserId int64  `gorm:"not null;index:idx_agent_token_creator_user_id" json:"creatorUserId" form:"creatorUserId"`                                                   // 创建人用户 ID
+	Status        int    `gorm:"type:int;not null;default:0;index:idx_agent_token_status" json:"status" form:"status"`                                                       // 状态（0 正常，1 已吊销）
+	ExpiredAt     int64  `gorm:"not null;default:0" json:"expiredAt" form:"expiredAt"`                                                                                       // 过期时间戳，0 表示永不过期
+	LastUsedAt    int64  `gorm:"not null;default:0" json:"lastUsedAt" form:"lastUsedAt"`                                                                                     // 最近调用时间
+	CreateTime    int64  `gorm:"not null;default:0" json:"createTime" form:"createTime"`                                                                                     // 创建时间
+	UpdateTime    int64  `gorm:"not null;default:0" json:"updateTime" form:"updateTime"`                                                                                     // 更新时间
+}
+
+// AgentTokenApi Agent 令牌的能力白名单（method + admin path，如 POST /api/admin/topic/list）。
+// 新注册的管理端接口默认不在任何令牌的白名单中，需要管理员在后台逐令牌授权。
+type AgentTokenApi struct {
+	Model
+	TokenId    int64  `gorm:"not null;uniqueIndex:uk_agent_token_api;index:idx_agent_token_api_token_id" json:"tokenId" form:"tokenId"` // 令牌 ID
+	Method     string `gorm:"size:16;not null;uniqueIndex:uk_agent_token_api" json:"method" form:"method"`                              // HTTP 方法
+	Path       string `gorm:"size:256;not null;uniqueIndex:uk_agent_token_api" json:"path" form:"path"`                                  // 管理端路径（含参数模板，如 /api/admin/topic/:id）
+	CreateTime int64  `gorm:"not null;default:0" json:"createTime" form:"createTime"`                                                    // 授权时间
 }

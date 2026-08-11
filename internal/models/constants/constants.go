@@ -87,6 +87,7 @@ const (
 	EntityCheckIn    = "checkIn"
 	EntityTask       = "task"
 	EntityAttachment = "attachment"
+	EntityAgent      = "agent" // Agent 令牌调用
 )
 
 const (

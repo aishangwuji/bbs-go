@@ -1,22 +1,23 @@
 ---
 title: bbs-go 项目业务全景与工程认知
-last_verified: 2026-08-08
+last_verified: 2026-08-11
 ---
 
 <!-- __SYSMAP_INDEX__ -->
-## 文档索引（index_updated: 2026-08-08）
+## 文档索引（index_updated: 2026-08-11）
 | 行号 | 主题 |
 |------|------|
-| L22-L30 |   一、项目定位与仓库关系 |
-| L31-L39 |   二、技术栈（重要认知，与旧版文档不同） |
-| L40-L49 |   三、CI/CD 与部署模型（2026-08-08 起） |
-| L50-L59 |     3.1 fork 与上游的 CI/CD 关系（2026-08-08 merge 后） |
-| L60-L61 |   四、业务规则与已修复问题（本 fork 特有） |
-| L62-L73 |     4.1 用户发帖/评论计数一致性（PR #297） |
-| L74-L80 |     4.2 评论输入框 Firefox 显示 bug（PR #301） |
-| L81-L82 |   五、开发注意（本仓库约定） |
-| L83-L90 |     5.1 分支工作流（2026-08-08 整理后） |
-| L91-L95 |     5.2 其他开发约定 |
+| L23-L31 |   一、项目定位与仓库关系 |
+| L32-L40 |   二、技术栈（重要认知，与旧版文档不同） |
+| L41-L50 |   三、CI/CD 与部署模型（2026-08-08 起） |
+| L51-L60 |     3.1 fork 与上游的 CI/CD 关系（2026-08-08 merge 后） |
+| L61-L62 |   四、业务规则与已修复问题（本 fork 特有） |
+| L63-L74 |     4.1 用户发帖/评论计数一致性（PR #297） |
+| L75-L81 |     4.2 评论输入框 Firefox 显示 bug（PR #301） |
+| L82-L100 |     4.3 Agent 接入模块（Agent Gateway，2026-08-11 新增） |
+| L101-L102 |   五、开发注意（本仓库约定） |
+| L103-L110 |     5.1 分支工作流（2026-08-08 整理后） |
+| L111-L115 |     5.2 其他开发约定 |
 <!-- __SYSMAP_INDEX_END__ -->
 
 ## 一、项目定位与仓库关系
@@ -77,6 +78,25 @@ last_verified: 2026-08-08
 - 根因：`text-editor.tsx` 固定高度 flex 容器中，Firefox 的 `<textarea>` `min-height:auto` 按固有高度计算，无法收缩，顶出工具条。
 - 修复：textarea 加 `min-h-0`；工具条与图片区加 `shrink-0`。
 - 上线验证方式：检查 CSS 产物中 `.min-h-0` 规则是否生成（`min-height:calc(var(--spacing) * 0)`）。
+
+### 4.3 Agent 接入模块（Agent Gateway，2026-08-11 新增）
+
+- **目标**：把管理端能力抽象为 Agent 可调用的 REST 网关，用 `X-agent-token` 鉴权，后台按能力白名单授权，供 AI Agent 自动化运营。
+- **架构**：
+  - 能力注册表 `internal/permissions/agent_capabilities.go`：`server` 启动时从 gin 路由表快照所有 `/api/admin/**` 路由，用 `adminPermissionRules` 映射权限码，派生能力集。**单一数据源**（不另维护副本），新接口上线后自动出现在能力集。
+  - 网关 `internal/server/agent_gateway.go`：为每个能力注册 `/api/agent/<path>`，与 `/api/admin/<path>` 一一对应；`middleware.AgentTokenMiddleware` 校验令牌并注入创建人身份；`agentCapabilityHandler` 校验白名单（未授权返回 errorCode=2）；写操作（非 GET）以创建人为操作者写操作日志。
+  - 令牌模型 `t_agent_token`（只存 sha256 哈希，明文创建时仅返回一次）+ `t_agent_token_api`（method+path 白名单）。
+  - 管理接口 `/api/admin/agent-token/**`：列表/详情/创建/更新/删除/能力清单/授权。**该组接口被能力注册表硬性排除**，绝不暴露给 Agent（防自提权）。
+  - 权限码：`dashboard.agentToken.view/create/update/delete`（GroupSystem，SortNo 1400+），生成前端 `permissions.generated.ts`。
+  - 授权约束：管理员只能授予**自己权限范围内**的能力（owner 除外），防越权放权。
+- **规则**：
+  - 新接口部署后默认不在任何令牌白名单内，需管理员在后台「Agent 接入」勾选授权。
+  - 仅「有权限映射」的管理接口才成为能力；无权限映射的辅助路由（dict/vote 等）不对 Agent 开放。
+  - 安全边界：无/错/吊销令牌 → errorCode=1；未授权 → errorCode=2；agent-token 管理路径 → 不存在。
+- **前端**：`web/app/routes/dashboard.agent-tokens.tsx`（后台「系统 → Agent 接入」），支持创建（令牌一次性展示+复制）、能力授权勾选、吊销/删除。
+- **文档**：`docs/agent-access-skill.md` 为 Agent 调用指南。
+- **测试**：`internal/permissions/agent_capabilities_test.go`、`internal/services/agent_token_service_test.go`、`internal/server/agent_gateway_test.go`（鉴权/白名单/防自提权/新路由默认拒）、`internal/handlers/admin/agent_token_handlers_test.go`（越权放权拒绝）。
+- **注意**：能力集在 `newRouter()` 时构建并写入 `permissions` 包全局；仅在有权限映射的路由快照下生成，agent-token 前缀硬排除。
 
 ## 五、开发注意（本仓库约定）
 

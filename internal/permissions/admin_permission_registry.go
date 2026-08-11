@@ -113,6 +113,14 @@ var (
 		{Method: "POST", Pattern: "/api/admin/user-report/audit", Permissions: []PermissionDefinition{PermissionUserReportAudit}},
 		{Method: "GET", Pattern: "/api/admin/operate-log/*", Permissions: []PermissionDefinition{PermissionOperateLogView}},
 		{Method: "POST", Pattern: "/api/admin/operate-log/list", Permissions: []PermissionDefinition{PermissionOperateLogView}},
+
+		{Method: "GET", Pattern: "/api/admin/agent-token/*", Permissions: []PermissionDefinition{PermissionAgentTokenView}},
+		{Method: "GET", Pattern: "/api/admin/agent-token/*/apis", Permissions: []PermissionDefinition{PermissionAgentTokenView}},
+		{Method: "POST", Pattern: "/api/admin/agent-token/list", Permissions: []PermissionDefinition{PermissionAgentTokenView}},
+		{Method: "POST", Pattern: "/api/admin/agent-token/create", Permissions: []PermissionDefinition{PermissionAgentTokenCreate}},
+		{Method: "POST", Pattern: "/api/admin/agent-token/update", Permissions: []PermissionDefinition{PermissionAgentTokenUpdate}},
+		{Method: "POST", Pattern: "/api/admin/agent-token/delete", Permissions: []PermissionDefinition{PermissionAgentTokenDelete}},
+		{Method: "POST", Pattern: "/api/admin/agent-token/grant", Permissions: []PermissionDefinition{PermissionAgentTokenUpdate}},
 	}
 )
 

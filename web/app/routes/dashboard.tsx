@@ -115,6 +115,10 @@ function dashboardBreadcrumbs(
           title: t("dashboard.nav.emailLogs"),
           url: "/dashboard/email-logs",
         },
+        "agent-tokens": {
+          title: t("dashboard.nav.agentTokens"),
+          url: "/dashboard/agent-tokens",
+        },
       },
     },
   ]

@@ -52,8 +52,11 @@ func newRouter() *gin.Engine {
 	app.Use(cors.New(corsConfig))
 	app.Use(middleware.AttachmentMiddleware)
 
-	registerAPIRoutes(app.Group("/api", middleware.InstallMiddleware, middleware.AuthMiddleware))
+	apiGroup := app.Group("/api", middleware.InstallMiddleware, middleware.AuthMiddleware)
+	registerAPIRoutes(apiGroup)
 	registerAdminRoutes(app.Group("/api/admin", middleware.InstallMiddleware, middleware.AuthMiddleware, middleware.AdminMiddleware))
+	// Agent 网关必须在所有管理端路由注册完成后构建（需快照路由表）。
+	registerAgentRoutes(app, apiGroup)
 
 	app.StaticFS("/res", ginx.StaticFiles(respath.ResDir()))
 	ginx.HandleSPA(app, ginx.SPAOptions{
@@ -438,4 +441,14 @@ func registerAdminRoutes(group *gin.RouterGroup) {
 	voteRecordGroup.POST("/delete", adminHandlers.VoteRecordRemove)
 	voteRecordGroup.GET("/:id", adminHandlers.VoteRecordDetail)
 
+	// Agent 接入令牌管理。此组接口硬性不对 Agent 开放（能力注册表排除 /api/admin/agent-token/**），防自提权。
+	agentTokenGroup := group.Group("/agent-token")
+	agentTokenGroup.GET("/capabilities", adminHandlers.AgentTokenCapabilities)
+	agentTokenGroup.GET("/:id", adminHandlers.AgentTokenDetail)
+	agentTokenGroup.GET("/:id/apis", adminHandlers.AgentTokenApis)
+	agentTokenGroup.POST("/list", adminHandlers.AgentTokenList)
+	agentTokenGroup.POST("/create", adminHandlers.AgentTokenCreate)
+	agentTokenGroup.POST("/update", adminHandlers.AgentTokenUpdate)
+	agentTokenGroup.POST("/delete", adminHandlers.AgentTokenRemove)
+	agentTokenGroup.POST("/grant", adminHandlers.AgentTokenGrant)
 }

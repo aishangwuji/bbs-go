@@ -95,6 +95,7 @@ const enUS = {
       settings: "Settings",
       siteSettings: "Settings",
       emailLogs: "Email Logs",
+      agentTokens: "Agent Access",
     },
     shortcuts: {
       title: "Management",
@@ -831,11 +832,53 @@ const enUS = {
         title: "Role Management",
         description: "Manage roles and assign dashboard permissions.",
       },
+      agentTokens: {
+        title: "Agent Access",
+        description:
+          "Create and manage agent access tokens and grant per-capability permissions.",
+      },
       settings: {
         title: "Settings",
         description:
           "Manage site-wide community, content, login, and notification settings.",
       },
+    },
+    agentTokens: {
+      create: "Create Token",
+      edit: "Edit Token",
+      grant: "Capability Grants",
+      name: "Name",
+      namePlaceholder: "e.g. Auto-audit Agent",
+      nameRequired: "Name is required",
+      remark: "Remark",
+      remarkPlaceholder: "What this token is used for (optional)",
+      expiresAt: "Expires At",
+      expiresAtPlaceholder: "Leave empty to never expire",
+      creator: "Creator",
+      apiCount: "Capabilities",
+      status: "Status",
+      statusActive: "Active",
+      statusRevoked: "Revoked",
+      lastUsedAt: "Last Used",
+      createTime: "Created",
+      actions: "Actions",
+      delete: "Delete",
+      revoke: "Revoke",
+      empty: "No tokens yet",
+      tokenCreated: "Token created",
+      tokenValue: "Token (shown only once, copy it now)",
+      copyToken: "Copy token",
+      copied: "Copied",
+      deleteConfirm:
+        "Delete this token? Its granted capabilities will be removed as well.",
+      revokeConfirm:
+        "Revoking makes the token invalid immediately and cannot be undone. Continue?",
+      saveGrant: "Save Grants",
+      grantSaved: "Grants saved",
+      capabilitiesHint:
+        "Only capabilities you can grant are shown. Newly added endpoints are not granted to any existing token by default.",
+      noCapabilities: "No grantable capabilities within your permission scope",
+      expiredAtInPast: "Expiration cannot be earlier than now",
     },
     user: {
       anonymous: "Guest",

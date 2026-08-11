@@ -159,6 +159,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             url: "/dashboard/email-logs",
             permission: PERMISSIONS.DASHBOARD_EMAIL_LOG_VIEW,
           },
+          {
+            title: t("dashboard.nav.agentTokens"),
+            url: "/dashboard/agent-tokens",
+            permission: PERMISSIONS.DASHBOARD_AGENT_TOKEN_VIEW,
+          },
         ],
       },
     ],

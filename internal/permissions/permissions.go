@@ -114,6 +114,11 @@ var (
 
 	PermissionEmailLogView   = PermissionDefinition{Type: TypeDashboard, Code: "dashboard.emailLog.view", GroupName: GroupSystem, SortNo: 1300, NameEn: "View Email Logs", NameZh: "查看邮件日志"}
 	PermissionOperateLogView = PermissionDefinition{Type: TypeDashboard, Code: "dashboard.operateLog.view", GroupName: GroupSystem, SortNo: 1310, NameEn: "View Operation Logs", NameZh: "查看操作日志"}
+
+	PermissionAgentTokenView   = PermissionDefinition{Type: TypeDashboard, Code: "dashboard.agentToken.view", GroupName: GroupSystem, SortNo: 1400, NameEn: "View Agent Tokens", NameZh: "查看 Agent 令牌"}
+	PermissionAgentTokenCreate = PermissionDefinition{Type: TypeDashboard, Code: "dashboard.agentToken.create", GroupName: GroupSystem, SortNo: 1410, NameEn: "Create Agent Tokens", NameZh: "创建 Agent 令牌"}
+	PermissionAgentTokenUpdate = PermissionDefinition{Type: TypeDashboard, Code: "dashboard.agentToken.update", GroupName: GroupSystem, SortNo: 1420, NameEn: "Update & Grant Agent Tokens", NameZh: "编辑/授权 Agent 令牌"}
+	PermissionAgentTokenDelete = PermissionDefinition{Type: TypeDashboard, Code: "dashboard.agentToken.delete", GroupName: GroupSystem, SortNo: 1430, NameEn: "Delete Agent Tokens", NameZh: "删除 Agent 令牌"}
 )
 
 var Permissions = []PermissionDefinition{
@@ -177,6 +182,10 @@ var Permissions = []PermissionDefinition{
 	PermissionUserReportView,
 	PermissionUserReportAudit,
 	PermissionOperateLogView,
+	PermissionAgentTokenView,
+	PermissionAgentTokenCreate,
+	PermissionAgentTokenUpdate,
+	PermissionAgentTokenDelete,
 }
 
 func FindByCode(code string) (PermissionDefinition, bool) {
