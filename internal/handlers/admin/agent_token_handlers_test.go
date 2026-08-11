@@ -136,6 +136,36 @@ func postAgentTokenGrant(t *testing.T, body string, currentUser *models.User) gr
 	return result
 }
 
+func TestAgentTokenList_PagesWithoutPanic(t *testing.T) {
+	db := setupAgentTokenHandlerTest(t)
+	owner := mustCreateAdmin(t, db, 1, "owner", constants.RoleOwner)
+	mustCreateAgentTokenForHandler(t, 1, owner.Id)
+
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(w)
+	ctx.Request = httptest.NewRequest(http.MethodPost, "/api/admin/agent-token/list?page=1&limit=10", nil)
+	common.SetCurrentUser(ctx, owner)
+
+	AgentTokenList(ctx)
+
+	var result struct {
+		Success bool `json:"success"`
+		Data    struct {
+			Results []map[string]interface{} `json:"results"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &result); err != nil {
+		t.Fatalf("decode response %q: %v", w.Body.String(), err)
+	}
+	if !result.Success {
+		t.Fatalf("expected success, got %s", w.Body.String())
+	}
+	if len(result.Data.Results) != 1 {
+		t.Fatalf("expected 1 token in list, got %d", len(result.Data.Results))
+	}
+}
+
 func TestAgentTokenGrant_OwnerCanGrantRegisteredCapability(t *testing.T) {
 	db := setupAgentTokenHandlerTest(t)
 	owner := mustCreateAdmin(t, db, 1, "owner", constants.RoleOwner)

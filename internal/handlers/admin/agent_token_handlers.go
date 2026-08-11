@@ -77,7 +77,7 @@ func AgentTokenDetail(ctx *gin.Context) {
 }
 
 func AgentTokenList(ctx *gin.Context) {
-	list, paging := services.AgentTokenService.FindPageByParams(params.NewQueryParams(ctx).Desc("id"))
+	list, paging := services.AgentTokenService.FindPageByParams(params.NewQueryParams(ctx).PageByReq().Desc("id"))
 	results := make([]agentTokenVO, 0, len(list))
 	for _, t := range list {
 		results = append(results, buildAgentTokenVO(&t))
