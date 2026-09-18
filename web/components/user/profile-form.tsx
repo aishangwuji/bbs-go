@@ -4,13 +4,14 @@ import * as React from "react"
 
 import { saveProfileAction, type UserActionState } from "@/lib/actions/user"
 import { AvatarEdit } from "@/components/user/image-upload"
+import { Signature } from "@/components/common/signature"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { useAppState, useAppConfig } from "@/components/app/app-provider"
 import { useRequiredUser } from "@/components/auth/require-user"
-import { apiFetch } from "@/lib/api/client"
+import { apiFetch, toFormData } from "@/lib/api/client"
 import type { UserSummary } from "@/lib/api/types"
 import { useI18n } from "@/lib/i18n/provider"
 import { toast } from "@/lib/toast"
@@ -36,6 +37,46 @@ export function ProfileForm({ user: initialUser }: { user?: UserSummary }) {
     saveProfileAction,
     initialState
   )
+  // 签名实时预览：走后端同一套消毒策略（POST /api/user/signature/preview），
+  // 前端不自行解析 Markdown，避免预览与最终渲染不一致或绕过 XSS 防护。
+  const [previewHtml, setPreviewHtml] = React.useState("")
+  const [previewError, setPreviewError] = React.useState("")
+
+  React.useEffect(() => {
+    const markdown = profile.signature.trim()
+    if (!canEditSignature || !markdown) {
+      setPreviewHtml("")
+      setPreviewError("")
+      return
+    }
+    let cancelled = false
+    const timer = window.setTimeout(() => {
+      apiFetch<{ html: string }>("/api/user/signature/preview", {
+        method: "POST",
+        body: toFormData({ signature: markdown }),
+      })
+        .then((result) => {
+          if (!cancelled) {
+            setPreviewHtml(result?.html || "")
+            setPreviewError("")
+          }
+        })
+        .catch((error) => {
+          if (!cancelled) {
+            setPreviewHtml("")
+            setPreviewError(
+              error instanceof Error
+                ? error.message
+                : t("user.profile.signaturePreviewFailed")
+            )
+          }
+        })
+    }, 400)
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+    }
+  }, [canEditSignature, profile.signature, t])
 
   React.useEffect(() => {
     setAvatar(user.avatar || "")
@@ -162,14 +203,21 @@ export function ProfileForm({ user: initialUser }: { user?: UserSummary }) {
             ? `${t("user.profile.signatureTip")} · ${profile.signature.length}/200`
             : t("user.profile.signatureLockedTip", { level: signatureMinLevel })}
         </p>
-        {canEditSignature && profile.signature ? (
+        {canEditSignature ? (
           <div className="rounded-md border bg-muted/30 p-3">
-            <p className="mb-1 text-xs font-medium text-muted-foreground">
+            <p className="mb-2 text-xs font-medium text-muted-foreground">
               {t("user.profile.signaturePreview")}
             </p>
-            <p className="text-xs text-muted-foreground">
-              {t("user.profile.signaturePreviewHelp")}
-            </p>
+            {previewHtml ? (
+              <Signature html={previewHtml} className="mt-0" />
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                {t("user.profile.signaturePreviewHelp")}
+              </p>
+            )}
+            {previewError ? (
+              <p className="mt-1 text-xs text-destructive">{previewError}</p>
+            ) : null}
           </div>
         ) : null}
       </div>

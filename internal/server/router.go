@@ -153,6 +153,8 @@ func registerAPIRoutes(group *gin.RouterGroup) {
 	userGroup.POST("/set_email", apiHandlers.UserSetEmail)
 	userGroup.POST("/set_password", apiHandlers.UserSetPassword)
 	userGroup.POST("/update_password", apiHandlers.UserUpdatePassword)
+	// 个性签名 Markdown 实时预览：与展示链路共用同一消毒策略，保证所见即所得
+	userGroup.POST("/signature/preview", apiHandlers.UserSignaturePreview)
 	userGroup.POST("/set_background_image", apiHandlers.UserSetBackgroundImage)
 	userGroup.GET("/favorites", apiHandlers.UserFavorites)
 	userGroup.GET("/msg_recent", apiHandlers.UserMsgRecent)

@@ -1897,8 +1897,8 @@ const enUS = {
       signatureLockedTip:
         "Reach level {level} to unlock signature, check level in Tasks",
       signaturePreview: "Preview",
-      signaturePreviewHelp:
-        "Signature will appear below each reply, height-limited and overflow hidden",
+      signaturePreviewHelp: "Live preview appears as you type Markdown",
+      signaturePreviewFailed: "Failed to generate preview",
       homepage: "Homepage",
       homepagePlaceholder: "Enter your homepage URL",
       score: "Points",

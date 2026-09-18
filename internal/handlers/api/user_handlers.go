@@ -9,6 +9,7 @@ import (
 	"bbs-go/internal/pkg/errs"
 	"bbs-go/internal/pkg/idcodec"
 	"bbs-go/internal/pkg/locales"
+	"bbs-go/internal/pkg/markdown"
 	"bbs-go/internal/pkg/msg"
 	"bbs-go/internal/pkg/validate"
 	"strconv"
@@ -202,6 +203,25 @@ func UserSetPassword(ctx *gin.Context) {
 	}
 	ginx.WriteJSON(ctx, nil)
 
+}
+
+// UserSignaturePreview 个性签名 Markdown 实时预览
+// 为什么放在后端：预览必须与楼层展示走同一套 lute+bluemonday 消毒策略，
+// 否则前端自行解析 Markdown 会绕过安全边界（P0）。返回的是已消毒 HTML。
+func UserSignaturePreview(ctx *gin.Context) {
+	user := common.GetCurrentUser(ctx)
+	if user == nil {
+		ginx.WriteJSON(ctx, errs.NotLogin())
+		return
+	}
+	signature := strings.TrimSpace(params.FormValue(ctx, "signature"))
+	if utf8.RuneCountInString(signature) > 200 {
+		ginx.WriteJSON(ctx, ginx.ErrorMessage("个性签名不能超过 200 字符"))
+		return
+	}
+	ginx.WriteJSON(ctx, map[string]any{
+		"html": markdown.ToSignatureHTML(signature),
+	})
 }
 
 func UserUpdatePassword(ctx *gin.Context) {
