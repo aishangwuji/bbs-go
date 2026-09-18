@@ -60,7 +60,7 @@ type ArticleRecord = AdminRecord & {
   }>
 }
 
-type ArticleAction = "audit" | "delete"
+type ArticleAction = "audit" | "delete" | "undelete"
 
 function articleStatusLabel(
   t: ReturnType<typeof useI18n>["t"],
@@ -76,6 +76,7 @@ function articleActionSuccessMessage(
   action: ArticleAction
 ) {
   if (action === "audit") return t("dashboard.messages.audited")
+  if (action === "undelete") return t("dashboard.messages.restored")
   return t("dashboard.messages.deleted")
 }
 
@@ -143,6 +144,7 @@ export default function DashboardArticlesRoute() {
   function runAction(article: ArticleRecord, action: ArticleAction) {
     if (action === "audit" && !canAudit) return
     if (action === "delete" && !canDelete) return
+    if (action === "undelete" && !canDelete) return
 
     if (action === "delete") {
       setConfirmState({
@@ -164,12 +166,13 @@ export default function DashboardArticlesRoute() {
 
     setError(null)
     try {
-      await adminPostForm(
-        action === "audit"
+      // 话题侧 delete/undelete/audit 为三独立接口；文章侧暂无 undelete，仅用 audit 恢复（同为 status -> 0）
+      // 后端 ArticleAudit 已可恢复 status=1 的删除态，与话题的 Undelete 等价
+      const endpoint =
+        action === "audit" || action === "undelete"
           ? "/api/admin/article/audit"
-          : "/api/admin/article/delete",
-        { id }
-      )
+          : "/api/admin/article/delete"
+      await adminPostForm(endpoint, { id })
       msgSuccess(articleActionSuccessMessage(t, action))
       await load()
     } catch (err) {
@@ -415,7 +418,17 @@ function ArticleFeedItem({
               {t("dashboard.actions.audit")}
             </Button>
           ) : null}
-          {permissions.delete ? (
+          {permissions.delete && article.status === 1 ? (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => onAction("undelete")}
+            >
+              <Undo2Icon />
+              {t("dashboard.actions.undelete")}
+            </Button>
+          ) : null}
+          {permissions.delete && (article.status === 0 || article.status === 2) ? (
             <Button
               size="sm"
               variant="destructive"
