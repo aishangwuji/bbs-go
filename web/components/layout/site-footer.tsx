@@ -72,17 +72,7 @@ export function SiteFooter() {
               })}
             </div>
           ) : null}
-          <div className="footer-powered">
-            <span>{t("common.footer.poweredBy")}</span>
-            <a
-              href="https://bbs-go.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="light"
-            >
-              BBS-GO
-            </a>
-          </div>
+          {/* 去品牌化 2026-09-18：已移除 Powered by BBS-GO（原外链 https://bbs-go.com） */}
         </footer>
       </div>
     </section>
