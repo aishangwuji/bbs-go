@@ -46,6 +46,7 @@ user:
   gender_error: "性别数据错误"
   homepage_error: "个人主页地址错误"
   avatar_empty: "头像不能为空"
+  signature_level_required: "达到 %d 级才可设置个性签名"
   upload_image_required: "请上传图片"
   email_verified: "用户邮箱已验证"
   email_required: "请输入邮箱"

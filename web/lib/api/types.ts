@@ -20,6 +20,8 @@ export interface UserSummary {
   avatar?: string
   smallAvatar?: string
   description?: string
+  signature?: string
+  signatureHtml?: string
   backgroundImage?: string
   smallBackgroundImage?: string
   homePage?: string
@@ -209,6 +211,7 @@ export interface SiteConfig {
   linkPageConfig?: {
     showFavicon?: boolean
   }
+  signatureMinLevel?: number
   modules?: {
     tweet?: boolean
     topic?: boolean

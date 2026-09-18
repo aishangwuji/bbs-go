@@ -10,6 +10,7 @@ import (
 	"bbs-go/internal/pkg/bbsurls"
 	"bbs-go/internal/pkg/idcodec"
 	"bbs-go/internal/pkg/locales"
+	"bbs-go/internal/pkg/markdown"
 	"bbs-go/internal/services"
 	"strconv"
 	"strings"
@@ -37,20 +38,22 @@ func BuildUserInfo(user *models.User) *resp.UserInfo {
 		return nil
 	}
 	ret := &resp.UserInfo{
-		Id:           idcodec.Encode(user.Id),
-		Nickname:     user.Nickname,
-		Gender:       user.Gender,
-		Birthday:     user.Birthday,
-		TopicCount:   user.TopicCount,
-		CommentCount: user.CommentCount,
-		FansCount:    user.FansCount,
-		FollowCount:  user.FollowCount,
-		Score:        user.Score,
-		Exp:          user.Exp,
-		Level:        user.Level,
-		Description:  user.Description,
-		CreateTime:   user.CreateTime,
-		Forbidden:    user.IsForbidden(),
+		Id:            idcodec.Encode(user.Id),
+		Nickname:      user.Nickname,
+		Gender:        user.Gender,
+		Birthday:      user.Birthday,
+		TopicCount:    user.TopicCount,
+		CommentCount:  user.CommentCount,
+		FansCount:     user.FansCount,
+		FollowCount:   user.FollowCount,
+		Score:         user.Score,
+		Exp:           user.Exp,
+		Level:         user.Level,
+		Description:   user.Description,
+		Signature:     user.Signature,
+		SignatureHtml: markdown.ToSignatureHTML(user.Signature),
+		CreateTime:    user.CreateTime,
+		Forbidden:     user.IsForbidden(),
 	}
 	if strs.IsNotBlank(user.Avatar) {
 		ret.Avatar = user.Avatar
@@ -71,6 +74,8 @@ func BuildUserInfo(user *models.User) *resp.UserInfo {
 	if user.Status == constants.StatusDeleted {
 		ret.Nickname = locales.Get("user.blacklist")
 		ret.Description = ""
+		ret.Signature = ""
+		ret.SignatureHtml = ""
 		ret.Score = 0
 		ret.Exp = 0
 		ret.Level = 0
@@ -89,6 +94,8 @@ func redactForbiddenUserInfo(userInfo *resp.UserInfo) {
 	userInfo.Avatar = ""
 	userInfo.SmallAvatar = ""
 	userInfo.Description = ""
+	userInfo.Signature = ""
+	userInfo.SignatureHtml = ""
 }
 
 // buildExpProgress 根据用户当前经验与等级配置，计算当前等级内经验进度（用于进度条与文案展示）

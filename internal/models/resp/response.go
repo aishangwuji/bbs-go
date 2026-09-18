@@ -24,6 +24,8 @@ type UserInfo struct {
 	Level        int              `json:"level"`        // 等级
 	LevelTitle   string           `json:"levelTitle"`   // 等级称号
 	Description  string           `json:"description"`
+	Signature    string           `json:"signature"`    // 个性签名（Markdown 原文）
+	SignatureHtml string          `json:"signatureHtml"` // 个性签名渲染后的安全 HTML（lute+bluemonday 白名单）
 	CreateTime   int64            `json:"createTime"`
 
 	Forbidden bool `json:"forbidden"` // 是否禁言

@@ -2290,6 +2290,7 @@ function PageSettings({
       linkPageConfig: {
         showFavicon,
       },
+      signatureMinLevel: getNumber(settings.signatureMinLevel) || 3,
     })
   }
 
@@ -2321,6 +2322,26 @@ function PageSettings({
               onChange={(event) => updateAbout("en-US", event.target.value)}
             />
           </Field>
+        </CardContent>
+      </Card>
+
+      <Card size="sm" className="gap-4 bg-[var(--dashboard-panel)] shadow-xs">
+        <CardHeader className="border-b pb-4">
+          <CardTitle>{s("page.signatureTitle")}</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-5">
+          <Field label={s("page.signatureMinLevel")}>
+            <TooltipNumberInput
+              value={getNumber(settings.signatureMinLevel) || 3}
+              min={0}
+              max={100}
+              tooltip={s("page.signatureMinLevelTooltip")}
+              onChange={(value) => update("signatureMinLevel", value)}
+            />
+          </Field>
+          <p className="text-xs text-muted-foreground">
+            {s("page.signatureMinLevelHelp")}
+          </p>
         </CardContent>
       </Card>
 

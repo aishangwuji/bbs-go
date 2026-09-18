@@ -14,6 +14,7 @@ type SysConfigAdminResponse struct {
 	AboutPageConfig            AboutPageConfig             `json:"aboutPageConfig"`
 	FooterLinks                []FooterLink                `json:"footerLinks"`
 	LinkPageConfig             LinkPageConfig              `json:"linkPageConfig"`
+	SignatureMinLevel          int                         `json:"signatureMinLevel"`
 	RecommendTags              []string                    `json:"recommendTags"`
 	UrlRedirect                bool                        `json:"urlRedirect"`
 	DefaultCategoryId          int64                       `json:"defaultCategoryId"`
@@ -55,6 +56,7 @@ type SysConfigOpenResponse struct {
 	SiteNotification           string            `json:"siteNotification"`
 	FooterLinks                []FooterLink      `json:"footerLinks"`
 	LinkPageConfig             LinkPageConfig    `json:"linkPageConfig"`
+	SignatureMinLevel          int               `json:"signatureMinLevel"`
 	RecommendTags              []string          `json:"recommendTags"`
 	UrlRedirect                bool              `json:"urlRedirect"`
 	DefaultCategoryId          int64             `json:"defaultCategoryId"`

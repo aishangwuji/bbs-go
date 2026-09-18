@@ -95,6 +95,11 @@ func (s *sysConfigService) SetAll(configStr string) error {
 			return err
 		}
 	}
+	if signatureMinLevel := json.Get(constants.SysConfigSignatureMinLevel); signatureMinLevel.Exists() {
+		if err := validateSignatureMinLevel(signatureMinLevel.String()); err != nil {
+			return err
+		}
+	}
 	if scriptInjections := json.Get(constants.SysConfigScriptInjections); scriptInjections.Exists() {
 		if err := validateScriptInjections(scriptInjections.String()); err != nil {
 			return err
@@ -311,6 +316,23 @@ func (s *sysConfigService) GetLinkPageConfig() dto.LinkPageConfig {
 		return dto.LinkPageConfig{ShowFavicon: true}
 	}
 	return cfg
+}
+
+func (s *sysConfigService) GetSignatureMinLevel() int {
+	// 默认 3 级可设签名，0 表示不限制
+	val := cache.SysConfigCache.GetInt(constants.SysConfigSignatureMinLevel)
+	if val < 0 {
+		return 0
+	}
+	if val == 0 {
+		// 未配置时返回默认 3，避免新功能对低等级用户过度开放
+		// 若管理员显式设为 0，则表示不限制
+		str := cache.SysConfigCache.GetStr(constants.SysConfigSignatureMinLevel)
+		if strings.TrimSpace(str) == "" {
+			return 3
+		}
+	}
+	return val
 }
 
 // GetEmailWhitelist 邮箱白名单
@@ -537,6 +559,23 @@ func validateLinkPageConfig(linkPageConfigJSON string) error {
 	var cfg dto.LinkPageConfig
 	if err := jsons.Parse(linkPageConfigJSON, &cfg); err != nil {
 		return errors.New("invalid link page config data format")
+	}
+	return nil
+}
+
+func validateSignatureMinLevel(signatureMinLevelJSON string) error {
+	if strings.TrimSpace(signatureMinLevelJSON) == "" {
+		return nil
+	}
+	var level int
+	if err := jsons.Parse(signatureMinLevelJSON, &level); err != nil {
+		// 兼容直接传数字字符串或 JSON 数字
+		if _, err2 := fmt.Sscanf(signatureMinLevelJSON, "%d", &level); err2 != nil {
+			return errors.New("invalid signature min level data format")
+		}
+	}
+	if level < 0 || level > 100 {
+		return errors.New("signature min level must be between 0 and 100")
 	}
 	return nil
 }

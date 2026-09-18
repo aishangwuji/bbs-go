@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { useAppState } from "@/components/app/app-provider"
+import { useAppState, useAppConfig } from "@/components/app/app-provider"
 import { useRequiredUser } from "@/components/auth/require-user"
 import { apiFetch } from "@/lib/api/client"
 import type { UserSummary } from "@/lib/api/types"
@@ -21,12 +21,16 @@ export function ProfileForm({ user: initialUser }: { user?: UserSummary }) {
   const { t } = useI18n()
   const requiredUser = useRequiredUser()
   const { setCurrentUser } = useAppState()
+  const config = useAppConfig()
   const user = initialUser || requiredUser
+  const signatureMinLevel = config?.signatureMinLevel ?? 3
+  const canEditSignature = (user.level || 0) >= signatureMinLevel
   const [avatar, setAvatar] = React.useState(user.avatar || "")
   const [profile, setProfile] = React.useState({
     nickname: user.nickname || "",
     description: user.description || "",
     homePage: user.homePage || "",
+    signature: (user as unknown as { signature?: string }).signature || "",
   })
   const [state, action, pending] = React.useActionState(
     saveProfileAction,
@@ -39,8 +43,17 @@ export function ProfileForm({ user: initialUser }: { user?: UserSummary }) {
       nickname: user.nickname || "",
       description: user.description || "",
       homePage: user.homePage || "",
+      signature:
+        (user as unknown as { signature?: string }).signature || "",
     })
-  }, [user.avatar, user.description, user.homePage, user.id, user.nickname])
+  }, [
+    user.avatar,
+    user.description,
+    (user as unknown as { signature?: string }).signature,
+    user.homePage,
+    user.id,
+    user.nickname,
+  ])
 
   React.useEffect(() => {
     if (state.ok) {
@@ -50,6 +63,8 @@ export function ProfileForm({ user: initialUser }: { user?: UserSummary }) {
           nickname: state.profile.nickname,
           description: state.profile.description,
           homePage: state.profile.homePage,
+          signature: (state.profile as unknown as { signature?: string })
+            .signature || "",
         })
         setCurrentUser((current) =>
           current ? { ...current, ...state.profile } : current
@@ -96,7 +111,7 @@ export function ProfileForm({ user: initialUser }: { user?: UserSummary }) {
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="description">{t("user.profile.signature")}</Label>
+        <Label htmlFor="description">{t("user.profile.brief")}</Label>
         <Textarea
           id="description"
           name="description"
@@ -105,8 +120,58 @@ export function ProfileForm({ user: initialUser }: { user?: UserSummary }) {
             updateProfile({ description: event.currentTarget.value })
           }
           rows={3}
-          placeholder={t("user.profile.signaturePlaceholder")}
+          placeholder={t("user.profile.briefPlaceholder")}
         />
+        <p className="text-xs text-muted-foreground">
+          {t("user.profile.briefHelp")}
+        </p>
+      </div>
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <Label htmlFor="signature">{t("user.profile.signature")}</Label>
+          <span className="text-xs text-muted-foreground">
+            {canEditSignature
+              ? t("user.profile.signatureHelp", { level: signatureMinLevel })
+              : t("user.profile.signatureLocked", {
+                  level: signatureMinLevel,
+                  current: user.level || 0,
+                })}
+          </span>
+        </div>
+        <Textarea
+          id="signature"
+          name="signature"
+          value={profile.signature}
+          onChange={(event) =>
+            updateProfile({ signature: event.currentTarget.value })
+          }
+          rows={3}
+          maxLength={200}
+          disabled={!canEditSignature}
+          placeholder={
+            canEditSignature
+              ? t("user.profile.signaturePlaceholderMarkdown")
+              : t("user.profile.signatureLockedPlaceholder", {
+                  level: signatureMinLevel,
+                })
+          }
+          className={!canEditSignature ? "opacity-60" : ""}
+        />
+        <p className="text-xs text-muted-foreground">
+          {canEditSignature
+            ? `${t("user.profile.signatureTip")} · ${profile.signature.length}/200`
+            : t("user.profile.signatureLockedTip", { level: signatureMinLevel })}
+        </p>
+        {canEditSignature && profile.signature ? (
+          <div className="rounded-md border bg-muted/30 p-3">
+            <p className="mb-1 text-xs font-medium text-muted-foreground">
+              {t("user.profile.signaturePreview")}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {t("user.profile.signaturePreviewHelp")}
+            </p>
+          </div>
+        ) : null}
       </div>
       <div className="space-y-2">
         <Label htmlFor="homePage">{t("user.profile.homepage")}</Label>

@@ -16,6 +16,7 @@ export interface UserActionState {
     nickname: string
     description: string
     homePage: string
+    signature: string
   }
 }
 
@@ -91,12 +92,14 @@ export async function saveProfileAction(
     nickname: formString(formData, "nickname"),
     description: formString(formData, "description"),
     homePage: formString(formData, "homePage"),
+    signature: formString(formData, "signature"),
   }
   const body = toFormData({
     avatar: profile.avatar,
     nickname: profile.nickname,
     description: profile.description,
     homePage: profile.homePage,
+    signature: profile.signature,
   })
 
   try {

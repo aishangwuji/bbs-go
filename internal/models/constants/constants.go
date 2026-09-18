@@ -67,6 +67,7 @@ const (
 	SysConfigScriptInjections           = "scriptInjections"           // head脚本注入配置
 	SysConfigTopicListStyle             = "topicListStyle"             // 帖子列表样式
 	SysConfigLinkPageConfig             = "linkPageConfig"             // 友情链接页配置（是否显示 favicon）
+	SysConfigSignatureMinLevel          = "signatureMinLevel"          // 个性签名最低等级门槛（默认 3，0 表示不限制）
 	SysConfigEnableQaBounty             = "enableQaBounty"             // 是否开启问答悬赏
 	SysConfigQaBountyMin                = "qaBountyMin"                // 问答悬赏积分下限
 	SysConfigQaBountyMax                = "qaBountyMax"                // 问答悬赏积分上限

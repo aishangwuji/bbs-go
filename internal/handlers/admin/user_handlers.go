@@ -10,6 +10,8 @@ import (
 	"bbs-go/internal/pkg/locales"
 	"bbs-go/internal/repositories"
 	"strconv"
+	"strings"
+	"unicode/utf8"
 
 	"github.com/gin-gonic/gin"
 
@@ -153,6 +155,13 @@ func UserUpdate(ctx *gin.Context) {
 	user.Gender = constants.Gender(req.Gender)
 	user.HomePage = req.HomePage
 	user.Description = req.Description
+	// 个性签名：管理员可代为编辑/清空（治理用途），长度与用户侧一致限制 200 字符
+	signature := strings.TrimSpace(req.Signature)
+	if utf8.RuneCountInString(signature) > 200 {
+		ginx.WriteJSON(ctx, ginx.ErrorMessage("个性签名不能超过 200 字符"))
+		return
+	}
+	user.Signature = signature
 	user.Status = req.Status
 
 	if err := services.UserService.Update(user); err != nil {

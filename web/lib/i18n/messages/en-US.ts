@@ -626,6 +626,12 @@ const enUS = {
         showFavicon: "Show Favicon",
         showFaviconHelp:
           "When enabled, the link list will fetch favicons in real time via external services (e.g. Google S2) without local storage.",
+        signatureTitle: "Signature",
+        signatureMinLevel: "Minimum Level",
+        signatureMinLevelTooltip:
+          "Users at or above this level can set a signature. 0 means no restriction.",
+        signatureMinLevelHelp:
+          "Signature supports Markdown (links/bold/images). Rendered output is strictly sanitized against XSS and height-limited in replies.",
         footerLinksTitle: "Footer Links and Info",
         addFooterLink: "Add Footer Item",
         remove: "Remove",
@@ -712,6 +718,7 @@ const enUS = {
       permissions: "Permissions",
       homePage: "Homepage",
       description: "Description",
+      signature: "Signature",
       status: "Status",
       createTime: "Created",
       updateTime: "Updated",
@@ -1875,8 +1882,23 @@ const enUS = {
       nickname: "Nickname",
       nicknamePlaceholder: "Enter a nickname",
       username: "Username",
+      brief: "Bio",
+      briefPlaceholder: "Briefly introduce yourself",
+      briefHelp: "Short bio shown on your profile page",
       signature: "Signature",
       signaturePlaceholder: "Briefly introduce yourself",
+      signaturePlaceholderMarkdown:
+        "Markdown: [text](https://example.com) **bold** ![alt](https://...), max 200 chars",
+      signatureHelp: "Requires level {level}, supports Markdown links & images",
+      signatureLocked: "Requires level {level} (current {current})",
+      signatureLockedPlaceholder:
+        "Reach level {level} to set a signature",
+      signatureTip: "Markdown supported, links auto nofollow, images height-limited",
+      signatureLockedTip:
+        "Reach level {level} to unlock signature, check level in Tasks",
+      signaturePreview: "Preview",
+      signaturePreviewHelp:
+        "Signature will appear below each reply, height-limited and overflow hidden",
       homepage: "Homepage",
       homepagePlaceholder: "Enter your homepage URL",
       score: "Points",

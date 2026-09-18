@@ -28,6 +28,7 @@ import {
   TextEditor,
   type TextEditorRef,
 } from "@/components/comment/text-editor"
+import { Signature } from "@/components/common/signature"
 import { apiFetch, toFormData } from "@/lib/api/client"
 import type { Comment, EntityId, ImageInfo, PageData } from "@/lib/api/types"
 import { PERMISSIONS } from "@/lib/auth/permissions.generated"
@@ -66,6 +67,17 @@ function commentContent(comment: Comment, size: "normal" | "small" = "normal") {
   }
 
   return <HtmlImagePreview html={comment.content} className={className} />
+}
+
+// CommentSignature 楼层个性签名
+// 数据来源：后端 BuildUserInfo 已用 lute+bluemonday 白名单渲染为 signatureHtml（防 XSS）
+// 安全：此处渲染的是服务端消毒后的 HTML，前端不再二次解析 Markdown
+// 视觉：.bbs-signature 负责虚线分隔 + 限高 + 褪色，避免签名喧宾夺主
+function CommentSignature({ html }: { html?: string }) {
+  if (!html) {
+    return null
+  }
+  return <Signature html={html} />
 }
 
 function CommentImages({
@@ -742,6 +754,8 @@ function CommentItem({
             {commentContent(comment)}
             <CommentImages images={comment.imageList} />
           </div>
+          {/* 楼层签名：正文之后、操作栏之前，与正文视觉隔离 */}
+          <CommentSignature html={comment.user?.signatureHtml} />
           <div className="mt-2.5 flex flex-wrap items-center gap-2.5">
             <button
               type="button"

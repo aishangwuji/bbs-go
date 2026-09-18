@@ -111,6 +111,11 @@ export default function DashboardUsersRoute() {
         type: "textarea",
       },
       {
+        name: "signature",
+        label: dashboardData.label(t, "signature"),
+        type: "textarea",
+      },
+      {
         name: "roleIds",
         label: dashboardData.label(t, "roles"),
         type: "multiselect",

@@ -108,4 +108,58 @@
     padding: 0.75rem 1rem;
     text-align: left;
   }
+
+  /* 个性签名：楼层处视觉隔离 + 高度限制，防喧宾夺主/刷屏 */
+  .bbs-signature {
+    margin-top: 0.6rem;
+    border-top: 1px dashed var(--border);
+    padding-top: 0.4rem;
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+    line-height: 1.5;
+    max-height: 60px;
+    overflow: hidden;
+    word-break: break-word;
+  }
+
+  /* 签名内部的 Markdown 产物收敛：去除大边距，限制图片尺寸 */
+  .bbs-signature p,
+  .bbs-signature span,
+  .bbs-signature blockquote,
+  .bbs-signature ul,
+  .bbs-signature ol {
+    margin: 0;
+    padding: 0;
+  }
+
+  .bbs-signature ul,
+  .bbs-signature ol {
+    padding-left: 1rem;
+    list-style: disc;
+  }
+
+  .bbs-signature a {
+    color: var(--primary);
+    text-decoration: none;
+  }
+
+  .bbs-signature a:hover {
+    text-decoration: underline;
+  }
+
+  .bbs-signature img {
+    display: inline-block;
+    max-height: 30px;
+    width: auto;
+    border-radius: 3px;
+    vertical-align: middle;
+  }
+
+  .bbs-signature pre,
+  .bbs-signature code {
+    background: var(--muted);
+    border-radius: 3px;
+    padding: 0 0.25em;
+    font-size: 0.95em;
+  }
 }

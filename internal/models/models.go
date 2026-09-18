@@ -114,6 +114,7 @@ type User struct {
 	Password         string           `gorm:"size:512" json:"password" form:"password"`                            // 密码
 	HomePage         string           `gorm:"size:1024" json:"homePage" form:"homePage"`                           // 个人主页
 	Description      string           `gorm:"type:text" json:"description" form:"description"`                     // 个人描述
+	Signature        string           `gorm:"type:text" json:"signature" form:"signature"`                         // 个性签名（Markdown 原文，展示时转 HTML 并严格消毒）
 	Score            int              `gorm:"type:int;not null;index:idx_user_score" json:"score" form:"score"`    // 积分
 	Exp              int              `gorm:"type:int;not null;default:0" json:"exp" form:"exp"`                   // 经验
 	Level            int              `gorm:"type:int;not null;default:1" json:"level" form:"level"`               // 等级（从 1 开始）

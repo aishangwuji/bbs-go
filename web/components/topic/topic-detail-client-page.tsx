@@ -4,6 +4,7 @@ import * as React from "react"
 
 import { MainShell } from "@/components/layout/main-shell"
 import { PageError, PageLoading } from "@/components/common/page-state"
+import { Signature } from "@/components/common/signature"
 import { TopicActionProvider } from "@/components/topic/topic-action-context"
 import { TopicAttachments } from "@/components/topic/topic-attachments"
 import { TopicComments } from "@/components/topic/topic-comments"
@@ -167,6 +168,11 @@ export function TopicDetailClientPage({
               <TopicMeta topic={topic} currentUser={currentUser} t={t} />
             </div>
             <TopicContent topic={topic} />
+            {topic.user?.signatureHtml ? (
+              <div className="mx-4 mb-4">
+                <Signature html={topic.user.signatureHtml} />
+              </div>
+            ) : null}
             <div className="mx-4 mb-4">
               <TopicHideContentLive
                 topicId={topic.id}

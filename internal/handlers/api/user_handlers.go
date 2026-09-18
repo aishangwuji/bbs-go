@@ -78,6 +78,7 @@ func UserUpdate(ctx *gin.Context) {
 	homePage := req.HomePage
 	description := req.Description
 	gender := strings.TrimSpace(req.Gender)
+	signature := strings.TrimSpace(req.Signature)
 
 	var (
 		minLength = constants.NicknameMinLengthEnUS
@@ -104,11 +105,28 @@ func UserUpdate(ctx *gin.Context) {
 		return
 	}
 
+	// 个性签名：长度与等级门槛校验（存储 Markdown 原文，展示时 lute+bluemonday 渲染）
+	// 设计：签名变更低频，长度 200 字符防刷屏；等级门槛由 t_sys_config signatureMinLevel 控制（默认 3）
+	if signature != strings.TrimSpace(user.Signature) {
+		if utf8.RuneCountInString(signature) > 200 {
+			ginx.WriteJSON(ctx, ginx.ErrorMessage("个性签名不能超过 200 字符"))
+			return
+		}
+		if strs.IsNotBlank(signature) {
+			minLevel := services.SysConfigService.GetSignatureMinLevel()
+			if user.Level < minLevel {
+				ginx.WriteJSON(ctx, ginx.ErrorMessage(locales.Getf("user.signature_level_required", minLevel)))
+				return
+			}
+		}
+	}
+
 	err := services.UserService.Updates(user.Id, map[string]any{
 		"nickname":    nickname,
 		"home_page":   homePage,
 		"description": description,
 		"gender":      gender,
+		"signature":   signature,
 	})
 	if err != nil {
 		ginx.WriteJSON(ctx, err)

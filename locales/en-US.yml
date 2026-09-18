@@ -46,6 +46,7 @@ user:
   gender_error: "Invalid gender data"
   homepage_error: "Invalid homepage URL"
   avatar_empty: "Avatar cannot be empty"
+  signature_level_required: "Requires level %d to set signature"
   upload_image_required: "Please upload an image"
   email_verified: "Email already verified"
   email_required: "Email is required"

@@ -115,6 +115,7 @@ type AdminUserUpdateReq struct {
 	Gender      string `json:"gender" form:"gender"`
 	HomePage    string `json:"homePage" form:"homePage"`
 	Description string `json:"description" form:"description"`
+	Signature   string `json:"signature" form:"signature"` // 个性签名（Markdown 原文，管理员可清空治理）
 	RoleIds     string `json:"roleIds" form:"roleIds"`
 	Status      int    `json:"status" form:"status"`
 }
@@ -207,6 +208,7 @@ type UserUpdateReq struct {
 	HomePage    string `json:"homePage" form:"homePage"`
 	Description string `json:"description" form:"description"`
 	Gender      string `json:"gender" form:"gender"`
+	Signature   string `json:"signature" form:"signature"` // 个性签名（Markdown，长度与等级门槛在 handler 校验）
 }
 
 type UserForbiddenReq struct {
