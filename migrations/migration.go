@@ -114,5 +114,7 @@ func init() {
 	register(12, "drop legacy api permission tables", migrate_drop_legacy_api_tables)
 	register(13, "drop legacy menu tables", migrate_drop_legacy_menu_tables)
 	register(15, "remove comment admin permissions", migrate_remove_comment_admin_permissions)
-	register(16, "signature config defaults", migrate_signature_config_defaults)
+	// 注意：version 16 在历史版本中曾用于 "sync user topic/comment counts"（文件已移除但
+	// 生产库 t_migration 仍保留 success=1 记录），因此本迁移必须从 17 开始，否则会被跳过。
+	register(17, "signature config defaults", migrate_signature_config_defaults)
 }
