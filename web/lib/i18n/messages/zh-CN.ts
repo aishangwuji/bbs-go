@@ -606,6 +606,10 @@ const zhCN = {
         title: "页面配置",
         aboutTitle: "关于页内容",
         aboutHelp: "关于页内容支持 Markdown，建议同时维护中英文内容。",
+        linkPageTitle: "友情链接页面",
+        showFavicon: "显示网站图标",
+        showFaviconHelp:
+          "开启后，友链列表将实时通过外链 favicon 服务（如 Google S2）获取网站图标，不存储到本地，空旷感大幅降低。",
         footerLinksTitle: "底部链接与信息",
         addFooterLink: "新增底部项",
         remove: "删除",

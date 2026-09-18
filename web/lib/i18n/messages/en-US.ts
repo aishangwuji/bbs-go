@@ -622,6 +622,10 @@ const enUS = {
         aboutTitle: "About Page Content",
         aboutHelp:
           "About page content supports Markdown. Maintaining both Chinese and English content is recommended.",
+        linkPageTitle: "Friend Links Page",
+        showFavicon: "Show Favicon",
+        showFaviconHelp:
+          "When enabled, the link list will fetch favicons in real time via external services (e.g. Google S2) without local storage.",
         footerLinksTitle: "Footer Links and Info",
         addFooterLink: "Add Footer Item",
         remove: "Remove",

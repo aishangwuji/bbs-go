@@ -2243,6 +2243,8 @@ function PageSettings({
 }) {
   const about = createLocalizedText(getObject(settings.aboutPageConfig).content)
   const footerLinks = normalizeFooterLinks(settings.footerLinks)
+  const linkPageConfig = getObject(settings.linkPageConfig)
+  const showFavicon = linkPageConfig.showFavicon !== false // 默认开启，实时抓取不存储
   const [validationError, setValidationError] = React.useState<string | null>(
     null
   )
@@ -2285,6 +2287,9 @@ function PageSettings({
         content: trimLocalizedText(about),
       },
       footerLinks: nextFooterLinks,
+      linkPageConfig: {
+        showFavicon,
+      },
     })
   }
 
@@ -2417,6 +2422,25 @@ function PageSettings({
               {s("page.footerLinksEmpty")}
             </div>
           )}
+        </CardContent>
+        </Card>
+
+      <Card size="sm" className="gap-4 bg-[var(--dashboard-panel)] shadow-xs">
+        <CardHeader className="border-b pb-4">
+          <CardTitle>{s("page.linkPageTitle")}</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-5">
+          <Field label={s("page.showFavicon")}>
+            <SwitchControl
+              checked={showFavicon}
+              onChange={(checked) =>
+                update("linkPageConfig.showFavicon", checked)
+              }
+            />
+          </Field>
+          <p className="text-xs text-muted-foreground">
+            {s("page.showFaviconHelp")}
+          </p>
         </CardContent>
       </Card>
 

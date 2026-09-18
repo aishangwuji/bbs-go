@@ -206,6 +206,9 @@ export interface SiteConfig {
     visible?: boolean
     openInNewWindow?: boolean
   }>
+  linkPageConfig?: {
+    showFavicon?: boolean
+  }
   modules?: {
     tweet?: boolean
     topic?: boolean

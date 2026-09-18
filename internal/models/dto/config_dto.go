@@ -13,6 +13,7 @@ type SysConfigAdminResponse struct {
 	SiteNotification           string                      `json:"siteNotification"`
 	AboutPageConfig            AboutPageConfig             `json:"aboutPageConfig"`
 	FooterLinks                []FooterLink                `json:"footerLinks"`
+	LinkPageConfig             LinkPageConfig              `json:"linkPageConfig"`
 	RecommendTags              []string                    `json:"recommendTags"`
 	UrlRedirect                bool                        `json:"urlRedirect"`
 	DefaultCategoryId          int64                       `json:"defaultCategoryId"`
@@ -53,6 +54,7 @@ type SysConfigOpenResponse struct {
 	SiteNavs                   []ActionLink      `json:"siteNavs"`
 	SiteNotification           string            `json:"siteNotification"`
 	FooterLinks                []FooterLink      `json:"footerLinks"`
+	LinkPageConfig             LinkPageConfig    `json:"linkPageConfig"`
 	RecommendTags              []string          `json:"recommendTags"`
 	UrlRedirect                bool              `json:"urlRedirect"`
 	DefaultCategoryId          int64             `json:"defaultCategoryId"`
@@ -90,6 +92,10 @@ type ScriptInjection struct {
 
 type AboutPageConfig struct {
 	Content LocalizedText `json:"content"`
+}
+
+type LinkPageConfig struct {
+	ShowFavicon bool `json:"showFavicon"` // 友链页是否实时展示网站图标（不存储，基于 URL 实时拼接 favicon 服务）
 }
 
 type FooterLink struct {

@@ -90,6 +90,11 @@ func (s *sysConfigService) SetAll(configStr string) error {
 			return err
 		}
 	}
+	if linkPageConfig := json.Get(constants.SysConfigLinkPageConfig); linkPageConfig.Exists() {
+		if err := validateLinkPageConfig(linkPageConfig.String()); err != nil {
+			return err
+		}
+	}
 	if scriptInjections := json.Get(constants.SysConfigScriptInjections); scriptInjections.Exists() {
 		if err := validateScriptInjections(scriptInjections.String()); err != nil {
 			return err
@@ -290,6 +295,20 @@ func (s *sysConfigService) GetFooterLinks() []dto.FooterLink {
 	if err := jsons.Parse(str, &cfg); err != nil {
 		slog.Warn("底部链接配置错误", slog.Any("err", err))
 		return []dto.FooterLink{}
+	}
+	return cfg
+}
+
+func (s *sysConfigService) GetLinkPageConfig() dto.LinkPageConfig {
+	str := cache.SysConfigCache.GetStr(constants.SysConfigLinkPageConfig)
+	// 默认开启 favicon，符合“实时抓取、空旷优化”诉求
+	if strings.TrimSpace(str) == "" {
+		return dto.LinkPageConfig{ShowFavicon: true}
+	}
+	var cfg dto.LinkPageConfig
+	if err := jsons.Parse(str, &cfg); err != nil {
+		slog.Warn("友链页配置错误", slog.Any("err", err))
+		return dto.LinkPageConfig{ShowFavicon: true}
 	}
 	return cfg
 }
@@ -507,6 +526,17 @@ func validateFooterLinks(footerLinksJSON string) error {
 		if !hasLocalizedText(item.Text) {
 			return fmt.Errorf("footer link text is required at item %d", idx+1)
 		}
+	}
+	return nil
+}
+
+func validateLinkPageConfig(linkPageConfigJSON string) error {
+	if strings.TrimSpace(linkPageConfigJSON) == "" {
+		return nil
+	}
+	var cfg dto.LinkPageConfig
+	if err := jsons.Parse(linkPageConfigJSON, &cfg); err != nil {
+		return errors.New("invalid link page config data format")
 	}
 	return nil
 }

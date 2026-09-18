@@ -31,6 +31,7 @@ func ConfigConfigs(ctx *gin.Context) {
 			SiteNavs:                   services.SysConfigService.GetSiteNavs(),
 			SiteNotification:           cache.SysConfigCache.GetStr(constants.SysConfigSiteNotification),
 			FooterLinks:                services.SysConfigService.GetFooterLinks(),
+			LinkPageConfig:             services.SysConfigService.GetLinkPageConfig(),
 			RecommendTags:              cache.SysConfigCache.GetStrArr(constants.SysConfigRecommendTags),
 			UrlRedirect:                services.SysConfigService.IsUrlRedirect(),
 			DefaultCategoryId:          services.SysConfigService.GetDefaultCategoryId(),

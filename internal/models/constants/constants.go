@@ -66,6 +66,7 @@ const (
 	SysConfigAttachmentConfig           = "attachmentConfig"           // 附件配置（帖子附件）
 	SysConfigScriptInjections           = "scriptInjections"           // head脚本注入配置
 	SysConfigTopicListStyle             = "topicListStyle"             // 帖子列表样式
+	SysConfigLinkPageConfig             = "linkPageConfig"             // 友情链接页配置（是否显示 favicon）
 	SysConfigEnableQaBounty             = "enableQaBounty"             // 是否开启问答悬赏
 	SysConfigQaBountyMin                = "qaBountyMin"                // 问答悬赏积分下限
 	SysConfigQaBountyMax                = "qaBountyMax"                // 问答悬赏积分上限
