@@ -181,7 +181,8 @@ install:
   already_installed: "System already installed, no need to reinstall"
 
 upload:
-  image_too_large: "Image cannot exceed %d M"
+  image_too_large: "Image size cannot exceed %d M"
+  avatar_too_large: "Avatar image size cannot exceed 200KB"
 
 attachment:
   not_found: "Attachment not found or unavailable"

@@ -1011,6 +1011,7 @@ const zhCN = {
       update: "点击修改",
       updateSuccess: "头像更新成功",
       updateFailed: "头像更新失败",
+      sizeLimit: "头像图片大小不能超过 200KB",
     },
     imageUpload: {
       uploading: "上传中...",

@@ -34,6 +34,12 @@ func UploadHandle(ctx *gin.Context) {
 		return
 	}
 
+	uploadType := ctx.Request.FormValue("type")
+	if uploadType == "avatar" && header.Size > 200*1024 {
+		ginx.WriteJSON(ctx, ginx.ErrorMessage(locales.Get("upload.avatar_too_large")))
+		return
+	}
+
 	contentType := header.Header.Get("Content-Type")
 	slog.Info("上传文件：", slog.Any("filename", header.Filename), slog.Any("size", header.Size))
 

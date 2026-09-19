@@ -1033,6 +1033,7 @@ const enUS = {
       update: "Click to update",
       updateSuccess: "Avatar updated successfully",
       updateFailed: "Avatar update failed",
+      sizeLimit: "Avatar image size cannot exceed 200KB",
     },
     imageUpload: {
       uploading: "Uploading...",
