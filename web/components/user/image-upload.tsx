@@ -9,13 +9,14 @@ import { useI18n } from "@/lib/i18n/provider"
 import { toast } from "@/lib/toast"
 
 const MAX_AVATAR_PICK_SIZE = 20 * 1024 * 1024 // 20MB（仅作防误选超大文件保护，常规几MB照片静默无感自动压缩）
+const AVATAR_STANDARD_SIZE = 73 // 73x73 经典规范尺寸：单张 WebP 仅约 1KB~3KB，首屏极致极速
 
 /**
- * 智能居中等比正方形裁剪并压缩为高清 WebP（标准 256x256 尺寸，约 8KB~15KB）
+ * 智能居中等比正方形裁剪并压缩为轻量 WebP（标准 73x73 尺寸，约 1KB~3KB）
  */
 async function cropAndCompressAvatarToWebP(
   file: File,
-  targetSize = 256,
+  targetSize = AVATAR_STANDARD_SIZE,
   quality = 0.85
 ): Promise<File> {
   return new Promise((resolve, reject) => {
@@ -112,8 +113,12 @@ export function AvatarEdit({
 
     setUploading(true)
     try {
-      // 2. 浏览器原生硬件加速：居中等比正方形裁剪并压缩为 256x256 WebP
-      const processedFile = await cropAndCompressAvatarToWebP(file, 256, 0.85)
+      // 2. 浏览器原生硬件加速：居中等比正方形裁剪并压缩为 73x73 WebP
+      const processedFile = await cropAndCompressAvatarToWebP(
+        file,
+        AVATAR_STANDARD_SIZE,
+        0.85
+      )
 
       const result = await uploadImage(processedFile, "avatar")
       await apiFetch<null>("/api/user/update_avatar", {
