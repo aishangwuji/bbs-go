@@ -20,6 +20,11 @@ const languageOptions: Array<{
 }> = [
   { value: "en-US", label: "English" },
   { value: "zh-CN", label: "中文" },
+  { value: "de-DE", label: "Deutsch" },
+  { value: "fr-FR", label: "Français" },
+  { value: "ja-JP", label: "日本語" },
+  { value: "ko-KR", label: "한국어" },
+  { value: "ru-RU", label: "Русский" },
 ]
 
 export function LanguageToggle() {

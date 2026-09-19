@@ -132,7 +132,9 @@ export function localizedTitle(
   enUS: string,
   zhCN: string
 ) {
-  return locale === "en-US" ? enUS : zhCN
+  // 只有 zh-CN 走中文，其余语言（含新增的 de/fr/ja/ko/ru）一律回退英文标题。
+  // 原先的非 en-US 即中文会导致新语言用户看到中文 meta。
+  return locale === "zh-CN" ? zhCN : enUS
 }
 
 export function tagKeywords(tags: Tag[] | null | undefined) {
