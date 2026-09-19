@@ -152,8 +152,25 @@ export interface TopicHideContent {
   show: boolean
 }
 
+export interface Pagination {
+  currentPage: number
+  pageSize: number
+  totalCount: number
+  totalPages: number
+  hasPrev: boolean
+  hasNext: boolean
+  prevPage: number
+  nextPage: number
+  pageList: number[]
+}
+
+export interface CommentPageData extends PageData<Comment> {
+  pagination?: Pagination
+}
+
 export interface Comment {
   id: number
+  floor?: number
   user: UserSummary
   entityType?: string
   entityId?: number | string

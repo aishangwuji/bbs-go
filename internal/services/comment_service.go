@@ -3,7 +3,9 @@ package services
 import (
 	"bbs-go/internal/models/constants"
 	"bbs-go/internal/models/req"
+	"bbs-go/internal/models/resp"
 	"bbs-go/internal/permissions"
+	"bbs-go/internal/pkg/common"
 	"bbs-go/internal/pkg/errs"
 	"bbs-go/internal/pkg/event"
 	"bbs-go/internal/pkg/iplocator"
@@ -189,7 +191,38 @@ func (s *commentService) onComment(tx *gorm.DB, comment *models.Comment) error {
 // 	return count
 // }
 
-// GetComments 列表
+// GetCommentsByPage 正序按固定步长分页查询一级评论，支持 NodeSeek 风格全局绝对楼层
+func (s *commentService) GetCommentsByPage(entityType string, entityId int64, page, pageSize int) ([]models.Comment, resp.Pagination) {
+	if pageSize <= 0 {
+		pageSize = common.DefaultPageSize
+	}
+	if page <= 0 {
+		page = 1
+	}
+
+	countCnd := sqls.NewCnd().
+		Eq("entity_type", entityType).
+		Eq("entity_id", entityId).
+		Eq("status", constants.StatusOk)
+	totalCount := repositories.CommentRepository.Count(sqls.DB(), countCnd)
+
+	pagination := common.BuildPagination(page, pageSize, totalCount)
+	if totalCount == 0 {
+		return nil, pagination
+	}
+
+	queryCnd := sqls.NewCnd().
+		Eq("entity_type", entityType).
+		Eq("entity_id", entityId).
+		Eq("status", constants.StatusOk).
+		Asc("id").
+		Page(pagination.CurrentPage, pageSize)
+
+	comments := repositories.CommentRepository.Find(sqls.DB(), queryCnd)
+	return comments, pagination
+}
+
+// GetComments 列表（基于游标的倒序加载模式，向下兼容）
 func (s *commentService) GetComments(entityType string, entityId int64, cursor int64) (comments []models.Comment, nextCursor int64, hasMore bool) {
 	limit := 20
 	var acceptedComment *models.Comment

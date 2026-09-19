@@ -17,10 +17,11 @@ import { TopicToc } from "@/components/topic/topic-toc"
 import { TopicVoteCard } from "@/components/topic/topic-vote-card"
 import { UserInfo } from "@/components/user/user-info"
 import { useCurrentUser } from "@/components/app/app-provider"
+import { useSearchParams } from "@/lib/router/navigation"
 import { apiFetch } from "@/lib/api/client"
 import type {
   Comment,
-  PageData,
+  CommentPageData,
   Topic,
   TopicHideContent,
   UserSummary,
@@ -29,7 +30,7 @@ import { useI18n } from "@/lib/i18n/provider"
 import { useRouteData, useRouteSegment } from "@/lib/spa-route"
 import { useDocumentTitle } from "@/lib/use-document-title"
 
-const emptyComments: PageData<Comment> = {
+const emptyComments: CommentPageData = {
   results: [],
   cursor: "0",
   hasMore: false,
@@ -37,7 +38,7 @@ const emptyComments: PageData<Comment> = {
 
 type TopicDetailData = {
   topic: Topic
-  comments: PageData<Comment>
+  comments: CommentPageData
   likeUsers: UserSummary[] | null
   hideContent: TopicHideContent | null
 }
@@ -48,6 +49,8 @@ export function TopicDetailClientPage({
   initialTopic?: Topic
 }) {
   const id = useRouteSegment(1)
+  const searchParams = useSearchParams()
+  const page = parseInt(searchParams.get("page") || "1", 10) || 1
   const { t } = useI18n()
   const currentUser = useCurrentUser()
   const initialData = React.useMemo<TopicDetailData | null>(
@@ -63,8 +66,8 @@ export function TopicDetailClientPage({
     [initialTopic]
   )
   const load = React.useCallback(async (): Promise<TopicDetailData> => {
-    const comments = apiFetch<PageData<Comment>>("/api/comment/comments", {
-      params: { entityType: "topic", entityId: id },
+    const comments = apiFetch<CommentPageData>("/api/comment/comments", {
+      params: { entityType: "topic", entityId: id, page, pageSize: 10 },
     }).catch(() => emptyComments)
     const likeUsers = apiFetch<UserSummary[] | null>(
       `/api/topic/recentlikes/${id}`
@@ -101,9 +104,9 @@ export function TopicDetailClientPage({
       likeUsers: nextLikeUsers,
       hideContent: nextHideContent,
     }
-  }, [id, initialTopic])
+  }, [id, page, initialTopic])
   const { data, loading, error } = useRouteData(
-    `topic:${id}`,
+    `topic:${id}:page:${page}`,
     load,
     initialData
   )

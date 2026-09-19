@@ -30,8 +30,15 @@ import {
   type TextEditorRef,
 } from "@/components/comment/text-editor"
 import { Signature } from "@/components/common/signature"
+import { CommentPager } from "@/components/comment/comment-pager"
 import { apiFetch, toFormData } from "@/lib/api/client"
-import type { Comment, EntityId, ImageInfo, PageData } from "@/lib/api/types"
+import type {
+  Comment,
+  CommentPageData,
+  EntityId,
+  ImageInfo,
+  PageData,
+} from "@/lib/api/types"
 import { PERMISSIONS } from "@/lib/auth/permissions.generated"
 import { userHasPermission } from "@/lib/auth/roles"
 import { prettyDate } from "@/lib/format"
@@ -716,13 +723,21 @@ function CommentItem({
   return (
     <>
       <div
+        id={`comment-${comment.floor || comment.id}`}
         className={cn(
-          "flex py-2.5",
+          "relative flex py-2.5 scroll-mt-24 rounded-sm transition-colors duration-500",
           isAccepted
             ? "mb-2 rounded-lg border border-primary/20 bg-primary/[0.06] p-3"
             : "border-b border-border last:border-b-0"
         )}
       >
+        {comment.floor ? (
+          <span
+            id={`${comment.floor}`}
+            className="pointer-events-none absolute -top-24"
+            aria-hidden="true"
+          />
+        ) : null}
         <div>
           <UserHoverCard user={comment.user}>
             <UserAvatar user={comment.user} size={30} />
@@ -758,6 +773,15 @@ function CommentItem({
                   {t("component.comment.list.ipLocation")}
                   {comment.ipLocation}
                 </span>
+              ) : null}
+              {comment.floor ? (
+                <a
+                  href={`#comment-${comment.floor}`}
+                  className="rounded bg-muted/70 px-1.5 py-0.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-primary/15 hover:text-primary"
+                  title={`第 ${comment.floor} 楼`}
+                >
+                  #{comment.floor}
+                </a>
               ) : null}
             </div>
           </div>
@@ -909,15 +933,15 @@ export function CommentSection({
   title?: string
   acceptedCommentId?: number
   allowAcceptAnswer?: boolean
-  initialData?: PageData<Comment>
+  initialData?: CommentPageData
   onCreated?: (comment: Comment) => void
 }) {
   const { t } = useI18n()
   const pathname = usePathname()
   const config = useAppConfig()
   const currentUser = useCurrentUser()
-  const [pageData, setPageData] = React.useState<PageData<Comment>>(
-    initialData || { cursor: "", hasMore: true, results: [] }
+  const [pageData, setPageData] = React.useState<CommentPageData>(
+    initialData || { cursor: "", hasMore: false, results: [] }
   )
   const [loading, setLoading] = React.useState(false)
   const [currentAcceptedCommentId, setCurrentAcceptedCommentId] =
@@ -928,6 +952,25 @@ export function CommentSection({
       setPageData(initialData)
     }
   }, [initialData])
+
+  // 楼层锚点定位（支持 #12 或 #comment-12 格式直达并短暂高亮闪烁）
+  React.useEffect(() => {
+    if (typeof window === "undefined" || !pageData.results?.length) return
+    const hash = window.location.hash
+    if (!hash) return
+    const rawId = hash.replace(/^#/, "")
+    const target =
+      document.getElementById(`comment-${rawId}`) ||
+      document.getElementById(rawId)
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", block: "center" })
+      target.classList.add("bg-primary/[0.08]")
+      const timer = window.setTimeout(() => {
+        target.classList.remove("bg-primary/[0.08]")
+      }, 2000)
+      return () => window.clearTimeout(timer)
+    }
+  }, [pageData.results])
 
   const isNeedEmailVerify =
     Boolean(config?.createCommentEmailVerified) &&
@@ -1040,6 +1083,16 @@ export function CommentSection({
         </Link>
       )}
 
+      {/* 顶部独立分页器（对齐 NodeSeek 双向布局） */}
+      {pageData.pagination && pageData.pagination.totalPages > 1 ? (
+        <CommentPager
+          pagination={pageData.pagination}
+          entityId={entityId}
+          entityType={entityType}
+          className="mb-2 border-b border-border pb-2"
+        />
+      ) : null}
+
       <div className="text-[15px]">
         {pageData.results?.length ? (
           pageData.results.map((comment) => (
@@ -1057,15 +1110,26 @@ export function CommentSection({
         ) : pageData.hasMore ? null : (
           <EmptyState title={t("common.noData")} className="min-h-36" />
         )}
-        <LoadMoreButton
-          loading={loading}
-          hasMore={pageData.hasMore}
-          labels={{
-            loadMore: t("common.loadMore.loadMore"),
-            noMore: t("common.loadMore.noMore"),
-          }}
-          onClick={() => void loadMore()}
-        />
+
+        {/* 底部独立分页器（若无分页元数据则回退至既有 LoadMoreButton） */}
+        {pageData.pagination && pageData.pagination.totalPages > 1 ? (
+          <CommentPager
+            pagination={pageData.pagination}
+            entityId={entityId}
+            entityType={entityType}
+            className="pt-3"
+          />
+        ) : (
+          <LoadMoreButton
+            loading={loading}
+            hasMore={pageData.hasMore}
+            labels={{
+              loadMore: t("common.loadMore.loadMore"),
+              noMore: t("common.loadMore.noMore"),
+            }}
+            onClick={() => void loadMore()}
+          />
+        )}
       </div>
     </section>
   )

@@ -255,9 +255,23 @@ type VoteOptionResponse struct {
 	Voted     bool    `json:"voted"`
 }
 
+// Pagination 分页元信息
+type Pagination struct {
+	CurrentPage int   `json:"currentPage"` // 当前页码（1-based）
+	PageSize    int   `json:"pageSize"`    // 每页数量（如 10）
+	TotalCount  int64 `json:"totalCount"`  // 评论总数
+	TotalPages  int   `json:"totalPages"`  // 总页数
+	HasPrev     bool  `json:"hasPrev"`     // 是否有上一页
+	HasNext     bool  `json:"hasNext"`     // 是否有下一页
+	PrevPage    int   `json:"prevPage"`    // 上一页页码
+	NextPage    int   `json:"nextPage"`    // 下一页页码
+	PageList    []int `json:"pageList"`    // 页码列表（支持滑动窗口展示）
+}
+
 // CommentResponse 评论返回数据
 type CommentResponse struct {
 	Id           int64                 `json:"id"`
+	Floor        int                   `json:"floor,omitempty"` // 全局绝对楼层号（#1, #2, #11...）
 	User         *UserInfo             `json:"user"`
 	EntityType   string                `json:"entityType"`
 	EntityId     int64                 `json:"entityId"`

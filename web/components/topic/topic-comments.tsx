@@ -4,7 +4,7 @@ import * as React from "react"
 
 import { CommentSection } from "@/components/comment"
 import { topicCommentCreatedEvent } from "@/components/topic/topic-hide-content-live"
-import type { Comment, EntityId, PageData } from "@/lib/api/types"
+import type { Comment, CommentPageData, EntityId } from "@/lib/api/types"
 
 export function TopicComments({
   entityId,
@@ -19,7 +19,7 @@ export function TopicComments({
   title?: string
   acceptedCommentId?: number
   allowAcceptAnswer?: boolean
-  initialData?: PageData<Comment>
+  initialData?: CommentPageData
 }) {
   const onCreated = React.useCallback(
     () => window.dispatchEvent(new Event(topicCommentCreatedEvent(entityId))),

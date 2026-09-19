@@ -18,11 +18,27 @@ import (
 
 func CommentComments(ctx *gin.Context) {
 	var (
+		page          = params.FormValueIntDefault(ctx, "page", 0)
+		pageSize      = params.FormValueIntDefault(ctx, "pageSize", 10)
 		cursor, _     = params.GetInt64(ctx, "cursor")
 		entityType, _ = params.Get(ctx, "entityType")
 		entityId      = common.GetID(ctx, "entityId")
 		currentUser   = common.GetCurrentUser(ctx)
 	)
+
+	// 当传入 page 参数时，采用 NodeSeek 风格的固定步长时间正序分页，并注入全局绝对楼层号
+	if page > 0 {
+		comments, pagination := services.CommentService.GetCommentsByPage(entityType, entityId, page, pageSize)
+		offset := (pagination.CurrentPage - 1) * pagination.PageSize
+		commentResponses := render.BuildCommentsWithFloor(comments, currentUser, true, false, offset)
+		ginx.WriteJSON(ctx, gin.H{
+			"results":    commentResponses,
+			"pagination": pagination,
+			"hasMore":    pagination.HasNext,
+		})
+		return
+	}
+
 	comments, cursor, hasMore := services.CommentService.GetComments(entityType, entityId, cursor)
 	ginx.WriteJSON(ctx, ginx.CursorData(render.BuildComments(comments, currentUser, true, false), strconv.FormatInt(cursor, 10), hasMore))
 

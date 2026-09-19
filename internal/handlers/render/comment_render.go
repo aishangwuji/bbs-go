@@ -18,6 +18,12 @@ func BuildComment(comment *models.Comment) *resp.CommentResponse {
 }
 
 func BuildComments(comments []models.Comment, currentUser *models.User, isBuildReplies, isBuildQuote bool) []resp.CommentResponse {
+	return BuildCommentsWithFloor(comments, currentUser, isBuildReplies, isBuildQuote, -1)
+}
+
+// BuildCommentsWithFloor 渲染带全局绝对楼层的评论列表
+// offset >= 0 时根据 offset + index + 1 计算 floor（1-based）
+func BuildCommentsWithFloor(comments []models.Comment, currentUser *models.User, isBuildReplies, isBuildQuote bool, offset int) []resp.CommentResponse {
 	if len(comments) == 0 {
 		return nil
 	}
@@ -25,9 +31,12 @@ func BuildComments(comments []models.Comment, currentUser *models.User, isBuildR
 	likedCommentIds := getLikedCommentIds(comments, currentUser)
 
 	var ret []resp.CommentResponse
-	for _, comment := range comments {
+	for i, comment := range comments {
 		item := doBuildComment(&comment, currentUser, isBuildReplies, isBuildQuote)
 		item.Liked = arrays.Contains(comment.Id, likedCommentIds)
+		if offset >= 0 {
+			item.Floor = offset + i + 1
+		}
 		ret = append(ret, *item)
 	}
 	return ret
