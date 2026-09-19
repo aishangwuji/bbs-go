@@ -8,7 +8,7 @@ import { apiFetch, toFormData } from "@/lib/api/client"
 import { useI18n } from "@/lib/i18n/provider"
 import { toast } from "@/lib/toast"
 
-const MAX_AVATAR_FILE_SIZE = 200 * 1024 // 200KB
+const MAX_AVATAR_PICK_SIZE = 20 * 1024 * 1024 // 20MB（仅作防误选超大文件保护，常规几MB照片静默无感自动压缩）
 
 /**
  * 智能居中等比正方形裁剪并压缩为高清 WebP（标准 256x256 尺寸，约 8KB~15KB）
@@ -103,11 +103,9 @@ export function AvatarEdit({
     const file = event.target.files?.[0]
     if (!file) return
 
-    // 1. 前端即时拦截：检查原始文件大小不能超过 200KB
-    if (file.size > MAX_AVATAR_FILE_SIZE) {
-      toast.error(
-        t("component.avatarEdit.sizeLimit") || "头像图片大小不能超过 200KB"
-      )
+    // 防误选保护：仅拦截超过 20MB 的超大文件，常规大图全自动静默无感裁切压缩为 256x256 WebP
+    if (file.size > MAX_AVATAR_PICK_SIZE) {
+      toast.error("所选图片文件过大（超过20MB），请重新选择")
       event.currentTarget.value = ""
       return
     }
