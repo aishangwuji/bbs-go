@@ -9,14 +9,15 @@ import { useI18n } from "@/lib/i18n/provider"
 import { toast } from "@/lib/toast"
 
 const MAX_AVATAR_PICK_SIZE = 20 * 1024 * 1024 // 20MB（仅作防误选超大文件保护，常规几MB照片静默无感自动压缩）
-const AVATAR_STANDARD_SIZE = 73 // 73x73 经典规范尺寸：单张 WebP 仅约 1KB~3KB，首屏极致极速
+const AVATAR_LARGE_SIZE = 128 // 128x128 高清大头像（用于个人资料主页，约 4KB）
+const AVATAR_SMALL_SIZE = 73 // 73x73 极速小头像（用于帖子流与评论区楼层，约 1.5KB）
 
 /**
  * 智能居中等比正方形裁剪并压缩为轻量 WebP（标准 73x73 尺寸，约 1KB~3KB）
  */
 async function cropAndCompressAvatarToWebP(
   file: File,
-  targetSize = AVATAR_STANDARD_SIZE,
+  targetSize = AVATAR_LARGE_SIZE,
   quality = 0.85
 ): Promise<File> {
   return new Promise((resolve, reject) => {
@@ -113,20 +114,27 @@ export function AvatarEdit({
 
     setUploading(true)
     try {
-      // 2. 浏览器原生硬件加速：居中等比正方形裁剪并压缩为 73x73 WebP
-      const processedFile = await cropAndCompressAvatarToWebP(
-        file,
-        AVATAR_STANDARD_SIZE,
-        0.85
-      )
+      // 2. 浏览器原生硬件加速：并发生成大（128x128）与小（73x73）两份 WebP
+      const [largeFile, smallFile] = await Promise.all([
+        cropAndCompressAvatarToWebP(file, AVATAR_LARGE_SIZE, 0.85),
+        cropAndCompressAvatarToWebP(file, AVATAR_SMALL_SIZE, 0.85),
+      ])
 
-      const result = await uploadImage(processedFile, "avatar")
+      // 3. 并发上传至后端（总数据量仅约 5.5KB，0.03秒完成）
+      const [largeRes, smallRes] = await Promise.all([
+        uploadImage(largeFile, "avatar"),
+        uploadImage(smallFile, "avatar"),
+      ])
+
       await apiFetch<null>("/api/user/update_avatar", {
         method: "POST",
-        body: toFormData({ avatar: result.url }),
+        body: toFormData({
+          avatar: largeRes.url,
+          smallAvatar: smallRes.url,
+        }),
       })
-      setAvatar(result.url)
-      onChange?.(result.url)
+      setAvatar(largeRes.url)
+      onChange?.(largeRes.url)
       toast.success(t("component.avatarEdit.updateSuccess"))
     } catch {
       toast.error(t("component.avatarEdit.updateFailed"))

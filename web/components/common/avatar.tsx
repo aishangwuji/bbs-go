@@ -27,7 +27,11 @@ export function UserAvatar({
   linkToProfile?: boolean
   target?: React.HTMLAttributeAnchorTarget
 }) {
-  const src = user?.smallAvatar || user?.avatar
+  // 智能按渲染尺寸路由头像版本：大尺寸(>64px)优先大图(128x128)，小尺寸(<=64px)优先小图(73x73)
+  const src =
+    (size > 64 ? user?.avatar : user?.smallAvatar) ||
+    user?.smallAvatar ||
+    user?.avatar
   const name = getDisplayName(user) || "User"
   const imageRef = React.useRef<HTMLImageElement>(null)
   const [imageLoaded, setImageLoaded] = React.useState(false)

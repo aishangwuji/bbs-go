@@ -107,6 +107,15 @@ func (s *userService) UpdateColumn(id int64, name string, value interface{}) err
 	return err
 }
 
+func (s *userService) UpdateColumns(id int64, columns map[string]interface{}) error {
+	err := repositories.UserRepository.Updates(sqls.DB(), id, columns)
+	cache.UserCache.Invalidate(id)
+	if err == nil {
+		search.UpdateUserIndex(s.Get(id))
+	}
+	return err
+}
+
 func (s *userService) Delete(id int64) {
 	repositories.UserRepository.Delete(sqls.DB(), id)
 	cache.UserCache.Invalidate(id)
@@ -305,9 +314,13 @@ func (s *userService) isUsernameExists(username string) bool {
 	return s.GetByUsername(username) != nil
 }
 
-// UpdateAvatar 更新头像
-func (s *userService) UpdateAvatar(userId int64, avatar string) error {
-	return s.UpdateColumn(userId, "avatar", avatar)
+// UpdateAvatar 更新头像（支持大头像与小头像）
+func (s *userService) UpdateAvatar(userId int64, avatar, smallAvatar string) error {
+	updates := map[string]interface{}{"avatar": avatar}
+	if strs.IsNotBlank(smallAvatar) {
+		updates["small_avatar"] = smallAvatar
+	}
+	return s.UpdateColumns(userId, updates)
 }
 
 // UpdateNickname 更新昵称

@@ -108,6 +108,7 @@ type User struct {
 	EmailVerified    bool             `gorm:"not null;default:false" json:"emailVerified" form:"emailVerified"`    // 邮箱是否验证
 	Nickname         string           `gorm:"size:16;" json:"nickname" form:"nickname"`                            // 昵称
 	Avatar           string           `gorm:"type:text" json:"avatar" form:"avatar"`                               // 头像
+	SmallAvatar      string           `gorm:"type:text" json:"smallAvatar" form:"smallAvatar"`                      // 小头像（73x73 WebP，用于列表和评论区）
 	Gender           constants.Gender `gorm:"size:16;default:''" json:"gender" form:"gender"`                      // 性别
 	Birthday         *time.Time       `json:"birthday" form:"birthday"`                                            // 生日
 	BackgroundImage  string           `gorm:"type:text" json:"backgroundImage" form:"backgroundImage"`             // 个人中心背景图片

@@ -223,11 +223,12 @@ func UserUpdateAvatar(ctx *gin.Context) {
 		return
 	}
 	avatar := strings.TrimSpace(params.FormValue(ctx, "avatar"))
+	smallAvatar := strings.TrimSpace(params.FormValue(ctx, "smallAvatar"))
 	if len(avatar) == 0 {
 		ginx.WriteJSON(ctx, ginx.ErrorMessage(locales.Get("user.avatar_empty")))
 		return
 	}
-	err := services.UserService.UpdateAvatar(user.Id, avatar)
+	err := services.UserService.UpdateAvatar(user.Id, avatar, smallAvatar)
 	if err != nil {
 		ginx.WriteJSON(ctx, err)
 		return

@@ -57,7 +57,11 @@ func BuildUserInfo(user *models.User) *resp.UserInfo {
 	}
 	if strs.IsNotBlank(user.Avatar) {
 		ret.Avatar = user.Avatar
-		ret.SmallAvatar = HandleOssImageStyleAvatar(user.Avatar)
+		if strs.IsNotBlank(user.SmallAvatar) {
+			ret.SmallAvatar = user.SmallAvatar
+		} else {
+			ret.SmallAvatar = HandleOssImageStyleAvatar(user.Avatar)
+		}
 	} else {
 		// avatar := RandomAvatar(user.Id)
 		// ret.Avatar = avatar
@@ -188,7 +192,11 @@ func BuildUserProfile(user *models.User) *resp.UserProfile {
 	ret.Nickname = user.Nickname
 	ret.Avatar = user.Avatar
 	if strs.IsNotBlank(user.Avatar) {
-		ret.SmallAvatar = HandleOssImageStyleAvatar(user.Avatar)
+		if strs.IsNotBlank(user.SmallAvatar) {
+			ret.SmallAvatar = user.SmallAvatar
+		} else {
+			ret.SmallAvatar = HandleOssImageStyleAvatar(user.Avatar)
+		}
 	}
 	ret.Description = user.Description
 
