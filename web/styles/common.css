@@ -147,7 +147,7 @@
   }
 
   .footer .light {
-    color: #eb5424;
+    color: var(--primary);
     font-weight: 700;
   }
 
