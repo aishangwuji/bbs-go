@@ -12,7 +12,6 @@ import { TopicContent } from "@/components/topic/topic-content"
 import { TopicDetailActions } from "@/components/topic/topic-detail-actions"
 import { TopicHideContentLive } from "@/components/topic/topic-hide-content-live"
 import { TopicMeta } from "@/components/topic/topic-meta"
-import { TopicSideActionBar } from "@/components/topic/topic-side-action-bar"
 import { TopicTags } from "@/components/topic/topic-tags"
 import { TopicToc } from "@/components/topic/topic-toc"
 import { TopicVoteCard } from "@/components/topic/topic-vote-card"
@@ -158,7 +157,6 @@ export function TopicDetailClientPage({
             likeCount={topic.likeCount}
             commentCount={topic.commentCount}
           >
-            <TopicSideActionBar />
             <div className="mb-4 border-b px-4 py-3">
               {topic.title ? (
                 <h1 className="text-[26px] leading-9 font-bold wrap-break-word text-foreground">

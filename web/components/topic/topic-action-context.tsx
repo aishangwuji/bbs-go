@@ -18,7 +18,6 @@ type TopicActionContextValue = {
   toggleLike: (source: ActionSource) => Promise<void>
   toggleFavorite: (source: ActionSource) => Promise<void>
   scrollToComment: () => void
-  scrollToTop: () => void
 }
 
 const TopicActionContext = React.createContext<TopicActionContextValue | null>(
@@ -139,7 +138,6 @@ export function TopicActionProvider({
           window.scrollTo({ top: element.offsetTop, behavior: "smooth" })
         }
       },
-      scrollToTop: () => window.scrollTo({ top: 0, behavior: "smooth" }),
     }),
     [
       commentCount,
