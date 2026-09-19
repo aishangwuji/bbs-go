@@ -132,6 +132,24 @@ const (
 	TaskPeriodYearly   TaskPeriod = 4 // 每年
 )
 
+// 勋章获得方式（Badge.GrantType）
+const (
+	BadgeGrantTypeManual = "manual" // 人工特赐/后台直接颁发
+	BadgeGrantTypeAuto   = "auto"   // 条件自动解锁
+)
+
+// 勋章规则指标字段（Badge.RuleField）
+const (
+	BadgeRuleTopicCount      = "topic_count"      // 累计发帖数（达到 N 篇）
+	BadgeRuleCommentCount    = "comment_count"    // 累计回帖数（达到 N 条）
+	BadgeRuleConsecutiveDays = "consecutive_days" // 连续签到天数（达到 N 天）
+	BadgeRuleLevel           = "level"            // 用户等级（达到 N 级）
+	BadgeRuleRegDays         = "reg_days"         // 注册站龄天数（满 N 天）
+	BadgeRuleExp             = "exp"              // 累计经验值（达到 N 点）
+	BadgeRuleScore           = "score"            // 累计积分（达到 N 分）
+	BadgeRuleFansCount       = "fans_count"       // 粉丝数（达到 N 人）
+)
+
 // 用户角色
 const (
 	RoleOwner = "owner" // 站长

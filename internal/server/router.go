@@ -404,6 +404,8 @@ func registerAdminRoutes(group *gin.RouterGroup) {
 
 	userBadgeGroup := group.Group("/user-badge")
 	userBadgeGroup.POST("/list", adminHandlers.UserBadgeList)
+	userBadgeGroup.POST("/grant", adminHandlers.UserBadgeGrant)
+	userBadgeGroup.POST("/delete", adminHandlers.UserBadgeDelete)
 	userBadgeGroup.GET("/:id", adminHandlers.UserBadgeDetail)
 
 	operateLogGroup := group.Group("/operate-log")

@@ -416,6 +416,12 @@ type Badge struct {
 	Icon        string `gorm:"size:1024" json:"icon" form:"icon"`                                  // 图标
 	SortNo      int    `gorm:"type:int;index:idx_badge_sort_no" json:"sortNo" form:"sortNo"`       // 排序
 	Status      int    `gorm:"type:int;not null;default:0;index:idx_badge_status" json:"status" form:"status"`
+
+	// 规则配置字段（自闭环中文注释）
+	GrantType   string `gorm:"size:32;not null;default:'manual'" json:"grantType" form:"grantType"` // 获得方式：manual(人工特赐/后台颁发)、auto(条件自动解锁)
+	RuleField   string `gorm:"size:64;not null;default:''" json:"ruleField" form:"ruleField"`       // 判定指标字段：topic_count(发帖数)、comment_count(回帖数)、consecutive_days(连续签到天数)、level(等级)、reg_days(站龄天数)、exp(经验值)、score(积分)、fans_count(粉丝数)
+	RuleValue   int    `gorm:"type:int;not null;default:0" json:"ruleValue" form:"ruleValue"`       // 达成阈值：达到或超过该数值时自动解锁授予
+
 	CreateTime  int64  `gorm:"type:bigint;not null" json:"createTime" form:"createTime"`
 	UpdateTime  int64  `gorm:"type:bigint;not null" json:"updateTime" form:"updateTime"`
 }

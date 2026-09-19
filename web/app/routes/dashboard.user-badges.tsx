@@ -15,6 +15,11 @@ export default function DashboardUserBadgesRoute() {
     description: dashboardData.desc(t, "userBadges"),
     listEndpoint: "/api/admin/user-badge/list",
     viewPermission: PERMISSIONS.DASHBOARD_USER_BADGE_VIEW,
+    createEndpoint: "/api/admin/user-badge/grant",
+    createPermission: PERMISSIONS.DASHBOARD_BADGE_UPDATE,
+    deleteEndpoint: "/api/admin/user-badge/delete",
+    deletePermission: PERMISSIONS.DASHBOARD_BADGE_DELETE,
+    deleteMode: "formId",
     filters: [
       { name: "userId", label: dashboardData.label(t, "userId") },
       {
@@ -52,6 +57,29 @@ export default function DashboardUserBadgesRoute() {
         key: "createTime",
         label: dashboardData.label(t, "createTime"),
         render: (record) => dashboardData.dateCell(record.createTime),
+      },
+    ],
+    formFields: [
+      {
+        name: "userId",
+        label: "用户 ID",
+        type: "number",
+        required: true,
+      },
+      {
+        name: "badgeId",
+        label: "勋章",
+        type: "select",
+        optionsEndpoint: "/api/admin/badge/list",
+        optionLabel: (record) =>
+          `${String(record.title || record.name)} (ID: ${record.id})`,
+        optionValue: (record) => record.id as number,
+        required: true,
+      },
+      {
+        name: "reason",
+        label: "授予原因 / 备注",
+        type: "text",
       },
     ],
   }

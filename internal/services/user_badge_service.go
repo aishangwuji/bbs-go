@@ -9,6 +9,7 @@ import (
 
 	"github.com/mlogclub/simple/common/dates"
 	"github.com/mlogclub/simple/sqls"
+	"gorm.io/gorm"
 )
 
 var UserBadgeService = newUserBadgeService()
@@ -66,5 +67,22 @@ func (s *userBadgeService) Give(ctx *sqls.TxContext, userId int64, badgeId int64
 		return err
 	}
 	cache.UserBadgeCache.Invalidate(userId)
+	return nil
+}
+
+// GiveNoTx 在无外层事务时方便调用的授予方法
+func (s *userBadgeService) GiveNoTx(userId int64, badgeId int64, sourceType string, sourceId string) error {
+	return sqls.DB().Transaction(func(tx *gorm.DB) error {
+		return s.Give(&sqls.TxContext{Tx: tx}, userId, badgeId, sourceType, sourceId)
+	})
+}
+
+func (s *userBadgeService) Delete(id int64) error {
+	userBadge := s.Get(id)
+	if userBadge == nil {
+		return nil
+	}
+	repositories.UserBadgeRepository.Delete(sqls.DB(), id)
+	cache.UserBadgeCache.Invalidate(userBadge.UserId)
 	return nil
 }

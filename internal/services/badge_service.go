@@ -4,10 +4,11 @@ import (
 	"bbs-go/internal/cache"
 	"bbs-go/internal/models"
 	"bbs-go/internal/models/constants"
+	"bbs-go/internal/pkg/event"
+	"bbs-go/internal/pkg/params"
 	"bbs-go/internal/repositories"
 
-	"bbs-go/internal/pkg/params"
-
+	"github.com/mlogclub/simple/common/dates"
 	"github.com/mlogclub/simple/sqls"
 	"gorm.io/gorm"
 )
@@ -93,4 +94,95 @@ func (s *badgeService) UpdateSort(ids []int64) error {
 	}
 	cache.BadgeCache.Reload()
 	return nil
+}
+
+// ScanAndAwardUserBadges 根据当前用户状态扫描并自动解锁满足条件的勋章
+func (s *badgeService) ScanAndAwardUserBadges(userId int64) (awarded []models.Badge, err error) {
+	if userId <= 0 {
+		return nil, nil
+	}
+
+	user := UserService.Get(userId)
+	if user == nil || user.Status != constants.StatusOk {
+		return nil, nil
+	}
+
+	// 从缓存中获取所有启用的 auto 勋章
+	autoBadges := make([]models.Badge, 0)
+	for _, badge := range cache.BadgeCache.GetAll() {
+		if badge.Status == constants.StatusOk && badge.GrantType == constants.BadgeGrantTypeAuto && badge.RuleField != "" && badge.RuleValue > 0 {
+			autoBadges = append(autoBadges, badge)
+		}
+	}
+	if len(autoBadges) == 0 {
+		return nil, nil
+	}
+
+	// 获取用户已拥有勋章 ID 集合
+	ownedBadges := cache.UserBadgeCache.GetByUser(userId)
+	ownedBadgeMap := make(map[int64]bool, len(ownedBadges))
+	for _, ub := range ownedBadges {
+		ownedBadgeMap[ub.BadgeId] = true
+	}
+
+	var (
+		checkIn        *models.CheckIn
+		checkInFetched bool
+		now            = dates.NowTimestamp()
+		regDays        = int((now - user.CreateTime) / (86400 * 1000))
+	)
+
+	for _, badge := range autoBadges {
+		if ownedBadgeMap[badge.Id] {
+			continue
+		}
+
+		userVal := 0
+		switch badge.RuleField {
+		case constants.BadgeRuleTopicCount:
+			userVal = user.TopicCount
+		case constants.BadgeRuleCommentCount:
+			userVal = user.CommentCount
+		case constants.BadgeRuleLevel:
+			userVal = user.Level
+		case constants.BadgeRuleExp:
+			userVal = user.Exp
+		case constants.BadgeRuleScore:
+			userVal = user.Score
+		case constants.BadgeRuleFansCount:
+			userVal = user.FansCount
+		case constants.BadgeRuleRegDays:
+			userVal = regDays
+		case constants.BadgeRuleConsecutiveDays:
+			if !checkInFetched {
+				checkIn = CheckInService.GetByUserId(userId)
+				checkInFetched = true
+			}
+			if checkIn != nil {
+				userVal = checkIn.ConsecutiveDays
+			}
+		default:
+			continue
+		}
+
+		if userVal >= badge.RuleValue {
+			targetBadgeId := badge.Id
+			ruleField := badge.RuleField
+			err := sqls.DB().Transaction(func(tx *gorm.DB) error {
+				txCtx := &sqls.TxContext{Tx: tx}
+				return UserBadgeService.Give(txCtx, userId, targetBadgeId, "rule", ruleField)
+			})
+			if err == nil {
+				awarded = append(awarded, badge)
+				ownedBadgeMap[targetBadgeId] = true
+				event.Send(event.BadgeGrantEvent{
+					UserId:     userId,
+					BadgeId:    targetBadgeId,
+					UpdateTime: now,
+				})
+			}
+		}
+	}
+
+	return awarded, nil
 }

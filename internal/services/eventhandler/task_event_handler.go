@@ -26,9 +26,10 @@ func handleTaskTopicCreateEvent(i any) {
 	e := i.(event.TopicCreateEvent)
 	if e.TopicType == int(constants.TopicTypeQA) {
 		services.TaskEngineService.HandleUserEvent(e.UserId, constants.TaskEventTypeQaQuestion, e.CreateTime)
-		return
+	} else {
+		services.TaskEngineService.HandleUserEvent(e.UserId, constants.TaskEventTypeTopicCreate, e.CreateTime)
 	}
-	services.TaskEngineService.HandleUserEvent(e.UserId, constants.TaskEventTypeTopicCreate, e.CreateTime)
+	services.BadgeService.ScanAndAwardUserBadges(e.UserId)
 }
 
 func handleTaskQaAnswerAcceptedEvent(i any) {
@@ -39,6 +40,7 @@ func handleTaskQaAnswerAcceptedEvent(i any) {
 func handleTaskCommentCreateEvent(i any) {
 	e := i.(event.CommentCreateEvent)
 	services.TaskEngineService.HandleUserEvent(e.UserId, constants.TaskEventTypeCommentCreate, 0)
+	services.BadgeService.ScanAndAwardUserBadges(e.UserId)
 }
 
 func handleTaskFollowEvent(i any) {
@@ -59,11 +61,13 @@ func handleTaskLikeEvent(i any) {
 func handleTaskCheckInEvent(i any) {
 	e := i.(event.CheckInEvent)
 	services.TaskEngineService.HandleUserEvent(e.UserId, constants.TaskEventTypeCheckIn, 0)
+	services.BadgeService.ScanAndAwardUserBadges(e.UserId)
 }
 
 func handleTaskUserLoginEvent(i any) {
 	e := i.(event.UserLoginEvent)
 	services.TaskEngineService.HandleUserEvent(e.UserId, constants.TaskEventTypeUserLogin, e.LoginTime)
+	services.BadgeService.ScanAndAwardUserBadges(e.UserId)
 }
 
 func handleTaskLevelUpEvent(i any) {
@@ -71,6 +75,7 @@ func handleTaskLevelUpEvent(i any) {
 	if e.OldLevel < 10 && e.NewLevel >= 10 {
 		services.TaskEngineService.HandleUserEvent(e.UserId, constants.TaskEventTypeLevel10, e.UpdateTime)
 	}
+	services.BadgeService.ScanAndAwardUserBadges(e.UserId)
 
 	services.MessageService.SendMsg(0, e.UserId, msg.TypeUserLevelUp,
 		locales.Get("message.user_level_up_msg_title"),
