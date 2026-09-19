@@ -40,6 +40,12 @@ export default function DashboardLinksRoute() {
     columns: [
       { key: "id", label: dashboardData.label(t, "id") },
       { key: "sortNo", label: dashboardData.label(t, "sortNo") },
+      {
+        key: "logo",
+        label: "Logo",
+        render: (record) =>
+          dashboardData.imageCell(record.logo, String(record.title || "")),
+      },
       { key: "title", label: dashboardData.label(t, "title") },
       {
         key: "url",
@@ -75,6 +81,12 @@ export default function DashboardLinksRoute() {
         label: dashboardData.label(t, "url"),
         type: "url",
         required: true,
+        colSpan: 2,
+      },
+      {
+        name: "logo",
+        label: "Logo 图标",
+        type: "image",
         colSpan: 2,
       },
       {

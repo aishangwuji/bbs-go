@@ -346,6 +346,7 @@ type Link struct {
 	Url        string `gorm:"not null;type:text" json:"url" form:"url"`                    // 链接
 	Title      string `gorm:"not null;size:128" json:"title" form:"title"`                 // 标题
 	Summary    string `gorm:"size:1024" json:"summary" form:"summary"`                     // 站点描述
+	Logo       string `gorm:"size:1024" json:"logo" form:"logo"`                           // 站点图标/Logo
 	SortNo     int    `gorm:"type:int;index:idx_link_sort_no" json:"sortNo" form:"sortNo"` // 排序编号
 	Status     int    `gorm:"type:int;not null" json:"status" form:"status"`               // 状态
 	CreateTime int64  `gorm:"not null" json:"createTime" form:"createTime"`                // 创建时间

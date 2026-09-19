@@ -22,6 +22,7 @@ func linkBuildLink(link models.Link) map[string]any {
 		"url":        link.Url,
 		"title":      link.Title,
 		"summary":    link.Summary,
+		"logo":       link.Logo,
 		"createTime": link.CreateTime,
 	}
 }

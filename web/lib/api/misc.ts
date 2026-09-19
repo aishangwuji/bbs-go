@@ -9,6 +9,7 @@ export interface FriendLink {
   title?: string
   url?: string
   summary?: string
+  logo?: string
 }
 
 export interface InstallStatus {
