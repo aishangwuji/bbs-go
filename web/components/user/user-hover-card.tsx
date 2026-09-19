@@ -55,14 +55,32 @@ function readCachedCard(cacheKey: string): UserCardData | null {
 }
 
 function writeCachedCard(cacheKey: string, data: UserCardData) {
-  // Map 保持插入顺序：超限时淘汰最旧条目，防止长时间浏览导致内存无限增长
-  if (cardCache.size >= CARD_CACHE_MAX && !cardCache.has(cacheKey)) {
+  // 已存在时先删除再写入：JS Map 的 set 不会刷新已有键的迭代顺序，
+  // 先删后写才能让「最近写入」的条目落到队尾，淘汰时优先淘汰真正最旧的。
+  if (cardCache.has(cacheKey)) {
+    cardCache.delete(cacheKey)
+  } else if (cardCache.size >= CARD_CACHE_MAX) {
     const oldest = cardCache.keys().next().value
     if (oldest) {
       cardCache.delete(oldest)
     }
   }
   cardCache.set(cacheKey, { data, expireAt: Date.now() + CARD_CACHE_TTL })
+}
+
+// mutateUserCardCache 就地更新已缓存卡片的字段（不创建新条目）。
+// 用途：关注态变更后同步缓存，避免 60s TTL 内再次悬浮读到旧的 followed。
+function mutateUserCardCache(
+  viewerId: string,
+  userId: string,
+  patch: Partial<UserCardData>
+) {
+  const cacheKey = cardCacheKey(viewerId, userId)
+  const entry = cardCache.get(cacheKey)
+  if (!entry) {
+    return
+  }
+  cardCache.set(cacheKey, { ...entry, data: { ...entry.data, ...patch } })
 }
 
 function loadUserCard(viewerId: string, userId: string): Promise<UserCardData> {
@@ -127,41 +145,48 @@ export function UserHoverCard({
   // 竞态保护（session token 隔离）：每次请求自增序号，仅当响应返回时序号仍是最新
   // 才写入 state，防止「快速划过 A 再悬浮 B」时 A 的迟到响应覆盖 B 的卡片。
   const seqRef = React.useRef(0)
-  const mountedRef = React.useRef(true)
-  React.useEffect(() => {
-    mountedRef.current = true
-    return () => {
-      mountedRef.current = false
-    }
-  }, [])
 
   React.useEffect(() => {
     if (!open || !userId) {
       return
     }
     const seq = ++seqRef.current
-    const apply = (fn: () => void) => {
-      if (mountedRef.current && seq === seqRef.current) {
-        fn()
-      }
-    }
 
     setLoading(true)
     setFailed(false)
     loadUserCard(viewerId, userId)
       .then((data) => {
-        apply(() => {
+        if (seq === seqRef.current) {
           setCard(data)
           setResolvedKey(cacheKey)
-        })
+        }
       })
       .catch(() => {
-        apply(() => setFailed(true))
+        if (seq === seqRef.current) {
+          setFailed(true)
+        }
       })
       .finally(() => {
-        apply(() => setLoading(false))
+        if (seq === seqRef.current) {
+          setLoading(false)
+        }
       })
+
+    // 清理即失效：参数变更或组件卸载时递增序号，使本次在途请求结果被丢弃。
+    // 无需额外维护 mountedRef（React 18+ 推荐的竞态处理方式）。
+    return () => {
+      seqRef.current++
+    }
   }, [open, cacheKey, viewerId, userId])
+
+  // 关注态变更回写：同步本地 state 与模块缓存，避免关闭后 60s 内再次悬浮读到旧值。
+  const handleFollowChanged = React.useCallback(
+    (followed: boolean) => {
+      mutateUserCardCache(viewerId, userId, { followed })
+      setCard((prev) => (prev ? { ...prev, followed } : prev))
+    },
+    [viewerId, userId]
+  )
 
   if (disabled || !userId) {
     return <>{children}</>
@@ -170,7 +195,8 @@ export function UserHoverCard({
   // 仅当已加载的数据属于当前「观看者 + 被查看者」组合时才展示，
   // 避免切换用户或切换登录态瞬间闪现上一个用户的资料/关注态
   const shown = resolvedKey === cacheKey ? card : null
-  const isSelf = currentUser?.id === user?.id
+  // 复用已归一化的 viewerId/userId 比较，避免 id 类型不一致时把自己误判为他人
+  const isSelf = Boolean(currentUser?.id) && viewerId === userId
   const badges = shown?.badges || []
 
   return (
@@ -296,6 +322,7 @@ export function UserHoverCard({
                 <FollowButton
                   userId={shown.id}
                   initialFollowed={shown.followed}
+                  onChanged={handleFollowChanged}
                 />
               ) : null}
               <Link
