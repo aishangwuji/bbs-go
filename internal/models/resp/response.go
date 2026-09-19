@@ -92,6 +92,18 @@ type UserProfile struct {
 	EmailVerified bool     `json:"emailVerified"`
 }
 
+// UserCardResponse 用户悬浮卡片（按需聚合：基础信息 + 已获得勋章 + 当前用户关注态）
+// 设计说明：
+//   - 内嵌 UserInfo 复用 BuildUserInfo 的等级/统计/签名/禁言脱敏等既有逻辑，避免字段与脱敏策略漂移。
+//   - Badges 只返回用户「已获得」的勋章（含佩戴标记），而非全量勋章库：
+//     悬浮卡只展示成就，不展示未获得项，可显著降低 payload 与前端渲染成本。
+//   - Followed 由 handler 结合当前登录用户注入；匿名访问时为 false。
+type UserCardResponse struct {
+	UserInfo
+	Badges     []BadgeResponse `json:"badges"`     // 用户已获得的勋章（佩戴优先，其次按勋章 sortNo）
+	BadgeCount int             `json:"badgeCount"` // 已获得勋章总数
+}
+
 type TagResponse struct {
 	Id          int64  `json:"id"`
 	Name        string `json:"name"`

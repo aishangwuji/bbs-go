@@ -1204,6 +1204,17 @@ const zhCN = {
       follow: "关注",
       followed: "已关注",
     },
+    userCard: {
+      loading: "正在加载用户资料...",
+      loadFailed: "加载失败",
+      badges: "勋章",
+      noBadges: "暂无勋章",
+      viewAllBadges: "查看全部",
+      topics: "话题",
+      comments: "评论",
+      followers: "粉丝",
+      viewProfile: "查看主页",
+    },
     setEmailDialog: {
       title: "设置邮箱",
       emailPlaceholder: "请输入邮箱",

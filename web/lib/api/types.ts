@@ -388,6 +388,13 @@ export interface Badge {
   obtainTime?: number
 }
 
+// UserCard 用户悬浮卡片数据（GET /api/user/:id/card）
+// 复用 UserSummary 承载基础信息，badges 仅包含该用户已获得的勋章（佩戴优先）
+export interface UserCard extends UserSummary {
+  badges?: Badge[]
+  badgeCount?: number
+}
+
 export interface BindInfo {
   bind?: boolean
   nickname?: string

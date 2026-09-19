@@ -1228,6 +1228,17 @@ const enUS = {
       follow: "Follow",
       followed: "Followed",
     },
+    userCard: {
+      loading: "Loading profile...",
+      loadFailed: "Failed to load",
+      badges: "Badges",
+      noBadges: "No badges yet",
+      viewAllBadges: "View all",
+      topics: "Topics",
+      comments: "Comments",
+      followers: "Followers",
+      viewProfile: "View profile",
+    },
     setEmailDialog: {
       title: "Set Email",
       emailPlaceholder: "Enter your email",

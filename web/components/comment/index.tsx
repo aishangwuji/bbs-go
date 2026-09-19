@@ -13,6 +13,7 @@ import {
 } from "lucide-react"
 
 import { UserAvatar } from "@/components/common/avatar"
+import { UserHoverCard } from "@/components/user/user-hover-card"
 import {
   ConfirmDialog,
   type ConfirmDialogState,
@@ -395,19 +396,23 @@ function CommentSubList({
         {replies.results.map((comment) => (
           <div key={comment.id} className="flex py-2">
             <div>
-              <UserAvatar user={comment.user} size={24} />
+              <UserHoverCard user={comment.user}>
+                <UserAvatar user={comment.user} size={24} />
+              </UserHoverCard>
             </div>
             <div className="ml-1.5 min-w-0 flex-1">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="min-w-0">
-                  <Link
-                    href={`/user/${comment.user.id}`}
-                    className="truncate text-sm text-foreground hover:text-primary"
-                  >
-                    {comment.user.nickname ||
-                      comment.user.username ||
-                      comment.user.id}
-                  </Link>
+                  <UserHoverCard user={comment.user}>
+                    <Link
+                      href={`/user/${comment.user.id}`}
+                      className="truncate text-sm text-foreground hover:text-primary"
+                    >
+                      {comment.user.nickname ||
+                        comment.user.username ||
+                        comment.user.id}
+                    </Link>
+                  </UserHoverCard>
                   {comment.quote ? (
                     <>
                       &nbsp;
@@ -415,14 +420,16 @@ function CommentSubList({
                         {t("component.comment.subList.replyTo")}
                       </span>
                       &nbsp;
-                      <Link
-                        href={`/user/${comment.quote.user.id}`}
-                        className="text-sm text-foreground hover:text-primary"
-                      >
-                        {comment.quote.user.nickname ||
-                          comment.quote.user.username ||
-                          comment.quote.user.id}
-                      </Link>
+                      <UserHoverCard user={comment.quote.user}>
+                        <Link
+                          href={`/user/${comment.quote.user.id}`}
+                          className="text-sm text-foreground hover:text-primary"
+                        >
+                          {comment.quote.user.nickname ||
+                            comment.quote.user.username ||
+                            comment.quote.user.id}
+                        </Link>
+                      </UserHoverCard>
                     </>
                   ) : null}
                 </div>
@@ -717,19 +724,23 @@ function CommentItem({
         )}
       >
         <div>
-          <UserAvatar user={comment.user} size={30} />
+          <UserHoverCard user={comment.user}>
+            <UserAvatar user={comment.user} size={30} />
+          </UserHoverCard>
         </div>
         <div className="ml-2.5 min-w-0 flex-1">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex min-w-0 items-center gap-2">
-              <Link
-                href={`/user/${comment.user.id}`}
-                className="truncate text-[15px] text-foreground hover:text-primary"
-              >
-                {comment.user.nickname ||
-                  comment.user.username ||
-                  comment.user.id}
-              </Link>
+              <UserHoverCard user={comment.user}>
+                <Link
+                  href={`/user/${comment.user.id}`}
+                  className="truncate text-[15px] text-foreground hover:text-primary"
+                >
+                  {comment.user.nickname ||
+                    comment.user.username ||
+                    comment.user.id}
+                </Link>
+              </UserHoverCard>
               {isAccepted ? (
                 <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs text-primary">
                   {t("component.comment.list.acceptedAnswer")}

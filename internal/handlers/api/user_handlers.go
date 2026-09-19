@@ -12,6 +12,7 @@ import (
 	"bbs-go/internal/pkg/markdown"
 	"bbs-go/internal/pkg/msg"
 	"bbs-go/internal/pkg/validate"
+	"sort"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -55,6 +56,84 @@ func UserDetail(ctx *gin.Context) {
 	}
 	ginx.WriteJSON(ctx, ginx.ErrorMessage(locales.Get("user.not_found")))
 
+}
+
+// UserCard 用户悬浮卡片数据（前端按需加载，非列表页内联返回）
+// 数据链路：idcodec 解码 -> UserCache（内存缓存）-> BuildUserInfo（复用脱敏/等级逻辑）
+//          -> UserBadgeCache（按用户缓存）+ BadgeCache（全量勋章内存缓存）关联已获得勋章
+//          -> UserFollowService.IsFollowed 注入当前登录用户关注态
+// 性能：全程命中内存缓存，无新增回源 SQL，避免每次悬浮都打数据库。
+func UserCard(ctx *gin.Context) {
+	userId := idcodec.Decode(ctx.Param("id"))
+	if userId <= 0 {
+		ginx.WriteJSON(ctx, ginx.ErrorMessage(locales.Get("user.not_found")))
+		return
+	}
+	user := cache.UserCache.Get(userId)
+	if user == nil || user.Status == constants.StatusDeleted {
+		ginx.WriteJSON(ctx, ginx.ErrorMessage(locales.Get("user.not_found")))
+		return
+	}
+
+	card := &resp.UserCardResponse{
+		UserInfo: *render.BuildUserInfo(user),
+		Badges:   buildUserCardBadges(userId),
+	}
+	card.BadgeCount = len(card.Badges)
+
+	// 关注态只对已登录用户有意义；匿名访问保持 false，避免前端误显示「已关注」
+	if current := common.GetCurrentUser(ctx); current != nil && current.Id != userId {
+		card.Followed = services.UserFollowService.IsFollowed(current.Id, userId)
+	}
+
+	ginx.WriteJSON(ctx, card)
+}
+
+// buildUserCardBadges 组装用户已获得的勋章：佩戴优先，其次按勋章配置的 sortNo 升序。
+// 复杂度：以 badgeId 建 map 后单次遍历勋章库，O(n) 而非双层嵌套 O(n*m)；
+// 只用内存缓存（BadgeCache / UserBadgeCache），不触发数据库查询。
+func buildUserCardBadges(userId int64) []resp.BadgeResponse {
+	userBadges := cache.UserBadgeCache.GetByUser(userId)
+	if len(userBadges) == 0 {
+		return []resp.BadgeResponse{}
+	}
+
+	owned := make(map[int64]models.UserBadge, len(userBadges))
+	for _, ub := range userBadges {
+		owned[ub.BadgeId] = ub
+	}
+
+	badges := cache.BadgeCache.GetAll()
+	ret := make([]resp.BadgeResponse, 0, len(userBadges))
+	for i := range badges {
+		b := badges[i]
+		ub, ok := owned[b.Id]
+		if !ok {
+			continue
+		}
+		ret = append(ret, resp.BadgeResponse{
+			Id:          b.Id,
+			Name:        b.Name,
+			Title:       b.Title,
+			Description: b.Description,
+			Icon:        b.Icon,
+			SortNo:      b.SortNo,
+			Status:      b.Status,
+			Owned:       true,
+			Worn:        ub.IsWorn,
+			ObtainTime:  ub.CreateTime,
+		})
+	}
+
+	// 佩戴优先：用户选择佩戴的勋章是主动成就展示，应排在卡片最前。
+	// SliceStable 保证同组内维持勋章库原有的 sortNo 顺序（稳定排序）。
+	sort.SliceStable(ret, func(i, j int) bool {
+		if ret[i].Worn != ret[j].Worn {
+			return ret[i].Worn
+		}
+		return ret[i].SortNo < ret[j].SortNo
+	})
+	return ret
 }
 
 func UserUpdate(ctx *gin.Context) {

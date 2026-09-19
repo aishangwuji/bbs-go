@@ -1,6 +1,6 @@
 import { serverApiFetch as apiFetch } from "./server"
 
-import { toFormData } from "./client"
+import { apiFetch as clientApiFetch, toFormData } from "./client"
 import type {
   Article,
   Badge,
@@ -10,6 +10,7 @@ import type {
   ScoreLog,
   SearchUser,
   Topic,
+  UserCard,
   UserMessage,
   UserSummary,
 } from "./types"
@@ -101,6 +102,13 @@ export function getBadges(userId: string) {
   return apiFetch<Badge[]>("/api/badge/badges", {
     params: { userId },
   })
+}
+
+// getUserCard 用户悬浮卡片按需加载（悬浮头像时触发）
+// 走浏览器 fetch 而非 serverApiFetch：卡片是客户端交互，服务端 loader 场景不适用
+// （serverApiFetch 依赖 cookies()，在浏览器中不可用）。
+export function getUserCard(userId: string) {
+  return clientApiFetch<UserCard>(`/api/user/${userId}/card`)
 }
 
 export function getBindInfo(provider: "wx" | "google" | "github") {

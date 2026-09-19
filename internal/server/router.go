@@ -167,6 +167,8 @@ func registerAPIRoutes(group *gin.RouterGroup) {
 	userGroup.GET("/wx_bind_info", apiHandlers.UserWxBindInfo)
 	userGroup.GET("/google_bind_info", apiHandlers.UserGoogleBindInfo)
 	userGroup.GET("/github_bind_info", apiHandlers.UserGithubBindInfo)
+	// 用户悬浮卡片：按需聚合基础信息 + 已获得勋章 + 关注态，前端悬浮头像时懒加载
+	userGroup.GET("/:id/card", apiHandlers.UserCard)
 	userGroup.GET("/:id", apiHandlers.UserDetail)
 
 	tagGroup := group.Group("/tag")
