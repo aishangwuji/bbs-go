@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "@/components/common/link"
-import { usePathname } from "@/lib/router/navigation"
+import { usePathname, useRouter } from "@/lib/router/navigation"
 import {
   ChevronRight,
   Flag,
@@ -937,11 +937,15 @@ export function CommentSection({
   onCreated?: (comment: Comment) => void
 }) {
   const { t } = useI18n()
+  const router = useRouter()
   const pathname = usePathname()
   const config = useAppConfig()
   const currentUser = useCurrentUser()
   const [pageData, setPageData] = React.useState<CommentPageData>(
     initialData || { cursor: "", hasMore: false, results: [] }
+  )
+  const [displayCommentCount, setDisplayCommentCount] = React.useState(
+    commentCount || 0
   )
   const [loading, setLoading] = React.useState(false)
   const [currentAcceptedCommentId, setCurrentAcceptedCommentId] =
@@ -952,6 +956,12 @@ export function CommentSection({
       setPageData(initialData)
     }
   }, [initialData])
+
+  React.useEffect(() => {
+    if (commentCount !== undefined) {
+      setDisplayCommentCount(commentCount)
+    }
+  }, [commentCount])
 
   // 楼层锚点定位（支持 #12 或 #comment-12 格式直达并短暂高亮闪烁）
   React.useEffect(() => {
@@ -1001,11 +1011,69 @@ export function CommentSection({
   }
 
   function onCommentCreated(comment: Comment) {
+    const lastItem =
+      pageData.results && pageData.results.length > 0
+        ? pageData.results[pageData.results.length - 1]
+        : null
+    const fallbackFloor = lastItem?.floor
+      ? lastItem.floor + 1
+      : (pageData.pagination?.totalCount || 0) + 1
+
+    const commentWithFloor: Comment = {
+      ...comment,
+      floor: comment.floor || fallbackFloor,
+    }
+
+    setDisplayCommentCount((c) => c + 1)
+
+    const pagination = pageData.pagination
+    if (pagination && pagination.totalPages > 1) {
+      const isLastPage = pagination.currentPage === pagination.totalPages
+      const isCurrentPageFull =
+        (pageData.results?.length || 0) >= (pagination.pageSize || 10)
+
+      // 用户不在最后一页，或者当前页已满需要产生新的一页：
+      // 跳转到评论所在的最后一页，由锚点自动平滑滚动并高亮
+      if (!isLastPage || isCurrentPageFull) {
+        const total = (pagination.totalCount || 0) + 1
+        const newTotalPages = Math.ceil(total / (pagination.pageSize || 10))
+        const rootPath = pathname || (entityId ? `/topic/${entityId}` : "")
+        const targetUrl = `${rootPath}?page=${newTotalPages}#comment-${commentWithFloor.floor}`
+        router.push(targetUrl)
+        onCreated?.(commentWithFloor)
+        return
+      }
+    }
+
+    // 单页模式，或在最后一页且未满：按一二三四五六七正序追加至列表末尾
     setPageData((current) => ({
       ...current,
-      results: [comment, ...(current.results || [])],
+      results: [...(current.results || []), commentWithFloor],
+      pagination: current.pagination
+        ? {
+            ...current.pagination,
+            totalCount: (current.pagination.totalCount || 0) + 1,
+          }
+        : undefined,
     }))
-    onCreated?.(comment)
+
+    // 触发平滑滚动到底部并短暂高亮刚发表的楼层
+    if (typeof window !== "undefined") {
+      requestAnimationFrame(() => {
+        const target =
+          document.getElementById(`comment-${commentWithFloor.floor}`) ||
+          document.getElementById(`comment-${commentWithFloor.id}`)
+        if (target) {
+          target.scrollIntoView({ behavior: "smooth", block: "center" })
+          target.classList.add("bg-primary/[0.08]")
+          window.setTimeout(() => {
+            target.classList.remove("bg-primary/[0.08]")
+          }, 2000)
+        }
+      })
+    }
+
+    onCreated?.(commentWithFloor)
   }
 
   function updateComment(comment: Comment) {
@@ -1031,9 +1099,16 @@ export function CommentSection({
     if (currentAcceptedCommentId === comment.id) {
       setCurrentAcceptedCommentId(0)
     }
+    setDisplayCommentCount((c) => Math.max(0, c - 1))
     setPageData((current) => ({
       ...current,
       results: current.results.filter((item) => item.id !== comment.id),
+      pagination: current.pagination
+        ? {
+            ...current.pagination,
+            totalCount: Math.max(0, (current.pagination.totalCount || 0) - 1),
+          }
+        : undefined,
     }))
   }
 
@@ -1041,8 +1116,8 @@ export function CommentSection({
     <section id="JComment" className="rounded-lg bg-background p-4">
       <div className="flex text-base font-medium text-foreground">
         <span>{title || t("component.comment.title")}</span>
-        {commentCount && commentCount > 0 ? (
-          <span>&nbsp;{commentCount}</span>
+        {displayCommentCount > 0 ? (
+          <span>&nbsp;{displayCommentCount}</span>
         ) : null}
       </div>
 

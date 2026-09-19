@@ -325,3 +325,15 @@ func (s *commentService) Scan(callback func(comments []models.Comment)) {
 func (s *commentService) IsCommented(userId int64, entityType string, entityId int64) bool {
 	return s.FindOne(sqls.NewCnd().Where("user_id = ? and entity_id = ? and entity_type = ? and status = ?", userId, entityId, entityType, constants.StatusOk)) != nil
 }
+
+// GetFloor 计算某条评论在所属实体下的绝对楼层号（1-based，按 id 升序）
+func (s *commentService) GetFloor(comment *models.Comment) int {
+	if comment == nil || comment.EntityType != constants.EntityTopic {
+		return 0
+	}
+	var count int64
+	sqls.DB().Model(&models.Comment{}).
+		Where("entity_type = ? and entity_id = ? and status = ? and id <= ?", comment.EntityType, comment.EntityId, constants.StatusOk, comment.Id).
+		Count(&count)
+	return int(count)
+}

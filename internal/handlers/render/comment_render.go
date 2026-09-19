@@ -17,6 +17,10 @@ func BuildComment(comment *models.Comment) *resp.CommentResponse {
 	return doBuildComment(comment, nil, true, true)
 }
 
+func BuildCommentWithUser(comment *models.Comment, currentUser *models.User) *resp.CommentResponse {
+	return doBuildComment(comment, currentUser, true, true)
+}
+
 func BuildComments(comments []models.Comment, currentUser *models.User, isBuildReplies, isBuildQuote bool) []resp.CommentResponse {
 	return BuildCommentsWithFloor(comments, currentUser, isBuildReplies, isBuildQuote, -1)
 }

@@ -79,7 +79,11 @@ func CommentCreate(ctx *gin.Context) {
 		return
 	}
 
-	ginx.WriteJSON(ctx, render.BuildComment(comment))
+	respItem := render.BuildCommentWithUser(comment, user)
+	if respItem != nil {
+		respItem.Floor = services.CommentService.GetFloor(comment)
+	}
+	ginx.WriteJSON(ctx, respItem)
 
 }
 
