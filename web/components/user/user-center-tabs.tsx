@@ -6,6 +6,7 @@ import {
   FileText,
   MessageSquare,
   Settings,
+  User,
   UserPlus,
   Users,
   type LucideIcon,
@@ -27,7 +28,8 @@ type TabItem = {
 // UserCenterTabs 个人中心统一 Tab 导航
 // 为什么用 Link 而非受控 Tabs 组件：各分区是不同的 URL 路由，
 // 保留链接语义可继续支持深链、浏览器前进/后退与 SEO，改动也最小。
-// 「资料」Tab 仅在自己主页的主人视角下显示（指向编辑资料页），看他人主页或处于预览模式时不出现。
+// 「资料 / 账号设置」Tab 仅在自己主页的主人视角下显示（内嵌于个人主页的
+// 嵌套路由），看他人主页或处于预览模式时不出现。
 export function UserCenterTabs({
   user,
   currentUser,
@@ -75,12 +77,20 @@ export function UserCenterTabs({
     },
   ]
   if (isOwnerMode) {
-    tabs.push({
-      key: "profile",
-      href: "/user/profile",
-      label: t("component.myProfile.title"),
-      icon: Settings,
-    })
+    tabs.push(
+      {
+        key: "profile",
+        href: `${base}/profile`,
+        label: t("layout.profile.profile"),
+        icon: User,
+      },
+      {
+        key: "account",
+        href: `${base}/account`,
+        label: t("layout.profile.accountSettings"),
+        icon: Settings,
+      }
+    )
   }
 
   const isActive = (href: string) => {
@@ -88,7 +98,6 @@ export function UserCenterTabs({
     if (href === base) {
       return pathname === base || pathname === `${base}/`
     }
-    // 资料页含子路由（/user/profile/account），用前缀匹配
     return pathname === href || pathname.startsWith(`${href}/`)
   }
 

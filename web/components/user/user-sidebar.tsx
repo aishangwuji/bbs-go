@@ -121,7 +121,10 @@ export function MyProfileCard({
       title={t("component.myProfile.title")}
       actions={
         canEdit ? (
-          <Link href="/user/profile" className="inline-flex items-center gap-1">
+          <Link
+            href={`/user/${user.id}/profile`}
+            className="inline-flex items-center gap-1"
+          >
             {t("component.myProfile.editProfile")}
             <ChevronRight className="h-4 w-4" />
           </Link>

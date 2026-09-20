@@ -10,6 +10,7 @@ import {
 } from "../route-helpers/user-profile"
 import {
   localizedTitle,
+  noindexRouteMeta,
   rootDataFromMatches,
   userMeta,
 } from "@/lib/seo"
@@ -74,6 +75,15 @@ export function meta({
   matches: Array<{ data?: unknown; loaderData?: unknown }>
 }) {
   const rootData = rootDataFromMatches(matches)
+  const tail = location.pathname.split("/").filter(Boolean).pop() ?? ""
+  // 资料 / 账号设置是私密页：保持原先的 noindex（不被搜索引擎收录），
+  // 且不输出用户 OG 信息。
+  if (tail === "profile") {
+    return noindexRouteMeta(matches, "Profile", "个人资料")
+  }
+  if (tail === "account") {
+    return noindexRouteMeta(matches, "Account settings", "账号设置")
+  }
   return userMeta(
     rootData?.config,
     data?.user,
