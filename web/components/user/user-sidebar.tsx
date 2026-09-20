@@ -194,6 +194,7 @@ export function FollowWidget({
 }
 
 import { UserGithubProfileWidget } from "@/components/user/user-github-widget"
+import { useSpaceView } from "@/components/user/space-view-context"
 
 export function UserCenterSidebar({
   user,
@@ -210,26 +211,112 @@ export function UserCenterSidebar({
   followed: UserSummary[]
   t: TFunction
 }) {
+  const { currentRole, isRealOwner, isMocking } = useSpaceView()
+
+  const config = user.spaceModulesConfig || {
+    github: true,
+    counts: true,
+    badges: true,
+    profile: true,
+    fans: true,
+    followed: true,
+  }
+
+  // 模块显隐判断：
+  // 1. 若配置为 true，全员可见
+  // 2. 若配置为 false，访客态/模拟视角直接隐藏；仅号主本尊且非模拟模式下可见（带私密标记）
+  const isVisible = (enabled?: boolean) => {
+    const isPublic = enabled !== false
+    if (isPublic) return true
+    return isRealOwner && !isMocking
+  }
+
+  const renderPrivateBadge = (enabled?: boolean) => {
+    if (enabled !== false) return null
+    if (isRealOwner && !isMocking) {
+      return (
+        <span className="inline-flex items-center rounded-sm bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400">
+          👁️‍🗨️ 仅自己可见（访客已隐藏）
+        </span>
+      )
+    }
+    return null
+  }
+
   return (
     <div className="left-container space-y-4">
-      <UserGithubProfileWidget user={user} currentUser={currentUser} />
-      <UserCountsCard user={user} t={t} />
-      <UserBadgesWidget user={user} badges={badges} t={t} />
-      <MyProfileCard user={user} currentUser={currentUser} t={t} />
-      <FollowWidget
-        title={t("component.fansWidget.title")}
-        count={user.fansCount}
-        moreHref={`/user/${user.id}/fans`}
-        users={fans}
-        t={t}
-      />
-      <FollowWidget
-        title={t("component.followWidget.title")}
-        count={user.followCount}
-        moreHref={`/user/${user.id}/followed`}
-        users={followed}
-        t={t}
-      />
+      {isVisible(config.github) && (
+        <div className="space-y-1">
+          {renderPrivateBadge(config.github) && (
+            <div className="flex justify-end pr-1">
+              {renderPrivateBadge(config.github)}
+            </div>
+          )}
+          <UserGithubProfileWidget user={user} currentUser={currentUser} />
+        </div>
+      )}
+      {isVisible(config.counts) && (
+        <div className="space-y-1">
+          {renderPrivateBadge(config.counts) && (
+            <div className="flex justify-end pr-1">
+              {renderPrivateBadge(config.counts)}
+            </div>
+          )}
+          <UserCountsCard user={user} t={t} />
+        </div>
+      )}
+      {isVisible(config.badges) && (
+        <div className="space-y-1">
+          {renderPrivateBadge(config.badges) && (
+            <div className="flex justify-end pr-1">
+              {renderPrivateBadge(config.badges)}
+            </div>
+          )}
+          <UserBadgesWidget user={user} badges={badges} t={t} />
+        </div>
+      )}
+      {isVisible(config.profile) && (
+        <div className="space-y-1">
+          {renderPrivateBadge(config.profile) && (
+            <div className="flex justify-end pr-1">
+              {renderPrivateBadge(config.profile)}
+            </div>
+          )}
+          <MyProfileCard user={user} currentUser={currentUser} t={t} />
+        </div>
+      )}
+      {isVisible(config.fans) && (
+        <div className="space-y-1">
+          {renderPrivateBadge(config.fans) && (
+            <div className="flex justify-end pr-1">
+              {renderPrivateBadge(config.fans)}
+            </div>
+          )}
+          <FollowWidget
+            title={t("component.fansWidget.title")}
+            count={user.fansCount}
+            moreHref={`/user/${user.id}/fans`}
+            users={fans}
+            t={t}
+          />
+        </div>
+      )}
+      {isVisible(config.followed) && (
+        <div className="space-y-1">
+          {renderPrivateBadge(config.followed) && (
+            <div className="flex justify-end pr-1">
+              {renderPrivateBadge(config.followed)}
+            </div>
+          )}
+          <FollowWidget
+            title={t("component.followWidget.title")}
+            count={user.followCount}
+            moreHref={`/user/${user.id}/followed`}
+            users={followed}
+            t={t}
+          />
+        </div>
+      )}
       <UserCenterOperations user={user} currentUser={currentUser} />
     </div>
   )
