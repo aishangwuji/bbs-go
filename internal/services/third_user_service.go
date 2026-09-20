@@ -1,6 +1,7 @@
 package services
 
 import (
+	"bbs-go/internal/cache"
 	"bbs-go/internal/models"
 	"bbs-go/internal/models/constants"
 	"bbs-go/internal/pkg/bbsurls"
@@ -18,6 +19,7 @@ import (
 
 	"github.com/mlogclub/simple/common/dates"
 	"github.com/mlogclub/simple/common/jsons"
+	"github.com/mlogclub/simple/common/strs"
 	"github.com/mlogclub/simple/sqls"
 	"gorm.io/gorm"
 )
@@ -458,14 +460,47 @@ func (s *thirdUserService) LoginGithub(code, state string) (*models.User, error)
 	return user, nil
 }
 
-func (s *thirdUserService) BindGithub(userId int64, code, state string) error {
+func (s *thirdUserService) buildConflictData(currentUserId int64, conflictThirdUser *models.ThirdUser, thirdType, openId, nickname, avatar, extraData string) *cache.OAuthConflictData {
+	conflictUser := UserService.Get(conflictThirdUser.UserId)
+	if conflictUser == nil {
+		return nil
+	}
+
+	var topicCount int64
+	sqls.DB().Model(&models.Topic{}).Where("user_id = ? AND status = ?", conflictUser.Id, constants.StatusOk).Count(&topicCount)
+
+	var commentCount int64
+	sqls.DB().Model(&models.Comment{}).Where("user_id = ? AND status = ?", conflictUser.Id, constants.StatusOk).Count(&commentCount)
+
+	token := strs.UUID()
+	conflictData := &cache.OAuthConflictData{
+		ConflictToken: token,
+		TargetUserId:  currentUserId,
+		ConflictUser:  conflictUser,
+		ThirdType:     thirdType,
+		OpenId:        openId,
+		ThirdUser:     conflictThirdUser,
+		Nickname:      nickname,
+		Avatar:        avatar,
+		ExtraData:     extraData,
+		TopicCount:    topicCount,
+		CommentCount:  commentCount,
+		Score:         conflictUser.Score,
+		IsEmpty:       topicCount == 0 && commentCount == 0,
+	}
+
+	cache.OAuthConflictCache.Put(token, conflictData)
+	return conflictData
+}
+
+func (s *thirdUserService) BindGithub(userId int64, code, state string) (*cache.OAuthConflictData, error) {
 	if temp := s.GetByUserId(userId, constants.ThirdTypeGithub); temp != nil {
-		return errors.New(locales.Getf("auth.github_already_bound", temp.Nickname))
+		return nil, errors.New(locales.Getf("auth.github_already_bound", temp.Nickname))
 	}
 
 	loginConfig := SysConfigService.GetLoginConfig()
 	if !loginConfig.GithubLogin.Enabled {
-		return errors.New(locales.Get("auth.github_login_disabled"))
+		return nil, errors.New(locales.Get("auth.github_login_disabled"))
 	}
 
 	// GitHub 只允许配置一个回调地址，这里必须与发起授权时使用的 redirectURI 保持完全一致
@@ -477,12 +512,7 @@ func (s *thirdUserService) BindGithub(userId int64, code, state string) error {
 	info, err := oauth.GetUserInfo(ctx, code)
 	if err != nil {
 		slog.Error("GitHub绑定获取用户信息失败", slog.Any("err", err))
-		return err
-	}
-
-	openId := fmt.Sprintf("%d", info.ID)
-	if temp := s.GetByOpenId(openId, constants.ThirdTypeGithub); temp != nil && temp.UserId != userId {
-		return errors.New(locales.Get("auth.github_bound_to_other"))
+		return nil, err
 	}
 
 	nickname := info.Name
@@ -493,7 +523,16 @@ func (s *thirdUserService) BindGithub(userId int64, code, state string) error {
 		}
 	}
 
-	return s.Create(&models.ThirdUser{
+	openId := fmt.Sprintf("%d", info.ID)
+	if temp := s.GetByOpenId(openId, constants.ThirdTypeGithub); temp != nil && temp.UserId != userId {
+		conflict := s.buildConflictData(userId, temp, string(constants.ThirdTypeGithub), openId, nickname, info.AvatarURL, jsons.ToJsonStr(info))
+		if conflict != nil {
+			return conflict, nil
+		}
+		return nil, errors.New(locales.Get("auth.github_bound_to_other"))
+	}
+
+	return nil, s.Create(&models.ThirdUser{
 		UserId:     userId,
 		OpenId:     openId,
 		ThirdType:  constants.ThirdTypeGithub,
@@ -513,14 +552,14 @@ func (s *thirdUserService) UnbindGithub(userId int64) {
 	repositories.ThirdUserRepository.Delete(sqls.DB(), thirdUser.Id)
 }
 
-func (s *thirdUserService) BindGoogle(userId int64, code, state string) error {
+func (s *thirdUserService) BindGoogle(userId int64, code, state string) (*cache.OAuthConflictData, error) {
 	if temp := s.GetByUserId(userId, constants.ThirdTypeGoogle); temp != nil {
-		return errors.New(locales.Getf("auth.google_already_bound", temp.Nickname))
+		return nil, errors.New(locales.Getf("auth.google_already_bound", temp.Nickname))
 	}
 
 	loginConfig := SysConfigService.GetLoginConfig()
 	if !loginConfig.GoogleLogin.Enabled {
-		return errors.New(locales.Get("auth.google_login_disabled"))
+		return nil, errors.New(locales.Get("auth.google_login_disabled"))
 	}
 
 	// 使用与授权时相同的 redirectURI（必须完全一致）
@@ -531,11 +570,7 @@ func (s *thirdUserService) BindGoogle(userId int64, code, state string) error {
 	info, err := oauth.GetUserInfo(ctx, code)
 	if err != nil {
 		slog.Error("Google绑定获取用户信息失败", slog.Any("err", err))
-		return err
-	}
-
-	if temp := s.GetByOpenId(info.ID, constants.ThirdTypeGoogle); temp != nil && temp.UserId != userId {
-		return errors.New(locales.Get("auth.google_bound_to_other"))
+		return nil, err
 	}
 
 	nickname := info.Name
@@ -546,7 +581,15 @@ func (s *thirdUserService) BindGoogle(userId int64, code, state string) error {
 		}
 	}
 
-	return s.Create(&models.ThirdUser{
+	if temp := s.GetByOpenId(info.ID, constants.ThirdTypeGoogle); temp != nil && temp.UserId != userId {
+		conflict := s.buildConflictData(userId, temp, string(constants.ThirdTypeGoogle), info.ID, nickname, info.Picture, jsons.ToJsonStr(info))
+		if conflict != nil {
+			return conflict, nil
+		}
+		return nil, errors.New(locales.Get("auth.google_bound_to_other"))
+	}
+
+	return nil, s.Create(&models.ThirdUser{
 		UserId:     userId,
 		OpenId:     info.ID,
 		ThirdType:  constants.ThirdTypeGoogle,
@@ -564,4 +607,117 @@ func (s *thirdUserService) UnbindGoogle(userId int64) {
 		return
 	}
 	repositories.ThirdUserRepository.Delete(sqls.DB(), thirdUser.Id)
+}
+
+// ResolveOAuthConflict 解决第三方账号冲突：在单一 ACID 数据库事务中原子完成资产过户、绑定转移与旧账号软删除注销
+func (s *thirdUserService) ResolveOAuthConflict(currentUserId int64, conflictToken string) error {
+	data := cache.OAuthConflictCache.Get(conflictToken)
+	if data == nil {
+		return errors.New(locales.Get("auth.login_data_error"))
+	}
+	if data.TargetUserId != currentUserId {
+		return errors.New("forbidden")
+	}
+
+	conflictUserId := data.ConflictUser.Id
+	if conflictUserId <= 0 || conflictUserId == currentUserId {
+		return errors.New("invalid conflict user")
+	}
+
+	err := sqls.WithTransaction(func(txCtx *sqls.TxContext) error {
+		tx := txCtx.Tx
+
+		// 1. 过户话题 (Topic)
+		if err := tx.Model(&models.Topic{}).Where("user_id = ?", conflictUserId).Update("user_id", currentUserId).Error; err != nil {
+			return err
+		}
+
+		// 2. 过户文章 (Article)
+		if err := tx.Model(&models.Article{}).Where("user_id = ?", conflictUserId).Update("user_id", currentUserId).Error; err != nil {
+			return err
+		}
+
+		// 3. 过户评论 (Comment)
+		if err := tx.Model(&models.Comment{}).Where("user_id = ?", conflictUserId).Update("user_id", currentUserId).Error; err != nil {
+			return err
+		}
+
+		// 4. 过户点赞 (UserLike)，去重防冲突
+		var conflictLikes []models.UserLike
+		if err := tx.Where("user_id = ?", conflictUserId).Find(&conflictLikes).Error; err == nil {
+			for _, like := range conflictLikes {
+				var count int64
+				tx.Model(&models.UserLike{}).Where("user_id = ? AND entity_type = ? AND entity_id = ?", currentUserId, like.EntityType, like.EntityId).Count(&count)
+				if count > 0 {
+					tx.Delete(&like)
+				} else {
+					tx.Model(&like).Update("user_id", currentUserId)
+				}
+			}
+		}
+
+		// 5. 过户收藏 (Favorite)，去重防冲突
+		var conflictFavs []models.Favorite
+		if err := tx.Where("user_id = ?", conflictUserId).Find(&conflictFavs).Error; err == nil {
+			for _, fav := range conflictFavs {
+				var count int64
+				tx.Model(&models.Favorite{}).Where("user_id = ? AND entity_type = ? AND entity_id = ?", currentUserId, fav.EntityType, fav.EntityId).Count(&count)
+				if count > 0 {
+					tx.Delete(&fav)
+				} else {
+					tx.Model(&fav).Update("user_id", currentUserId)
+				}
+			}
+		}
+
+		// 6. 勋章迁移 (UserBadge)，去重防冲突
+		var conflictBadges []models.UserBadge
+		if err := tx.Where("user_id = ?", conflictUserId).Find(&conflictBadges).Error; err == nil {
+			for _, ub := range conflictBadges {
+				var count int64
+				tx.Model(&models.UserBadge{}).Where("user_id = ? AND badge_id = ?", currentUserId, ub.BadgeId).Count(&count)
+				if count > 0 {
+					tx.Delete(&ub)
+				} else {
+					tx.Model(&ub).Update("user_id", currentUserId)
+				}
+			}
+		}
+
+		// 7. 积分合并：将旧用户积分合并到当前用户
+		if data.Score > 0 {
+			if err := tx.Model(&models.User{}).Where("id = ?", currentUserId).Update("score", gorm.Expr("score + ?", data.Score)).Error; err != nil {
+				return err
+			}
+		}
+
+		// 8. 转移第三方绑定记录 (ThirdUser)
+		if data.ThirdUser != nil {
+			if err := tx.Model(&models.ThirdUser{}).Where("id = ?", data.ThirdUser.Id).Updates(map[string]interface{}{
+				"user_id":     currentUserId,
+				"update_time": dates.NowTimestamp(),
+			}).Error; err != nil {
+				return err
+			}
+		}
+
+		// 9. 软删除注销旧用户（符合规范要求：逻辑软删除，审计字段留存）
+		if err := tx.Model(&models.User{}).Where("id = ?", conflictUserId).Updates(map[string]interface{}{
+			"status":      constants.StatusDeleted,
+			"update_time": dates.NowTimestamp(),
+		}).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		slog.Error("账号合并与绑定事务执行失败", slog.Any("err", err))
+		return err
+	}
+
+	// 消费并使临时凭据失效
+	cache.OAuthConflictCache.Invalidate(conflictToken)
+	return nil
 }

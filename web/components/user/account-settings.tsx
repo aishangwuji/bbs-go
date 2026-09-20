@@ -389,7 +389,7 @@ function ProviderBindDialog({
         : "/api/login/github_login_config"
     try {
       const config = await apiFetch<{ authUrl?: string }>(path, {
-        params: { bind: true },
+        params: { bind: true, redirect: window.location.pathname },
       })
       if (config.authUrl) {
         window.location.href = config.authUrl

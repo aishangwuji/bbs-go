@@ -473,12 +473,32 @@ func LoginGoogleBind(ctx *gin.Context) {
 		return
 	}
 
-	if err := services.ThirdUserService.BindGoogle(user.Id, req.Code, req.State); err != nil {
+	conflict, err := services.ThirdUserService.BindGoogle(user.Id, req.Code, req.State)
+	if err != nil {
 		ginx.WriteJSON(ctx, err)
 		return
 	}
+	if conflict != nil {
+		ginx.WriteJSON(ctx, map[string]interface{}{
+			"status":        "conflict",
+			"provider":      conflict.ThirdType,
+			"conflictToken": conflict.ConflictToken,
+			"conflictUser": map[string]interface{}{
+				"id":           conflict.ConflictUser.Id,
+				"nickname":     conflict.ConflictUser.Nickname,
+				"avatar":       conflict.ConflictUser.Avatar,
+				"topicCount":   conflict.TopicCount,
+				"commentCount": conflict.CommentCount,
+				"score":        conflict.Score,
+				"isEmpty":      conflict.IsEmpty,
+			},
+		})
+		return
+	}
 
-	ginx.WriteJSON(ctx, nil)
+	ginx.WriteJSON(ctx, map[string]interface{}{
+		"status": "success",
+	})
 
 }
 
@@ -594,8 +614,27 @@ func LoginGithubLoginSubmit(ctx *gin.Context) {
 			ginx.WriteJSON(ctx, err)
 			return
 		}
-		if err := services.ThirdUserService.BindGithub(user.Id, req.Code, req.State); err != nil {
+		conflict, err := services.ThirdUserService.BindGithub(user.Id, req.Code, req.State)
+		if err != nil {
 			ginx.WriteJSON(ctx, err)
+			return
+		}
+		if conflict != nil {
+			ginx.WriteJSON(ctx, map[string]interface{}{
+				"status":        "conflict",
+				"provider":      conflict.ThirdType,
+				"conflictToken": conflict.ConflictToken,
+				"conflictUser": map[string]interface{}{
+					"id":           conflict.ConflictUser.Id,
+					"nickname":     conflict.ConflictUser.Nickname,
+					"avatar":       conflict.ConflictUser.Avatar,
+					"topicCount":   conflict.TopicCount,
+					"commentCount": conflict.CommentCount,
+					"score":        conflict.Score,
+					"isEmpty":      conflict.IsEmpty,
+				},
+				"redirect": data.Redirect,
+			})
 			return
 		}
 		// 绑定成功后保持当前登录态不变，按 redirect 跳转（默认为账号设置页）
@@ -631,4 +670,42 @@ func LoginGithubUnbind(ctx *gin.Context) {
 	services.ThirdUserService.UnbindGithub(user.Id)
 	ginx.WriteJSON(ctx, nil)
 
+}
+
+type OAuthResolveConflictReq struct {
+	ConflictToken string `json:"conflictToken" form:"conflictToken"`
+	Action        string `json:"action" form:"action"` // "merge" 或 "cancel"
+}
+
+// LoginOAuthResolveConflict 处理第三方账号冲突：支持一键换绑或资产合并过户
+func LoginOAuthResolveConflict(ctx *gin.Context) {
+	user, err := common.CheckLogin(ctx)
+	if err != nil {
+		ginx.WriteJSON(ctx, err)
+		return
+	}
+
+	var req OAuthResolveConflictReq
+	if err := ginx.Bind(ctx, &req); err != nil {
+		ginx.WriteJSON(ctx, err)
+		return
+	}
+
+	if strs.IsBlank(req.ConflictToken) {
+		ginx.WriteJSON(ctx, ginx.ErrorMessage("conflictToken required"))
+		return
+	}
+
+	if req.Action == "cancel" {
+		cache.OAuthConflictCache.Invalidate(req.ConflictToken)
+		ginx.WriteJSON(ctx, map[string]interface{}{"status": "cancelled"})
+		return
+	}
+
+	if err := services.ThirdUserService.ResolveOAuthConflict(user.Id, req.ConflictToken); err != nil {
+		ginx.WriteJSON(ctx, err)
+		return
+	}
+
+	ginx.WriteJSON(ctx, map[string]interface{}{"status": "success"})
 }
