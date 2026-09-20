@@ -27,19 +27,29 @@ export async function clientLoader({ params }: RouteArgs) {
   return loadUserCenterData({ userId: params.userId || "" })
 }
 
-// 同一用户内切换子 tab 时不重新加载外壳数据：布局与侧边栏保持挂载，
+// 同一用户内切换子 tab，不重新加载外壳数据：布局与侧边栏保持挂载，
 // 只有 Outlet 内容替换，这是切 tab 不再整页闪烁的关键。
+// 例外：preview_role（管理员预览视角）变化时必须重拉，否则外壳数据
+//（用户/徽章）停留在旧视角，与 SpaceViewContext 的角色切换脱节。
 export function shouldRevalidate({
   currentParams,
   nextParams,
+  currentUrl,
+  nextUrl,
   defaultShouldRevalidate,
 }: {
   currentParams: Record<string, string | undefined>
   nextParams: Record<string, string | undefined>
+  currentUrl: URL
+  nextUrl: URL
   defaultShouldRevalidate: boolean
 }) {
   if (currentParams.userId && currentParams.userId === nextParams.userId) {
-    return false
+    const currentRole = currentUrl.searchParams.get("preview_role")
+    const nextRole = nextUrl.searchParams.get("preview_role")
+    if (currentRole === nextRole) {
+      return false
+    }
   }
   return defaultShouldRevalidate
 }
