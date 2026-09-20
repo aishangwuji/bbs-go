@@ -21,6 +21,7 @@ var Models = []interface{}{
 	&ForbiddenWord{},
 	&Attachment{}, &AttachmentDownloadLog{},
 	&AgentToken{}, &AgentTokenApi{},
+	&UserGithubProfile{},
 }
 
 type Model struct {
