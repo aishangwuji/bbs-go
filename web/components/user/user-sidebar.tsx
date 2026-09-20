@@ -193,6 +193,8 @@ export function FollowWidget({
   )
 }
 
+import { UserGithubProfileWidget } from "@/components/user/user-github-widget"
+
 export function UserCenterSidebar({
   user,
   currentUser,
@@ -210,6 +212,7 @@ export function UserCenterSidebar({
 }) {
   return (
     <div className="left-container space-y-4">
+      <UserGithubProfileWidget user={user} currentUser={currentUser} />
       <UserCountsCard user={user} t={t} />
       <UserBadgesWidget user={user} badges={badges} t={t} />
       <MyProfileCard user={user} currentUser={currentUser} t={t} />

@@ -54,6 +54,32 @@ export interface UserSummary {
     expProgressPercent?: number
     isMaxLevel?: boolean
   }
+  githubProfile?: UserGithubProfile
+}
+
+export interface UserGithubProfile {
+  githubId: number
+  githubLogin: string
+  githubName?: string
+  githubAvatar?: string
+  githubBio?: string
+  githubCreatedAt: number
+  accountAgeDays: number
+  publicRepos: number
+  followers: number
+  topRepoName?: string
+  topRepoStars?: number
+  topRepoUrl?: string
+  topRepoLang?: string
+  topRepoDesc?: string
+  contributedRepoName?: string
+  contributedRepoStars?: number
+  contributedPrTitle?: string
+  contributedPrUrl?: string
+  passedAdmission: boolean
+  proofType: "repo_owner" | "contributor_merged_pr" | "account_age" | "none" | string
+  proofReason?: string
+  syncedAt?: number
 }
 
 export interface ImageInfo {

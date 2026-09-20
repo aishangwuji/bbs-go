@@ -61,6 +61,20 @@ export function AccountSettings({
   const [currentBindInfo, setCurrentBindInfo] = React.useState(bindInfo)
   const [confirmState, setConfirmState] =
     React.useState<ConfirmDialogState>(null)
+  const [syncingGithub, setSyncingGithub] = React.useState(false)
+
+  const handleSyncGithub = async () => {
+    setSyncingGithub(true)
+    try {
+      await apiFetch("/api/user/sync_github_profile", { method: "POST" })
+      toast.success("GitHub 开发者开源画像已同步更新！")
+      router.refresh()
+    } catch (err: any) {
+      toast.error(err?.message || "同步失败，请重试")
+    } finally {
+      setSyncingGithub(false)
+    }
+  }
 
   React.useEffect(() => {
     const providers: BindProvider[] = []
@@ -246,6 +260,18 @@ export function AccountSettings({
             onUnbind={() => confirmUnbind("github")}
             bindText={t("user.profile.account.bind")}
             unbindText={t("user.profile.account.unbind")}
+            extraAction={
+              currentBindInfo.github?.bind ? (
+                <button
+                  type="button"
+                  disabled={syncingGithub}
+                  onClick={handleSyncGithub}
+                  className="text-xs text-primary hover:underline disabled:opacity-50"
+                >
+                  {syncingGithub ? "同步中..." : "同步画像"}
+                </button>
+              ) : null
+            }
           />
         ) : null}
       </div>
@@ -300,6 +326,7 @@ function BindItem({
   onUnbind,
   bindText,
   unbindText,
+  extraAction,
 }: {
   title: string
   value?: React.ReactNode
@@ -308,18 +335,22 @@ function BindItem({
   onUnbind: () => void
   bindText: string
   unbindText: string
+  extraAction?: React.ReactNode
 }) {
   return (
     <SettingsItem title={title} value={value}>
-      {bound ? (
-        <button type="button" onClick={onUnbind}>
-          {unbindText}
-        </button>
-      ) : (
-        <button type="button" onClick={onBind}>
-          {bindText}
-        </button>
-      )}
+      <div className="flex items-center gap-3">
+        {extraAction}
+        {bound ? (
+          <button type="button" onClick={onUnbind}>
+            {unbindText}
+          </button>
+        ) : (
+          <button type="button" onClick={onBind}>
+            {bindText}
+          </button>
+        )}
+      </div>
     </SettingsItem>
   )
 }
