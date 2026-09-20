@@ -1,8 +1,7 @@
 "use client"
 
 import * as React from "react"
-import Link from "@/components/common/link"
-import { FileText, Medal, MessageSquare, UserPlus, Users } from "lucide-react"
+import { Medal } from "lucide-react"
 
 import { ArticleList } from "@/components/article/article-list"
 import { useCurrentUser } from "@/components/app/app-provider"
@@ -122,24 +121,9 @@ export function UserProfileClientPage({
       fans={fans}
       followed={followed}
       t={t}
+      showTabs
     >
       <WidgetCard>
-        <nav className="mb-2 inline-flex h-9 items-center justify-center rounded-lg bg-muted p-[3px] text-muted-foreground">
-          <Link
-            href={`/user/${user.id}`}
-            className="inline-flex h-full items-center justify-center gap-1.5 rounded-md bg-background px-3 py-1 text-sm font-medium text-foreground shadow-sm"
-          >
-            <MessageSquare className="h-3.5 w-3.5" aria-hidden="true" />
-            <span>{t("pages.user.topics")}</span>
-          </Link>
-          <Link
-            href={`/user/${user.id}/articles`}
-            className="inline-flex h-full items-center justify-center gap-1.5 rounded-md px-3 py-1 text-sm font-medium text-foreground/60 hover:text-foreground"
-          >
-            <FileText className="h-3.5 w-3.5" aria-hidden="true" />
-            <span>{t("pages.user.articles")}</span>
-          </Link>
-        </nav>
         <LoadMore<Topic>
           initialItems={topics.results || []}
           initialCursor={topics.cursor}
@@ -200,24 +184,9 @@ export function UserArticlesClientPage() {
       fans={fans}
       followed={followed}
       t={t}
+      showTabs
     >
       <WidgetCard>
-        <nav className="mb-2 inline-flex h-9 items-center justify-center rounded-lg bg-muted p-[3px] text-muted-foreground">
-          <Link
-            href={`/user/${user.id}`}
-            className="inline-flex h-full items-center justify-center gap-1.5 rounded-md px-3 py-1 text-sm font-medium text-foreground/60 hover:text-foreground"
-          >
-            <MessageSquare className="h-3.5 w-3.5" aria-hidden="true" />
-            <span>{t("pages.user.topics")}</span>
-          </Link>
-          <Link
-            href={`/user/${user.id}/articles`}
-            className="inline-flex h-full items-center justify-center gap-1.5 rounded-md bg-background px-3 py-1 text-sm font-medium text-foreground shadow-sm"
-          >
-            <FileText className="h-3.5 w-3.5" aria-hidden="true" />
-            <span>{t("pages.user.articles")}</span>
-          </Link>
-        </nav>
         <LoadMore<Article>
           initialItems={articles.results || []}
           initialCursor={articles.cursor}
@@ -258,6 +227,7 @@ export function UserBadgesClientPage() {
       fans={fans}
       followed={followed}
       t={t}
+      showTabs
     >
       <WidgetCard>
         <div className="mb-4">
@@ -375,32 +345,9 @@ function UserFollowClientPage({ kind }: { kind: "fans" | "followed" }) {
       fans={fans}
       followed={followed}
       t={t}
+      showTabs
     >
       <WidgetCard>
-        <nav className="mb-2 inline-flex h-9 items-center justify-center rounded-lg bg-muted p-[3px] text-muted-foreground">
-          <Link
-            href={`/user/${user.id}/fans`}
-            className={
-              kind === "fans"
-                ? "inline-flex h-full items-center justify-center gap-1.5 rounded-md bg-background px-3 py-1 text-sm font-medium text-foreground shadow-sm"
-                : "inline-flex h-full items-center justify-center gap-1.5 rounded-md px-3 py-1 text-sm font-medium text-foreground/60 hover:text-foreground"
-            }
-          >
-            <Users className="h-3.5 w-3.5" />
-            <span>{t("pages.user.fans")}</span>
-          </Link>
-          <Link
-            href={`/user/${user.id}/followed`}
-            className={
-              kind === "followed"
-                ? "inline-flex h-full items-center justify-center gap-1.5 rounded-md bg-background px-3 py-1 text-sm font-medium text-foreground shadow-sm"
-                : "inline-flex h-full items-center justify-center gap-1.5 rounded-md px-3 py-1 text-sm font-medium text-foreground/60 hover:text-foreground"
-            }
-          >
-            <UserPlus className="h-3.5 w-3.5" />
-            <span>{t("pages.user.followed")}</span>
-          </Link>
-        </nav>
         <UserFollowList users={pageData.results || []} />
         <LoadMore<UserSummary>
           initialCursor={pageData.cursor}

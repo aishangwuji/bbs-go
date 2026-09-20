@@ -1,5 +1,6 @@
 import { UserProfileCard } from "@/components/user/user-profile-card"
 import { UserCenterSidebar } from "@/components/user/user-sidebar"
+import { UserCenterTabs } from "@/components/user/user-center-tabs"
 import type { Badge, UserSummary } from "@/lib/api/types"
 import type { TFunction } from "@/lib/i18n"
 
@@ -11,6 +12,7 @@ export function UserCenterShell({
   fans,
   followed,
   t,
+  showTabs = false,
   children,
 }: {
   user: UserSummary
@@ -20,6 +22,9 @@ export function UserCenterShell({
   fans: UserSummary[]
   followed: UserSummary[]
   t: TFunction
+  // showTabs：公开主页各分区（话题/文章/勋章/粉丝/关注）统一 Tab；
+  // 私密中心（收藏/消息/积分）不展示，避免与公开分区混淆。
+  showTabs?: boolean
   children: React.ReactNode
 }) {
   return (
@@ -40,7 +45,12 @@ export function UserCenterShell({
           followed={followed}
           t={t}
         />
-        <div className="right-container">{children}</div>
+        <div className="right-container">
+          {showTabs ? (
+            <UserCenterTabs user={user} currentUser={currentUser} t={t} />
+          ) : null}
+          {children}
+        </div>
       </div>
     </section>
   )
