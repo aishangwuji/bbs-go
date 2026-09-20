@@ -170,6 +170,8 @@ func registerAPIRoutes(group *gin.RouterGroup) {
 	userGroup.GET("/github_bind_info", apiHandlers.UserGithubBindInfo)
 	userGroup.GET("/github_profile", apiHandlers.UserGithubProfile)
 	userGroup.POST("/sync_github_profile", apiHandlers.UserSyncGithubProfile)
+	userGroup.POST("/select_github_pr", apiHandlers.UserSelectGithubPr)
+	userGroup.POST("/space_modules_config", apiHandlers.UserUpdateSpaceModulesConfig)
 	// 用户悬浮卡片：按需聚合基础信息 + 已获得勋章 + 关注态，前端悬浮头像时懒加载
 	userGroup.GET("/:id/card", apiHandlers.UserCard)
 	userGroup.GET("/:id", apiHandlers.UserDetail)

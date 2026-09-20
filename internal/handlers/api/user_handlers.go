@@ -634,6 +634,54 @@ func UserSyncGithubProfile(ctx *gin.Context) {
 		ginx.WriteJSON(ctx, ginx.ErrorMessage(err.Error()))
 		return
 	}
-	ginx.WriteJSON(ctx, profile)
+	ginx.WriteJSON(ctx, render.BuildUserGithubProfile(profile))
+}
+
+type SelectGithubPrReq struct {
+	PrUrl string `json:"prUrl" form:"prUrl"`
+}
+
+func UserSelectGithubPr(ctx *gin.Context) {
+	user, err := common.CheckLogin(ctx)
+	if err != nil {
+		ginx.WriteJSON(ctx, err)
+		return
+	}
+	var req SelectGithubPrReq
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ginx.WriteJSON(ctx, ginx.ErrorMessage("参数解析失败"))
+		return
+	}
+	profile, err := services.UserGithubProfileService.SelectPR(user.Id, req.PrUrl)
+	if err != nil {
+		ginx.WriteJSON(ctx, ginx.ErrorMessage(err.Error()))
+		return
+	}
+	ginx.WriteJSON(ctx, render.BuildUserGithubProfile(profile))
+}
+
+func UserUpdateSpaceModulesConfig(ctx *gin.Context) {
+	user, err := common.CheckLogin(ctx)
+	if err != nil {
+		ginx.WriteJSON(ctx, err)
+		return
+	}
+	var cfg models.SpaceModulesConfig
+	if err := ctx.ShouldBindJSON(&cfg); err != nil {
+		ginx.WriteJSON(ctx, ginx.ErrorMessage("配置参数格式错误"))
+		return
+	}
+	if err := services.UserService.UpdateSpaceModulesConfig(user.Id, &cfg); err != nil {
+		ginx.WriteJSON(ctx, ginx.ErrorMessage(err.Error()))
+		return
+	}
+	ginx.WriteJSON(ctx, &resp.SpaceModulesConfigResponse{
+		Github:   cfg.Github,
+		Counts:   cfg.Counts,
+		Badges:   cfg.Badges,
+		Profile:  cfg.Profile,
+		Fans:     cfg.Fans,
+		Followed: cfg.Followed,
+	})
 }
 

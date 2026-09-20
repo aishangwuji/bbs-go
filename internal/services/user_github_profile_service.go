@@ -2,7 +2,10 @@ package services
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"log/slog"
+	"strings"
 	"time"
 
 	"bbs-go/internal/models"
@@ -67,6 +70,15 @@ func (s *userGithubProfileService) SyncProfile(userId int64, accessToken string,
 	profile.ContributedPrTitle = evalResult.ContributedPR.PRTitle
 	profile.ContributedPrUrl = evalResult.ContributedPR.PRURL
 
+	if len(evalResult.MergedPRs) > 0 {
+		if rawPrs, err := json.Marshal(evalResult.MergedPRs); err == nil {
+			profile.MergedPrs = string(rawPrs)
+		}
+		if profile.SelectedPrUrl == "" {
+			profile.SelectedPrUrl = evalResult.MergedPRs[0].PRURL
+		}
+	}
+
 	profile.PassedAdmission = evalResult.PassedAdmission
 	profile.ProofType = evalResult.ProofType
 	profile.ProofReason = evalResult.ProofReason
@@ -87,6 +99,41 @@ func (s *userGithubProfileService) SyncProfile(userId int64, accessToken string,
 	// 勋章联动授予（若满足准入/成就）
 	s.grantBadgesIfEligible(userId, evalResult)
 
+	return profile, nil
+}
+
+// SelectPR 用户自主选择在个人主页代表作展示的合并 PR
+func (s *userGithubProfileService) SelectPR(userId int64, prUrl string) (*models.UserGithubProfile, error) {
+	profile := s.GetByUserId(userId)
+	if profile == nil {
+		return nil, errors.New("github profile not found")
+	}
+	prUrl = strings.TrimSpace(prUrl)
+	if prUrl != "" {
+		// 校验该 PR 是否在候选 PR 列表中
+		var prs []github.ContributedPR
+		if err := json.Unmarshal([]byte(profile.MergedPrs), &prs); err == nil && len(prs) > 0 {
+			matched := false
+			for _, p := range prs {
+				if p.PRURL == prUrl {
+					matched = true
+					profile.ContributedRepoName = p.RepoFullName
+					profile.ContributedRepoStars = p.Stars
+					profile.ContributedPrTitle = p.PRTitle
+					profile.ContributedPrUrl = p.PRURL
+					break
+				}
+			}
+			if !matched {
+				return nil, errors.New("选定的 PR 不在合格开源贡献列表中")
+			}
+		}
+		profile.SelectedPrUrl = prUrl
+	}
+	profile.UpdateTime = dates.NowTimestamp()
+	if err := repositories.UserGithubProfileRepository.Update(sqls.DB(), profile); err != nil {
+		return nil, err
+	}
 	return profile, nil
 }
 

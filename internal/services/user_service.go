@@ -1,6 +1,7 @@
 package services
 
 import (
+	"encoding/json"
 	"bbs-go/internal/models/constants"
 	"bbs-go/internal/models/dto"
 	"bbs-go/internal/pkg/bbsurls"
@@ -880,4 +881,37 @@ func (s *userService) calcLevelByExp(tx *gorm.DB, exp int) (int, error) {
 		return 1, nil
 	}
 	return cfg.Level, nil
+}
+
+// UpdateSpaceModulesConfig 更新用户个人主页模块可见性配置
+func (s *userService) UpdateSpaceModulesConfig(userId int64, config *models.SpaceModulesConfig) error {
+	user := s.Get(userId)
+	if user == nil {
+		return errors.New("user not found")
+	}
+	if config == nil {
+		def := models.DefaultSpaceModulesConfig()
+		config = &def
+	}
+	data, err := json.Marshal(config)
+	if err != nil {
+		return err
+	}
+	return repositories.UserRepository.Updates(sqls.DB(), userId, map[string]interface{}{
+		"space_modules_config": string(data),
+		"update_time":          dates.NowTimestamp(),
+	})
+}
+
+// GetSpaceModulesConfig 获取用户个人主页模块可见性配置（如果未配置则返回全公开默认值）
+func (s *userService) GetSpaceModulesConfig(user *models.User) models.SpaceModulesConfig {
+	def := models.DefaultSpaceModulesConfig()
+	if user == nil || strings.TrimSpace(user.SpaceModulesConfig) == "" {
+		return def
+	}
+	var conf models.SpaceModulesConfig
+	if err := json.Unmarshal([]byte(user.SpaceModulesConfig), &conf); err != nil {
+		return def
+	}
+	return conf
 }

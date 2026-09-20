@@ -1,6 +1,7 @@
 package render
 
 import (
+	"encoding/json"
 	"math"
 
 	"bbs-go/internal/cache"
@@ -174,6 +175,17 @@ func BuildUserDetail(user *models.User) *resp.UserDetail {
 	} else if ret.Forbidden {
 		ret.Username = ""
 	}
+
+	cfg := services.UserService.GetSpaceModulesConfig(user)
+	ret.SpaceModulesConfig = &resp.SpaceModulesConfigResponse{
+		Github:   cfg.Github,
+		Counts:   cfg.Counts,
+		Badges:   cfg.Badges,
+		Profile:  cfg.Profile,
+		Fans:     cfg.Fans,
+		Followed: cfg.Followed,
+	}
+
 	if profile := services.UserGithubProfileService.GetByUserId(user.Id); profile != nil {
 		ret.GithubProfile = BuildUserGithubProfile(profile)
 	}
@@ -184,6 +196,25 @@ func BuildUserGithubProfile(profile *models.UserGithubProfile) *resp.UserGithubP
 	if profile == nil {
 		return nil
 	}
+
+	var prItems []resp.ContributedPrItem
+	if strings.TrimSpace(profile.MergedPrs) != "" {
+		_ = json.Unmarshal([]byte(profile.MergedPrs), &prItems)
+	}
+	if len(prItems) == 0 && profile.ContributedPrTitle != "" {
+		prItems = append(prItems, resp.ContributedPrItem{
+			RepoFullName: profile.ContributedRepoName,
+			Stars:        profile.ContributedRepoStars,
+			PRTitle:      profile.ContributedPrTitle,
+			PRURL:        profile.ContributedPrUrl,
+		})
+	}
+
+	selectedPrUrl := profile.SelectedPrUrl
+	if selectedPrUrl == "" && len(prItems) > 0 {
+		selectedPrUrl = prItems[0].PRURL
+	}
+
 	return &resp.UserGithubProfileResponse{
 		GithubId:             profile.GithubId,
 		GithubLogin:          profile.GithubLogin,
@@ -203,6 +234,8 @@ func BuildUserGithubProfile(profile *models.UserGithubProfile) *resp.UserGithubP
 		ContributedRepoStars: profile.ContributedRepoStars,
 		ContributedPrTitle:   profile.ContributedPrTitle,
 		ContributedPrUrl:     profile.ContributedPrUrl,
+		MergedPrs:            prItems,
+		SelectedPrUrl:        selectedPrUrl,
 		PassedAdmission:      profile.PassedAdmission,
 		ProofType:            profile.ProofType,
 		ProofReason:          profile.ProofReason,

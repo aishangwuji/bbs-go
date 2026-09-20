@@ -31,6 +31,7 @@ type EvaluatorResult struct {
 	Followers       int             `json:"followers"`
 	TopRepo         RepoInfo        `json:"topRepo"`
 	ContributedPR   ContributedPR   `json:"contributedPr"`
+	MergedPRs       []ContributedPR `json:"mergedPrs"`
 	PassedAdmission bool            `json:"passedAdmission"`
 	ProofType       string          `json:"proofType"`   // repo_owner | contributor_merged_pr | account_age | none
 	ProofReason     string          `json:"proofReason"` // 中文评定说明
@@ -127,10 +128,11 @@ func EvaluateUserGithub(ctx context.Context, accessToken string, fallbackLogin s
 		result.TopRepo = *topRepo
 	}
 
-	// 步骤 3：获取用户贡献且已合并的 PR
-	contributedPR, err := fetchTopMergedPR(ctx, client, accessToken, user.Login)
-	if err == nil && contributedPR != nil {
-		result.ContributedPR = *contributedPR
+	// 步骤 3：获取用户贡献且已合并的合格 PR 候选列表
+	mergedPRs, err := fetchMergedPRs(ctx, client, accessToken, user.Login)
+	if err == nil && len(mergedPRs) > 0 {
+		result.MergedPRs = mergedPRs
+		result.ContributedPR = mergedPRs[0]
 	}
 
 	// 步骤 4：准入规则多轨评估（任一满足即为达成）：
@@ -223,34 +225,43 @@ func fetchTopRepo(ctx context.Context, client *http.Client, accessToken, login s
 	}, nil
 }
 
-func fetchTopMergedPR(ctx context.Context, client *http.Client, accessToken, login string) (*ContributedPR, error) {
-	url := fmt.Sprintf("https://api.github.com/search/issues?q=is:pr+is:merged+author:%s&sort=updated&order=desc&per_page=5", login)
+func fetchMergedPRs(ctx context.Context, client *http.Client, accessToken, login string) ([]ContributedPR, error) {
+	url := fmt.Sprintf("https://api.github.com/search/issues?q=is:pr+is:merged+author:%s&sort=updated&order=desc&per_page=10", login)
 	var resp ghSearchIssuesResp
 	if err := doGHRequest(ctx, client, accessToken, url, &resp); err != nil {
-		slog.Warn("fetch top merged PR error", slog.Any("login", login), slog.Any("err", err))
+		slog.Warn("fetch merged PRs error", slog.Any("login", login), slog.Any("err", err))
 		return nil, err
 	}
 	if resp.TotalCount == 0 || len(resp.Items) == 0 {
 		return nil, nil
 	}
 
+	repoStarsCache := make(map[string]*ghRepoDetailResp)
+	var prs []ContributedPR
+
 	for _, item := range resp.Items {
-		if strings.TrimSpace(item.RepositoryURL) == "" {
+		repoURL := strings.TrimSpace(item.RepositoryURL)
+		if repoURL == "" {
 			continue
 		}
-		var repoDetail ghRepoDetailResp
-		if err := doGHRequest(ctx, client, accessToken, item.RepositoryURL, &repoDetail); err != nil {
-			continue
+		repoDetail, ok := repoStarsCache[repoURL]
+		if !ok {
+			var d ghRepoDetailResp
+			if err := doGHRequest(ctx, client, accessToken, repoURL, &d); err != nil {
+				continue
+			}
+			repoStarsCache[repoURL] = &d
+			repoDetail = &d
 		}
 		if repoDetail.StargazersCount >= MinRepoStars {
-			return &ContributedPR{
+			prs = append(prs, ContributedPR{
 				RepoFullName: repoDetail.FullName,
 				Stars:        repoDetail.StargazersCount,
 				PRTitle:      item.Title,
 				PRURL:        item.HTMLURL,
-			}, nil
+			})
 		}
 	}
 
-	return nil, nil
+	return prs, nil
 }

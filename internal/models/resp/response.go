@@ -72,6 +72,16 @@ type ExpProgressResponse struct {
 	IsMaxLevel bool `json:"isMaxLevel"`
 }
 
+// SpaceModulesConfigResponse 个人主页各卡片模块的公开性配置
+type SpaceModulesConfigResponse struct {
+	Github   bool `json:"github"`   // 是否公开 GitHub 开发者画像
+	Counts   bool `json:"counts"`   // 是否公开数据统计
+	Badges   bool `json:"badges"`   // 是否公开已获得勋章
+	Profile  bool `json:"profile"`  // 是否公开个人资料简介
+	Fans     bool `json:"fans"`     // 是否公开粉丝列表
+	Followed bool `json:"followed"` // 是否公开关注列表
+}
+
 // UserDetail 用户详细信息
 type UserDetail struct {
 	UserInfo
@@ -85,6 +95,9 @@ type UserDetail struct {
 	ViewRole string `json:"viewRole,omitempty"`
 	// CanPreview 是否具备开启空间模拟视角的权限（仅号主本人为 true）
 	CanPreview bool `json:"canPreview,omitempty"`
+
+	// SpaceModulesConfig 个人主页模块显隐配置
+	SpaceModulesConfig *SpaceModulesConfigResponse `json:"spaceModulesConfig,omitempty"`
 
 	// GithubProfile GitHub 开发者开源画像与准入成果（若已关联且抓取）
 	GithubProfile *UserGithubProfileResponse `json:"githubProfile,omitempty"`
@@ -426,29 +439,39 @@ type BadgeResponse struct {
 	ObtainTime  int64  `json:"obtainTime"` // 获得时间（未获得为0）
 }
 
+// ContributedPrItem 贡献的合并 PR 条目概要
+type ContributedPrItem struct {
+	RepoFullName string `json:"repoFullName"`
+	Stars        int    `json:"stars"`
+	PRTitle      string `json:"prTitle"`
+	PRURL        string `json:"prUrl"`
+}
+
 // UserGithubProfileResponse GitHub 开发者画像与开源准入成果响应
 type UserGithubProfileResponse struct {
-	GithubId             int64  `json:"githubId"`
-	GithubLogin          string `json:"githubLogin"`
-	GithubName           string `json:"githubName"`
-	GithubAvatar         string `json:"githubAvatar"`
-	GithubBio            string `json:"githubBio"`
-	GithubCreatedAt      int64  `json:"githubCreatedAt"`
-	AccountAgeDays       int    `json:"accountAgeDays"`
-	PublicRepos          int    `json:"publicRepos"`
-	Followers            int    `json:"followers"`
-	TopRepoName          string `json:"topRepoName"`
-	TopRepoStars         int    `json:"topRepoStars"`
-	TopRepoUrl           string `json:"topRepoUrl"`
-	TopRepoLang          string `json:"topRepoLang"`
-	TopRepoDesc          string `json:"topRepoDesc"`
-	ContributedRepoName  string `json:"contributedRepoName"`
-	ContributedRepoStars int    `json:"contributedRepoStars"`
-	ContributedPrTitle   string `json:"contributedPrTitle"`
-	ContributedPrUrl     string `json:"contributedPrUrl"`
-	PassedAdmission      bool   `json:"passedAdmission"`
-	ProofType            string `json:"proofType"`
-	ProofReason          string `json:"proofReason"`
-	SyncedAt             int64  `json:"syncedAt"`
+	GithubId             int64               `json:"githubId"`
+	GithubLogin          string              `json:"githubLogin"`
+	GithubName           string              `json:"githubName"`
+	GithubAvatar         string              `json:"githubAvatar"`
+	GithubBio            string              `json:"githubBio"`
+	GithubCreatedAt      int64               `json:"githubCreatedAt"`
+	AccountAgeDays       int                 `json:"accountAgeDays"`
+	PublicRepos          int                 `json:"publicRepos"`
+	Followers            int                 `json:"followers"`
+	TopRepoName          string              `json:"topRepoName"`
+	TopRepoStars         int                 `json:"topRepoStars"`
+	TopRepoUrl           string              `json:"topRepoUrl"`
+	TopRepoLang          string              `json:"topRepoLang"`
+	TopRepoDesc          string              `json:"topRepoDesc"`
+	ContributedRepoName  string              `json:"contributedRepoName"`
+	ContributedRepoStars int                 `json:"contributedRepoStars"`
+	ContributedPrTitle   string              `json:"contributedPrTitle"`
+	ContributedPrUrl     string              `json:"contributedPrUrl"`
+	MergedPrs            []ContributedPrItem `json:"mergedPrs"`
+	SelectedPrUrl        string              `json:"selectedPrUrl"`
+	PassedAdmission      bool                `json:"passedAdmission"`
+	ProofType            string              `json:"proofType"`
+	ProofReason          string              `json:"proofReason"`
+	SyncedAt             int64               `json:"syncedAt"`
 }
 
