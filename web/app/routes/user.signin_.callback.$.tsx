@@ -44,7 +44,7 @@ export default function SigninCallbackRoute() {
   const navigate = useNavigate()
   const params = useParams()
   const [searchParams] = useSearchParams()
-  const { setCurrentUser } = useAppState()
+  const { currentUser, isLogin, setCurrentUser } = useAppState()
   const { catchError, msgError, msgSuccess } = useToastActions()
   const submittedRef = React.useRef(false)
   const [conflict, setConflict] = React.useState<ConflictInfo | null>(null)
@@ -59,13 +59,27 @@ export default function SigninCallbackRoute() {
     if (submittedRef.current) return
     submittedRef.current = true
 
+    function getFailureTarget(defaultFallback: string) {
+      if (isLogin || currentUser) {
+        const fallback = currentUser?.id
+          ? `/user/${currentUser.id}/account`
+          : "/user/profile/account"
+        return safeRedirect(
+          searchParams.get("redirect") || undefined,
+          fallback
+        )
+      }
+      return defaultFallback
+    }
+
     async function submitCallback() {
       const parsed = parseOAuthCallback(callbackPath, searchParams)
       if (!parsed.ok) {
         msgError(t("user.signin.missingAuthParams"))
-        navigate(parsed.callback?.failureRedirect || "/user/signin", {
-          replace: true,
-        })
+        navigate(
+          getFailureTarget(parsed.callback?.failureRedirect || "/user/signin"),
+          { replace: true }
+        )
         return
       }
 
@@ -94,16 +108,17 @@ export default function SigninCallbackRoute() {
         }
 
         const loginRes = result as LoginResult
-        setCurrentUser(loginRes.user)
+        setCurrentUser(result.user)
         window.location.replace(
           safeRedirect(loginRes.redirect, `/user/${loginRes.user.id}`)
         )
       } catch (error) {
         catchError(error)
         const parsed = parseOAuthCallback(callbackPath, searchParams)
-        navigate(parsed.callback?.failureRedirect || "/user/signin", {
-          replace: true,
-        })
+        navigate(
+          getFailureTarget(parsed.callback?.failureRedirect || "/user/signin"),
+          { replace: true }
+        )
       }
     }
 
@@ -111,6 +126,8 @@ export default function SigninCallbackRoute() {
   }, [
     callbackPath,
     catchError,
+    currentUser,
+    isLogin,
     msgError,
     navigate,
     searchParams,

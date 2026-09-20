@@ -3,6 +3,7 @@ import { redirect, type RouterContextProvider } from "react-router"
 import { apiFetch } from "@/lib/api/client"
 import type { UserSummary } from "@/lib/api/types"
 import { userCanAccessDashboard } from "@/lib/auth/roles"
+import { safeRedirect } from "@/lib/site"
 
 import { rootDataContext } from "./context"
 
@@ -22,10 +23,46 @@ export function buildSigninRedirect(requestOrUrl: Request | URL | string) {
   return `/user/signin?redirect=${encodeURIComponent(url.pathname + url.search)}`
 }
 
+export function getGuestRedirectTarget(
+  requestOrUrl: Request | URL | string,
+  user?: UserSummary | null
+) {
+  const url =
+    typeof requestOrUrl === "string"
+      ? new URL(requestOrUrl, "http://local")
+      : requestOrUrl instanceof Request
+        ? new URL(requestOrUrl.url)
+        : requestOrUrl
+
+  const redirectTarget = url.searchParams.get("redirect") || undefined
+  const defaultTarget = user?.id ? `/user/${user.id}` : "/"
+  return safeRedirect(redirectTarget, defaultTarget)
+}
+
 export async function getCurrentUser(request?: Request) {
   return apiFetch<UserSummary>("/api/user/current", { request }).catch(
     () => null
   )
+}
+
+export async function requireGuest({ request, context }: RequireUserArgs) {
+  const getRootData = context?.get(rootDataContext)
+  const user = getRootData
+    ? (await getRootData()).currentUser
+    : await getCurrentUser(request)
+
+  if (user) {
+    throw redirect(getGuestRedirectTarget(request, user))
+  }
+  return null
+}
+
+export async function requireGuestClient({ request }: { request: Request }) {
+  const user = await getCurrentUser()
+  if (user) {
+    throw redirect(getGuestRedirectTarget(request, user))
+  }
+  return null
 }
 
 export async function requireUser({ request, context }: RequireUserArgs) {
