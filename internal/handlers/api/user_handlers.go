@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"bbs-go/internal/models/constants"
 	"bbs-go/internal/models/req"
 	"bbs-go/internal/models/resp"
@@ -578,15 +579,61 @@ func UserGithubBindInfo(ctx *gin.Context) {
 	}
 	thirdUser := services.ThirdUserService.GetByUserId(user.Id, constants.ThirdTypeGithub)
 	if thirdUser != nil {
+		profile := services.UserGithubProfileService.GetByUserId(user.Id)
 		ginx.WriteJSON(ctx, map[string]any{
-			"bind":     true,
-			"nickname": thirdUser.Nickname,
-			"avatar":   thirdUser.Avatar,
+			"bind":          true,
+			"nickname":      thirdUser.Nickname,
+			"avatar":        thirdUser.Avatar,
+			"githubProfile": profile,
 		})
 		return
 	}
 	ginx.WriteJSON(ctx, map[string]any{
 		"bind": false,
 	})
-
 }
+
+func UserGithubProfile(ctx *gin.Context) {
+	userIdParam := ctx.Query("userId")
+	userId := idcodec.Decode(userIdParam)
+	if userId <= 0 {
+		userId = cast.ToInt64(userIdParam)
+	}
+	if userId <= 0 {
+		ginx.WriteJSON(ctx, ginx.ErrorMessage("Invalid userId"))
+		return
+	}
+	profile := services.UserGithubProfileService.GetByUserId(userId)
+	ginx.WriteJSON(ctx, profile)
+}
+
+func UserSyncGithubProfile(ctx *gin.Context) {
+	user, err := common.CheckLogin(ctx)
+	if err != nil {
+		ginx.WriteJSON(ctx, err)
+		return
+	}
+	thirdUser := services.ThirdUserService.GetByUserId(user.Id, constants.ThirdTypeGithub)
+	if thirdUser == nil {
+		ginx.WriteJSON(ctx, ginx.ErrorMessage("您尚未绑定 GitHub 账号，请先绑定后再同步"))
+		return
+	}
+
+	loginHandle := thirdUser.Nickname
+	if strings.TrimSpace(thirdUser.ExtraData) != "" {
+		var extra map[string]interface{}
+		if err := json.Unmarshal([]byte(thirdUser.ExtraData), &extra); err == nil {
+			if l, ok := extra["login"].(string); ok && l != "" {
+				loginHandle = l
+			}
+		}
+	}
+
+	profile, err := services.UserGithubProfileService.SyncProfile(user.Id, "", loginHandle)
+	if err != nil {
+		ginx.WriteJSON(ctx, ginx.ErrorMessage(err.Error()))
+		return
+	}
+	ginx.WriteJSON(ctx, profile)
+}
+

@@ -85,6 +85,9 @@ type UserDetail struct {
 	ViewRole string `json:"viewRole,omitempty"`
 	// CanPreview 是否具备开启空间模拟视角的权限（仅号主本人为 true）
 	CanPreview bool `json:"canPreview,omitempty"`
+
+	// GithubProfile GitHub 开发者开源画像与准入成果（若已关联且抓取）
+	GithubProfile *UserGithubProfileResponse `json:"githubProfile,omitempty"`
 }
 
 // UserProfile 用户个人信息
@@ -422,3 +425,30 @@ type BadgeResponse struct {
 	Worn        bool   `json:"worn"`       // 是否已佩戴
 	ObtainTime  int64  `json:"obtainTime"` // 获得时间（未获得为0）
 }
+
+// UserGithubProfileResponse GitHub 开发者画像与开源准入成果响应
+type UserGithubProfileResponse struct {
+	GithubId             int64  `json:"githubId"`
+	GithubLogin          string `json:"githubLogin"`
+	GithubName           string `json:"githubName"`
+	GithubAvatar         string `json:"githubAvatar"`
+	GithubBio            string `json:"githubBio"`
+	GithubCreatedAt      int64  `json:"githubCreatedAt"`
+	AccountAgeDays       int    `json:"accountAgeDays"`
+	PublicRepos          int    `json:"publicRepos"`
+	Followers            int    `json:"followers"`
+	TopRepoName          string `json:"topRepoName"`
+	TopRepoStars         int    `json:"topRepoStars"`
+	TopRepoUrl           string `json:"topRepoUrl"`
+	TopRepoLang          string `json:"topRepoLang"`
+	TopRepoDesc          string `json:"topRepoDesc"`
+	ContributedRepoName  string `json:"contributedRepoName"`
+	ContributedRepoStars int    `json:"contributedRepoStars"`
+	ContributedPrTitle   string `json:"contributedPrTitle"`
+	ContributedPrUrl     string `json:"contributedPrUrl"`
+	PassedAdmission      bool   `json:"passedAdmission"`
+	ProofType            string `json:"proofType"`
+	ProofReason          string `json:"proofReason"`
+	SyncedAt             int64  `json:"syncedAt"`
+}
+

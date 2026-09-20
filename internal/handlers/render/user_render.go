@@ -174,7 +174,40 @@ func BuildUserDetail(user *models.User) *resp.UserDetail {
 	} else if ret.Forbidden {
 		ret.Username = ""
 	}
+	if profile := services.UserGithubProfileService.GetByUserId(user.Id); profile != nil {
+		ret.GithubProfile = BuildUserGithubProfile(profile)
+	}
 	return ret
+}
+
+func BuildUserGithubProfile(profile *models.UserGithubProfile) *resp.UserGithubProfileResponse {
+	if profile == nil {
+		return nil
+	}
+	return &resp.UserGithubProfileResponse{
+		GithubId:             profile.GithubId,
+		GithubLogin:          profile.GithubLogin,
+		GithubName:           profile.GithubName,
+		GithubAvatar:         profile.GithubAvatar,
+		GithubBio:            profile.GithubBio,
+		GithubCreatedAt:      profile.GithubCreatedAt,
+		AccountAgeDays:       profile.AccountAgeDays,
+		PublicRepos:          profile.PublicRepos,
+		Followers:            profile.Followers,
+		TopRepoName:          profile.TopRepoName,
+		TopRepoStars:         profile.TopRepoStars,
+		TopRepoUrl:           profile.TopRepoUrl,
+		TopRepoLang:          profile.TopRepoLang,
+		TopRepoDesc:          profile.TopRepoDesc,
+		ContributedRepoName:  profile.ContributedRepoName,
+		ContributedRepoStars: profile.ContributedRepoStars,
+		ContributedPrTitle:   profile.ContributedPrTitle,
+		ContributedPrUrl:     profile.ContributedPrUrl,
+		PassedAdmission:      profile.PassedAdmission,
+		ProofType:            profile.ProofType,
+		ProofReason:          profile.ProofReason,
+		SyncedAt:             profile.SyncedAt,
+	}
 }
 
 func BuildUserProfile(user *models.User) *resp.UserProfile {
