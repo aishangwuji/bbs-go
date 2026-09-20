@@ -26,11 +26,12 @@ type GithubOAuth struct {
 }
 
 type GithubUserInfo struct {
-	ID        int64  `json:"id"`
-	Login     string `json:"login"`
-	Name      string `json:"name"`
-	AvatarURL string `json:"avatar_url"`
-	Email     string `json:"email"`
+	ID          int64  `json:"id"`
+	Login       string `json:"login"`
+	Name        string `json:"name"`
+	AvatarURL   string `json:"avatar_url"`
+	Email       string `json:"email"`
+	AccessToken string `json:"access_token,omitempty"`
 }
 
 type githubEmail struct {
@@ -71,6 +72,7 @@ func (g *GithubOAuth) GetUserInfo(ctx context.Context, code string) (*GithubUser
 	if err != nil {
 		return nil, err
 	}
+	user.AccessToken = token.AccessToken
 	// GitHub /user 可能拿不到 email（用户未公开），补查 /user/emails
 	if user.Email == "" {
 		if email, err := g.getPrimaryVerifiedEmail(client); err == nil && email != "" {
