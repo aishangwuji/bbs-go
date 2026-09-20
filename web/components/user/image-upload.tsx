@@ -12,6 +12,96 @@ const MAX_AVATAR_PICK_SIZE = 20 * 1024 * 1024 // 20MB（仅作防误选超大文
 const AVATAR_LARGE_SIZE = 128 // 128x128 高清大头像（用于个人资料主页，约 4KB）
 const AVATAR_SMALL_SIZE = 73 // 73x73 极速小头像（用于帖子流与评论区楼层，约 1.5KB）
 
+const MAX_COVER_PICK_SIZE = 20 * 1024 * 1024 // 20MB（防误选超大文件保护）
+const COVER_TARGET_WIDTH = 1280 // 1280px 标准宽度（完美对齐 PC 端容器最大宽度，Retina 屏清晰）
+const COVER_TARGET_HEIGHT = 400 // 400px 标准高度（3.2:1 黄金条幅比例，留足纵深，压缩后约 45KB~70KB）
+
+/**
+ * 智能居中等比裁剪并压缩背景图为轻量高清 WebP（1280x400 黄金比例，约 40KB~70KB）
+ */
+async function cropAndCompressCoverToWebP(
+  file: File,
+  targetWidth = COVER_TARGET_WIDTH,
+  targetHeight = COVER_TARGET_HEIGHT,
+  quality = 0.85
+): Promise<File> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onerror = () => reject(new Error("读取图片失败"))
+    reader.onload = () => {
+      const img = new Image()
+      img.onerror = () => reject(new Error("加载图片失败"))
+      img.onload = () => {
+        const { width, height } = img
+        const targetRatio = targetWidth / targetHeight
+        const sourceRatio = width / height
+
+        let sx = 0
+        let sy = 0
+        let cropWidth = width
+        let cropHeight = height
+
+        if (sourceRatio > targetRatio) {
+          // 源图较宽：以高度为准，左右居中裁剪
+          cropHeight = height
+          cropWidth = height * targetRatio
+          sx = (width - cropWidth) / 2
+          sy = 0
+        } else {
+          // 源图较窄或较方：以宽度为准，上下居中裁剪
+          cropWidth = width
+          cropHeight = width / targetRatio
+          sx = 0
+          sy = (height - cropHeight) / 2
+        }
+
+        const canvas = document.createElement("canvas")
+        canvas.width = targetWidth
+        canvas.height = targetHeight
+        const ctx = canvas.getContext("2d")
+        if (!ctx) {
+          resolve(file)
+          return
+        }
+
+        // 开启高质量平滑渲染
+        ctx.imageSmoothingEnabled = true
+        ctx.imageSmoothingQuality = "high"
+        ctx.drawImage(
+          img,
+          sx,
+          sy,
+          cropWidth,
+          cropHeight,
+          0,
+          0,
+          targetWidth,
+          targetHeight
+        )
+
+        // 导出为 WebP，若环境不支持则自动回退
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              resolve(file)
+              return
+            }
+            const cleanName = file.name.replace(/\.[^/.]+$/, "") + ".webp"
+            const webpFile = new File([blob], cleanName, {
+              type: blob.type || "image/webp",
+            })
+            resolve(webpFile)
+          },
+          "image/webp",
+          quality
+        )
+      }
+      img.src = reader.result as string
+    }
+    reader.readAsDataURL(file)
+  })
+}
+
 /**
  * 智能居中等比正方形裁剪并压缩为轻量 WebP（标准 73x73 尺寸，约 1KB~3KB）
  */
@@ -181,9 +271,20 @@ export function BackgroundUploadButton({
     const file = event.target.files?.[0]
     if (!file) return
 
+    // 防误选保护：拦截超过 20MB 的超大文件
+    if (file.size > MAX_COVER_PICK_SIZE) {
+      toast.error("所选图片文件过大（超过20MB），请重新选择")
+      event.currentTarget.value = ""
+      return
+    }
+
     setUploading(true)
     try {
-      const result = await uploadImage(file)
+      // 1. 客户端硬件加速智能居中裁切并压缩为 1280x400 高清 WebP（约 50KB）
+      const webpFile = await cropAndCompressCoverToWebP(file)
+
+      // 2. 秒级极速上传至服务器
+      const result = await uploadImage(webpFile, "background")
       await apiFetch<null>("/api/user/set_background_image", {
         method: "POST",
         body: toFormData({ backgroundImage: result.url }),
