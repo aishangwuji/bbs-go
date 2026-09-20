@@ -143,9 +143,6 @@ export default function LinksRoute() {
                   Premium Partners
                 </span>
               </div>
-              <p className="mt-2 text-xs text-neutral-600 dark:text-neutral-400 sm:text-sm">
-                开放互联、携手共建。汇聚前沿科技、开发者生态与优质行业站点。
-              </p>
             </div>
 
             {/* 统计指标与申请入口 */}
@@ -206,17 +203,6 @@ export default function LinksRoute() {
               <EmptyState title={t("common.noData") || "暂无友情链接"} />
             </div>
           )}
-
-          {/* 底部微转化 CTA 条 */}
-          <div className="mt-6 flex flex-col items-center justify-between gap-3 border-t border-amber-200/40 pt-4 text-xs text-neutral-600 dark:border-amber-500/15 dark:text-neutral-400 sm:flex-row">
-            <span className="flex items-center gap-1.5">
-              <span className="size-2 rounded-full bg-emerald-500" />
-              伙伴状态实时健康监控中，排名不分先后。
-            </span>
-            <span className="text-muted-foreground/80">
-              期待与更多优质创作者与开发者同行
-            </span>
-          </div>
         </div>
       </div>
     </section>
