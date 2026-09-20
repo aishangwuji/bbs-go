@@ -457,6 +457,9 @@ func (s *thirdUserService) LoginGithub(code, state string) (*models.User, error)
 		return nil, err
 	}
 
+	// 异步抓取 GitHub 开发者画像与准入评估
+	UserGithubProfileService.AsyncSyncProfile(user.Id, info.AccessToken, info.Login)
+
 	return user, nil
 }
 
@@ -532,7 +535,7 @@ func (s *thirdUserService) BindGithub(userId int64, code, state string) (*cache.
 		return nil, errors.New(locales.Get("auth.github_bound_to_other"))
 	}
 
-	return nil, s.Create(&models.ThirdUser{
+	err = s.Create(&models.ThirdUser{
 		UserId:     userId,
 		OpenId:     openId,
 		ThirdType:  constants.ThirdTypeGithub,
@@ -542,6 +545,10 @@ func (s *thirdUserService) BindGithub(userId int64, code, state string) (*cache.
 		CreateTime: dates.NowTimestamp(),
 		UpdateTime: dates.NowTimestamp(),
 	})
+	if err == nil {
+		UserGithubProfileService.AsyncSyncProfile(userId, info.AccessToken, info.Login)
+	}
+	return nil, err
 }
 
 func (s *thirdUserService) UnbindGithub(userId int64) {
