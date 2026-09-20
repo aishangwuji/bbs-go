@@ -80,6 +80,11 @@ type UserDetail struct {
 	SmallBackgroundImage string `json:"smallBackgroundImage"`
 	HomePage             string `json:"homePage"`
 	Status               int    `json:"status"`
+
+	// ViewRole 当前请求上下文判定的空间视角角色：owner（主人态）、fans（粉丝态）、visitor（访客态）
+	ViewRole string `json:"viewRole,omitempty"`
+	// CanPreview 是否具备开启空间模拟视角的权限（仅号主本人为 true）
+	CanPreview bool `json:"canPreview,omitempty"`
 }
 
 // UserProfile 用户个人信息

@@ -15,6 +15,7 @@ import type { UserSummary } from "@/lib/api/types"
 import type { TFunction } from "@/lib/i18n"
 import { usePathname } from "@/lib/router/navigation"
 import { cn } from "@/lib/utils"
+import { useSpaceView } from "@/components/user/space-view-context"
 
 type TabItem = {
   key: string
@@ -26,7 +27,7 @@ type TabItem = {
 // UserCenterTabs 个人中心统一 Tab 导航
 // 为什么用 Link 而非受控 Tabs 组件：各分区是不同的 URL 路由，
 // 保留链接语义可继续支持深链、浏览器前进/后退与 SEO，改动也最小。
-// 「资料」Tab 仅在自己主页显示（指向编辑资料页），看他人主页时不出现。
+// 「资料」Tab 仅在自己主页的主人视角下显示（指向编辑资料页），看他人主页或处于预览模式时不出现。
 export function UserCenterTabs({
   user,
   currentUser,
@@ -36,10 +37,10 @@ export function UserCenterTabs({
   currentUser?: UserSummary | null
   t: TFunction
 }) {
+  const { currentRole } = useSpaceView()
   const pathname = usePathname() || ""
   const base = `/user/${user.id}`
-  const isSelf =
-    Boolean(currentUser?.id) && String(currentUser?.id) === String(user.id)
+  const isOwnerMode = currentRole === "owner"
 
   const tabs: TabItem[] = [
     {
@@ -73,7 +74,7 @@ export function UserCenterTabs({
       icon: UserPlus,
     },
   ]
-  if (isSelf) {
+  if (isOwnerMode) {
     tabs.push({
       key: "profile",
       href: "/user/profile",

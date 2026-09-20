@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { Medal } from "lucide-react"
+import { useSearchParams } from "react-router"
 
 import { ArticleList } from "@/components/article/article-list"
 import { useCurrentUser } from "@/components/app/app-provider"
@@ -56,9 +57,14 @@ const emptyUserPage: PageData<UserSummary> = {
   hasMore: false,
 }
 
-async function loadUserShellData(userId: string): Promise<UserShellData> {
+async function loadUserShellData(
+  userId: string,
+  previewRole?: string
+): Promise<UserShellData> {
   const [user, badges, fans, followed] = await Promise.all([
-    apiFetch<UserSummary>(`/api/user/${userId}`),
+    apiFetch<UserSummary>(`/api/user/${userId}`, {
+      params: previewRole ? { preview_role: previewRole } : undefined,
+    }),
     apiFetch<Badge[]>("/api/badge/badges", { params: { userId } }).catch(
       () => []
     ),
@@ -89,19 +95,24 @@ export function UserProfileClientPage({
   initialUser?: UserSummary | null
 }) {
   const userId = useRouteSegment(1)
+  const [searchParams] = useSearchParams()
+  const previewRole = searchParams.get("preview_role") || ""
   const currentUser = useCurrentUser()
   const { t } = useI18n()
   const load = React.useCallback(async (): Promise<UserProfileData> => {
     const [shell, topics] = await Promise.all([
-      loadUserShellData(userId),
+      loadUserShellData(userId, previewRole),
       apiFetch<PageData<Topic>>("/api/topic/user_topics", {
-        params: { userId },
+        params: { userId, preview_role: previewRole || undefined },
       }).catch(() => emptyPage),
     ])
 
     return { ...shell, topics }
-  }, [userId])
-  const { data, loading, error } = useRouteData(`user:${userId}`, load)
+  }, [userId, previewRole])
+  const { data, loading, error } = useRouteData(
+    `user:${userId}:${previewRole}`,
+    load
+  )
   useDocumentTitle(userDisplayName(data?.user ?? initialUser))
 
   if (loading) return <PageLoading />
@@ -152,19 +163,24 @@ export function UserProfileClientPage({
 
 export function UserArticlesClientPage() {
   const userId = useRouteSegment(1)
+  const [searchParams] = useSearchParams()
+  const previewRole = searchParams.get("preview_role") || ""
   const currentUser = useCurrentUser()
   const { t } = useI18n()
   const load = React.useCallback(async (): Promise<UserArticlesData> => {
     const [shell, articles] = await Promise.all([
-      loadUserShellData(userId),
+      loadUserShellData(userId, previewRole),
       apiFetch<PageData<Article>>("/api/article/user_articles", {
-        params: { userId },
+        params: { userId, preview_role: previewRole || undefined },
       }).catch(() => emptyArticlePage),
     ])
 
     return { ...shell, articles }
-  }, [userId])
-  const { data, loading, error } = useRouteData(`user-articles:${userId}`, load)
+  }, [userId, previewRole])
+  const { data, loading, error } = useRouteData(
+    `user-articles:${userId}:${previewRole}`,
+    load
+  )
 
   if (loading) return <PageLoading />
   if (error || !data) return <PageError message={error} />
@@ -209,10 +225,18 @@ export function UserArticlesClientPage() {
 
 export function UserBadgesClientPage() {
   const userId = useRouteSegment(1)
+  const [searchParams] = useSearchParams()
+  const previewRole = searchParams.get("preview_role") || ""
   const currentUser = useCurrentUser()
   const { t } = useI18n()
-  const load = React.useCallback(() => loadUserShellData(userId), [userId])
-  const { data, loading, error } = useRouteData(`user-badges:${userId}`, load)
+  const load = React.useCallback(
+    () => loadUserShellData(userId, previewRole),
+    [userId, previewRole]
+  )
+  const { data, loading, error } = useRouteData(
+    `user-badges:${userId}:${previewRole}`,
+    load
+  )
 
   if (loading) return <PageLoading />
   if (error || !data) return <PageError message={error} />
@@ -313,11 +337,13 @@ export function UserFollowedClientPage() {
 
 function UserFollowClientPage({ kind }: { kind: "fans" | "followed" }) {
   const userId = useRouteSegment(1)
+  const [searchParams] = useSearchParams()
+  const previewRole = searchParams.get("preview_role") || ""
   const currentUser = useCurrentUser()
   const { t } = useI18n()
   const load = React.useCallback(async (): Promise<UserFollowData> => {
     const [shell, pageData] = await Promise.all([
-      loadUserShellData(userId),
+      loadUserShellData(userId, previewRole),
       apiFetch<PageData<UserSummary>>(
         kind === "fans" ? "/api/fans/fans" : "/api/fans/followed",
         { params: { userId } }
@@ -325,8 +351,11 @@ function UserFollowClientPage({ kind }: { kind: "fans" | "followed" }) {
     ])
 
     return { ...shell, pageData }
-  }, [kind, userId])
-  const { data, loading, error } = useRouteData(`user-${kind}:${userId}`, load)
+  }, [kind, userId, previewRole])
+  const { data, loading, error } = useRouteData(
+    `user-${kind}:${userId}:${previewRole}`,
+    load
+  )
 
   if (loading) return <PageLoading />
   if (error || !data) return <PageError message={error} />

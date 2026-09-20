@@ -1,6 +1,8 @@
 import { UserProfileCard } from "@/components/user/user-profile-card"
 import { UserCenterSidebar } from "@/components/user/user-sidebar"
 import { UserCenterTabs } from "@/components/user/user-center-tabs"
+import { SpaceViewProvider } from "@/components/user/space-view-context"
+import { PreviewTipsBar } from "@/components/user/preview-tips-bar"
 import type { Badge, UserSummary } from "@/lib/api/types"
 import type { TFunction } from "@/lib/i18n"
 
@@ -28,14 +30,16 @@ export function UserCenterShell({
   children: React.ReactNode
 }) {
   return (
-    <section className="main">
-      <div className="container">
-        <UserProfileCard
-          user={user}
-          badges={profileBadges ?? badges}
-          currentUser={currentUser}
-        />
-      </div>
+    <SpaceViewProvider owner={user} currentUser={currentUser}>
+      <section className="main">
+        <div className="container">
+          <PreviewTipsBar />
+          <UserProfileCard
+            user={user}
+            badges={profileBadges ?? badges}
+            currentUser={currentUser}
+          />
+        </div>
       <div className="container main-container right-main side-size-360">
         <UserCenterSidebar
           user={user}
@@ -53,5 +57,6 @@ export function UserCenterShell({
         </div>
       </div>
     </section>
+    </SpaceViewProvider>
   )
 }

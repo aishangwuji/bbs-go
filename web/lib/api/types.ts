@@ -36,6 +36,10 @@ export interface UserSummary {
   followCount?: number
   forbidden?: boolean
   followed?: boolean
+  // viewRole 当前上下文生效的视角角色：owner（主人态）、fans（粉丝态）、visitor（访客态）
+  viewRole?: "owner" | "fans" | "visitor"
+  // canPreview 当前访问者是否具备开启模拟视角的权限（仅号主本人为 true）
+  canPreview?: boolean
   roles?: string[]
   permissions?: string[]
   passwordSet?: boolean

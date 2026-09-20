@@ -29,6 +29,7 @@ import (
 	"bbs-go/internal/cache"
 	"bbs-go/internal/handlers/render"
 	"bbs-go/internal/models"
+	"bbs-go/internal/pkg/roles"
 	"bbs-go/internal/services"
 )
 
@@ -51,7 +52,12 @@ func UserDetail(ctx *gin.Context) {
 	userId := idcodec.Decode(userIdStr)
 	user := cache.UserCache.Get(userId)
 	if user != nil && user.Status != constants.StatusDeleted {
-		ginx.WriteJSON(ctx, render.BuildUserDetail(user))
+		detail := render.BuildUserDetail(user)
+		spaceCtx := roles.ResolveSpaceRole(ctx, user.Id)
+		detail.ViewRole = spaceCtx.Role
+		detail.CanPreview = spaceCtx.CanPreview
+		detail.Followed = spaceCtx.Followed
+		ginx.WriteJSON(ctx, detail)
 		return
 	}
 	ginx.WriteJSON(ctx, ginx.ErrorMessage(locales.Get("user.not_found")))
