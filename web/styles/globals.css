@@ -166,7 +166,7 @@
   }
   body {
     @apply text-foreground font-sans;
-    font-size: 14px;
+    font-size: 13px;
     line-height: 1.5;
   }
 }
