@@ -304,11 +304,13 @@ export function BackgroundUploadButton({
   return (
     <Button
       type="button"
-      className="change-bg"
+      size="sm"
+      variant="secondary"
+      className="h-8 gap-1.5 rounded-full border border-border/60 bg-background/75 px-3 text-xs font-medium text-foreground shadow-xs backdrop-blur-md transition-all hover:bg-background/95 active:scale-95"
       disabled={uploading}
       onClick={() => inputRef.current?.click()}
     >
-      <CloudUpload size="16" />
+      <CloudUpload className="h-3.5 w-3.5 shrink-0" />
       <span>{t("component.userProfile.setBackground")}</span>
       <input
         ref={inputRef}

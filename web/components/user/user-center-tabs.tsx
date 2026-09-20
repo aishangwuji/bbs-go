@@ -102,7 +102,7 @@ export function UserCenterTabs({
   }
 
   return (
-    <nav className="mb-3 flex flex-wrap items-center gap-1 rounded-lg bg-muted p-1 text-muted-foreground">
+    <nav className="mb-3 flex items-center gap-1.5 overflow-x-auto rounded-lg bg-muted p-1 text-muted-foreground [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {tabs.map((tab) => {
         const Icon = tab.icon
         const active = isActive(tab.href)
@@ -111,13 +111,13 @@ export function UserCenterTabs({
             key={tab.key}
             href={tab.href}
             className={cn(
-              "inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-sm font-medium transition-colors",
+              "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md px-3 text-sm font-medium transition-colors select-none",
               active
-                ? "bg-background text-foreground shadow-sm"
-                : "text-foreground/60 hover:text-foreground"
+                ? "bg-background text-foreground shadow-xs"
+                : "text-muted-foreground hover:bg-background/50 hover:text-foreground"
             )}
           >
-            <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+            <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
             <span>{tab.label}</span>
           </Link>
         )
