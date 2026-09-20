@@ -54,7 +54,24 @@ export interface UserSummary {
     expProgressPercent?: number
     isMaxLevel?: boolean
   }
+  spaceModulesConfig?: SpaceModulesConfig
   githubProfile?: UserGithubProfile
+}
+
+export interface SpaceModulesConfig {
+  github?: boolean
+  counts?: boolean
+  badges?: boolean
+  profile?: boolean
+  fans?: boolean
+  followed?: boolean
+}
+
+export interface ContributedPrItem {
+  repoFullName: string
+  stars: number
+  prTitle: string
+  prUrl: string
 }
 
 export interface UserGithubProfile {
@@ -76,6 +93,8 @@ export interface UserGithubProfile {
   contributedRepoStars?: number
   contributedPrTitle?: string
   contributedPrUrl?: string
+  mergedPrs?: ContributedPrItem[]
+  selectedPrUrl?: string
   passedAdmission: boolean
   proofType: "repo_owner" | "contributor_merged_pr" | "account_age" | "none" | string
   proofReason?: string

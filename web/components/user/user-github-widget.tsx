@@ -127,6 +127,26 @@ export function UserGithubProfileWidget({
   const isContributor =
     profile.proofType === "contributor_merged_pr" || (profile.contributedRepoStars || 0) >= 1000
 
+  // 计算当前生效的合并 PR 代表作（优先匹配用户自选）
+  const activePR = (() => {
+    if (profile.selectedPrUrl && profile.mergedPrs?.length) {
+      const found = profile.mergedPrs.find((p) => p.prUrl === profile.selectedPrUrl)
+      if (found) return found
+    }
+    if (profile.contributedRepoName && profile.contributedPrTitle) {
+      return {
+        repoFullName: profile.contributedRepoName,
+        stars: profile.contributedRepoStars || 0,
+        prTitle: profile.contributedPrTitle,
+        prUrl: profile.contributedPrUrl || "",
+      }
+    }
+    if (profile.mergedPrs?.length) {
+      return profile.mergedPrs[0]
+    }
+    return null
+  })()
+
   return (
     <WidgetCard
       title={
@@ -167,7 +187,7 @@ export function UserGithubProfileWidget({
           </span>
         </div>
 
-        {/* 2. 核心成就与准入勋章条 */}
+        {/* 2. 核心成就与准入勋章条（移除冗余大段提示语，视觉纯净） */}
         {profile.passedAdmission ? (
           <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-2.5 text-xs text-amber-700 dark:text-amber-300">
             <div className="flex items-center gap-2 font-medium">
@@ -188,11 +208,6 @@ export function UserGithubProfileWidget({
                 </>
               )}
             </div>
-            {profile.proofReason ? (
-              <p className="mt-1 text-[11px] text-muted-foreground leading-relaxed">
-                {profile.proofReason}
-              </p>
-            ) : null}
           </div>
         ) : null}
 
@@ -227,31 +242,31 @@ export function UserGithubProfileWidget({
           </div>
         ) : null}
 
-        {/* 4. 合并 PR 贡献 (Contributed PR) */}
-        {profile.contributedRepoName ? (
+        {/* 4. 合并 PR 贡献 (Contributed PR 代表作) */}
+        {activePR ? (
           <div className="rounded-lg border border-border/80 bg-muted/20 p-3 hover:border-primary/40 transition-colors">
             <div className="flex items-center justify-between gap-2">
               <span className="inline-flex items-center gap-1 text-[11px] font-medium text-purple-600 dark:text-purple-400">
                 <GitPullRequest className="h-3 w-3 shrink-0" />
-                <span>合并 PR 贡献</span>
+                <span>合并 PR 代表作</span>
               </span>
               <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-muted-foreground">
                 <Star className="h-3 w-3 text-amber-500" />
-                <span>{profile.contributedRepoStars?.toLocaleString()}</span>
+                <span>{activePR.stars?.toLocaleString()}</span>
               </span>
             </div>
             <p className="mt-1 text-xs font-medium text-foreground truncate">
-              {profile.contributedRepoName}
+              {activePR.repoFullName}
             </p>
-            {profile.contributedPrTitle ? (
+            {activePR.prTitle ? (
               <a
-                href={profile.contributedPrUrl || "#"}
+                href={activePR.prUrl || "#"}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="mt-1 block truncate text-[11px] text-muted-foreground hover:text-primary transition-colors"
-                title={profile.contributedPrTitle}
+                title={activePR.prTitle}
               >
-                #{profile.contributedPrTitle}
+                #{activePR.prTitle}
               </a>
             ) : null}
           </div>

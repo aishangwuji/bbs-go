@@ -20,9 +20,12 @@ import {
 } from "@/components/common/confirm-dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Switch } from "@/components/ui/switch"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import Link from "@/components/common/link"
+import { ExternalLink, Eye, GitPullRequest, LayoutList, Star } from "lucide-react"
 import { apiFetch } from "@/lib/api/client"
-import type { BindInfo, SiteConfig, UserSummary } from "@/lib/api/types"
+import type { BindInfo, SiteConfig, SpaceModulesConfig, UserSummary } from "@/lib/api/types"
 import type { TFunction } from "@/lib/i18n"
 import { useI18n } from "@/lib/i18n/provider"
 import { toast } from "@/lib/toast"
@@ -73,6 +76,61 @@ export function AccountSettings({
       toast.error(err?.message || "同步失败，请重试")
     } finally {
       setSyncingGithub(false)
+    }
+  }
+
+  // 个人空间模块展示配置
+  const [spaceConfig, setSpaceConfig] = React.useState<SpaceModulesConfig>(
+    user.spaceModulesConfig || {
+      github: true,
+      counts: true,
+      badges: true,
+      profile: true,
+      fans: true,
+      followed: true,
+    }
+  )
+  const [savingConfig, setSavingConfig] = React.useState(false)
+
+  // GitHub 合并 PR 候选集与自主选定代表作
+  const mergedPrs = user.githubProfile?.mergedPrs || []
+  const [selectedPr, setSelectedPr] = React.useState<string>(
+    user.githubProfile?.selectedPrUrl || (mergedPrs[0]?.prUrl ?? "")
+  )
+  const [savingPr, setSavingPr] = React.useState(false)
+
+  const handleToggleModule = async (key: keyof SpaceModulesConfig, value: boolean) => {
+    const next = { ...spaceConfig, [key]: value }
+    setSpaceConfig(next)
+    setSavingConfig(true)
+    try {
+      await apiFetch("/api/user/space_modules_config", {
+        method: "POST",
+        body: JSON.stringify(next),
+      })
+      toast.success("个人主页模块展示配置已更新！")
+      router.refresh()
+    } catch (err: any) {
+      toast.error(err?.message || "更新主页配置失败")
+    } finally {
+      setSavingConfig(false)
+    }
+  }
+
+  const handleSelectPr = async (prUrl: string) => {
+    setSelectedPr(prUrl)
+    setSavingPr(true)
+    try {
+      await apiFetch("/api/user/select_github_pr", {
+        method: "POST",
+        body: JSON.stringify({ prUrl }),
+      })
+      toast.success("已更新主页代表作展示 PR！")
+      router.refresh()
+    } catch (err: any) {
+      toast.error(err?.message || "选择代表作 PR 失败")
+    } finally {
+      setSavingPr(false)
     }
   }
 
@@ -274,6 +332,185 @@ export function AccountSettings({
             }
           />
         ) : null}
+
+        {/* GitHub 合并 PR 代表作展台（仅当有合格 PR 候选时展示） */}
+        {mergedPrs.length > 0 ? (
+          <div className="mt-8 border-t border-border pt-6">
+            <div className="mb-4">
+              <div className="flex items-center gap-2 text-base font-semibold text-foreground">
+                <GitPullRequest className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                <span>GitHub 合并 PR 代表作展台</span>
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                您向顶级开源项目贡献了已合并的合格 PR。请选择要在个人主页开源画像中置顶展示的代表作：
+              </p>
+            </div>
+            <div className="space-y-2.5">
+              {mergedPrs.map((pr) => {
+                const isChecked = (selectedPr || mergedPrs[0]?.prUrl) === pr.prUrl
+                return (
+                  <div
+                    key={pr.prUrl}
+                    onClick={() => !savingPr && handleSelectPr(pr.prUrl)}
+                    className={`flex cursor-pointer items-start justify-between gap-3 rounded-lg border p-3 transition-colors ${
+                      isChecked
+                        ? "border-primary/60 bg-primary/5 ring-1 ring-primary/20"
+                        : "border-border/70 hover:border-border hover:bg-muted/30"
+                    }`}
+                  >
+                    <div className="flex items-start gap-2.5">
+                      <input
+                        type="radio"
+                        name="selected_pr"
+                        checked={isChecked}
+                        disabled={savingPr}
+                        onChange={() => {}}
+                        className="mt-0.5 text-primary focus:ring-primary"
+                      />
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-semibold text-foreground">
+                            {pr.repoFullName}
+                          </span>
+                          <span className="inline-flex items-center gap-0.5 text-[11px] text-amber-600 dark:text-amber-400">
+                            <Star className="h-3 w-3 fill-amber-500 text-amber-500" />
+                            <span>{pr.stars?.toLocaleString()}</span>
+                          </span>
+                          {isChecked ? (
+                            <span className="rounded bg-primary/10 px-1.5 py-0.2 text-[10px] font-medium text-primary">
+                              当前代表作
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className="mt-0.5 text-xs text-muted-foreground line-clamp-1">
+                          #{pr.prTitle}
+                        </p>
+                      </div>
+                    </div>
+                    <a
+                      href={pr.prUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="text-muted-foreground hover:text-primary transition-colors shrink-0"
+                      title="在 GitHub 查看该 PR"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        ) : null}
+
+        {/* 个人主页模块展示可见性配置（与视角切换深度联动） */}
+        <div className="mt-8 border-t border-border pt-6">
+          <div className="mb-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-base font-semibold text-foreground">
+                <LayoutList className="h-4 w-4 text-primary" />
+                <span>个人空间主页模块展示（公开与隐私）</span>
+              </div>
+              <Link
+                href={`/user/${user.id}`}
+                className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+              >
+                <Eye className="h-3.5 w-3.5" />
+                <span>前往主页体验【视角切换】</span>
+              </Link>
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              配置个人空间主页各模块的公开可见性。关闭的模块对访客彻底隐藏；您可在个人主页切换【访客视角】预览真实效果。
+            </p>
+          </div>
+
+          <div className="divide-y divide-border/60 rounded-lg border border-border/80 bg-card">
+            <div className="flex items-center justify-between p-3.5">
+              <div>
+                <div className="text-sm font-medium text-foreground">开源开发者画像</div>
+                <div className="text-xs text-muted-foreground">
+                  公开展示绑定的 GitHub 开发者画像、开源成就勋章与代表作
+                </div>
+              </div>
+              <Switch
+                checked={spaceConfig.github !== false}
+                disabled={savingConfig}
+                onCheckedChange={(val) => handleToggleModule("github", val)}
+              />
+            </div>
+
+            <div className="flex items-center justify-between p-3.5">
+              <div>
+                <div className="text-sm font-medium text-foreground">数据统计卡片</div>
+                <div className="text-xs text-muted-foreground">
+                  公开展示您的等级、社区积分、发布的话题与跟帖统计
+                </div>
+              </div>
+              <Switch
+                checked={spaceConfig.counts !== false}
+                disabled={savingConfig}
+                onCheckedChange={(val) => handleToggleModule("counts", val)}
+              />
+            </div>
+
+            <div className="flex items-center justify-between p-3.5">
+              <div>
+                <div className="text-sm font-medium text-foreground">成就勋章墙</div>
+                <div className="text-xs text-muted-foreground">
+                  公开展示您在社区解锁并获得的各类荣誉勋章
+                </div>
+              </div>
+              <Switch
+                checked={spaceConfig.badges !== false}
+                disabled={savingConfig}
+                onCheckedChange={(val) => handleToggleModule("badges", val)}
+              />
+            </div>
+
+            <div className="flex items-center justify-between p-3.5">
+              <div>
+                <div className="text-sm font-medium text-foreground">个人简介与主页资料</div>
+                <div className="text-xs text-muted-foreground">
+                  公开展示昵称、个人签名描述与填写的外部个人主页链接
+                </div>
+              </div>
+              <Switch
+                checked={spaceConfig.profile !== false}
+                disabled={savingConfig}
+                onCheckedChange={(val) => handleToggleModule("profile", val)}
+              />
+            </div>
+
+            <div className="flex items-center justify-between p-3.5">
+              <div>
+                <div className="text-sm font-medium text-foreground">粉丝列表</div>
+                <div className="text-xs text-muted-foreground">
+                  公开侧边栏关注我的粉丝头像列表与跳转
+                </div>
+              </div>
+              <Switch
+                checked={spaceConfig.fans !== false}
+                disabled={savingConfig}
+                onCheckedChange={(val) => handleToggleModule("fans", val)}
+              />
+            </div>
+
+            <div className="flex items-center justify-between p-3.5">
+              <div>
+                <div className="text-sm font-medium text-foreground">关注列表</div>
+                <div className="text-xs text-muted-foreground">
+                  公开侧边栏我关注的用户头像列表与跳转
+                </div>
+              </div>
+              <Switch
+                checked={spaceConfig.followed !== false}
+                disabled={savingConfig}
+                onCheckedChange={(val) => handleToggleModule("followed", val)}
+              />
+            </div>
+          </div>
+        </div>
       </div>
       {dialog ? (
         <AccountDialog
