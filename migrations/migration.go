@@ -118,4 +118,5 @@ func init() {
 	// 生产库 t_migration 仍保留 success=1 记录），因此本迁移必须从 17 开始，否则会被跳过。
 	register(17, "signature config defaults", migrate_signature_config_defaults)
 	register(18, "create user github profile table", migrate_user_github_profile)
+	register(19, "add space modules config and github pr fields", migrate_space_and_github_pr_config)
 }

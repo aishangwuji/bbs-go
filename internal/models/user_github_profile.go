@@ -26,6 +26,8 @@ type UserGithubProfile struct {
 	ContributedRepoStars int            `gorm:"not null;default:0" json:"contributedRepoStars" form:"contributedRepoStars"`     // 贡献合并 PR 的仓库 Star 数
 	ContributedPrTitle   string         `gorm:"size:256;default:''" json:"contributedPrTitle" form:"contributedPrTitle"`         // 贡献的已合并 PR 标题
 	ContributedPrUrl     string         `gorm:"size:512;default:''" json:"contributedPrUrl" form:"contributedPrUrl"`             // 贡献的已合并 PR 页面链接
+	MergedPrs            string         `gorm:"type:text" json:"mergedPrs" form:"mergedPrs"`                                     // 用户贡献的合格合并PR候选列表JSON快照
+	SelectedPrUrl        string         `gorm:"size:512;default:''" json:"selectedPrUrl" form:"selectedPrUrl"`                   // 用户在个人主页自主指定置顶展示的合并PR链接
 	PassedAdmission      bool           `gorm:"not null;default:false" json:"passedAdmission" form:"passedAdmission"`           // 是否达成开发者准入门槛（true:达成 false:未达成）
 	ProofType            string         `gorm:"size:32;default:''" json:"proofType" form:"proofType"`                            // 最高成就证明类型：repo_owner / contributor_merged_pr / account_age / none
 	ProofReason          string         `gorm:"size:256;default:''" json:"proofReason" form:"proofReason"`                       // 准入判定中文结果说明

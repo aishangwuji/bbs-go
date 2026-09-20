@@ -126,9 +126,32 @@ type User struct {
 	FollowCount      int              `gorm:"type:int;not null" json:"followCount" form:"followCount"`             // 关注数量
 	FansCount        int              `gorm:"type:int;not null" json:"fansCount" form:"fansCount"`                 // 粉丝数量
 	Roles            string           `gorm:"type:text" json:"roles" form:"roles"`                                 // 角色
+	SpaceModulesConfig string         `gorm:"size:512;not null;default:''" json:"spaceModulesConfig" form:"spaceModulesConfig"` // 个人主页模块可见性配置（JSON：github/counts/badges/profile/fans/followed）
 	ForbiddenEndTime int64            `gorm:"not null;default:0" json:"forbiddenEndTime" form:"forbiddenEndTime"`  // 禁言结束时间
 	CreateTime       int64            `json:"createTime" form:"createTime"`                                        // 创建时间
 	UpdateTime       int64            `json:"updateTime" form:"updateTime"`                                        // 更新时间
+}
+
+// SpaceModulesConfig 个人主页模块可见性配置
+type SpaceModulesConfig struct {
+	Github   bool `json:"github"`   // 是否公开 GitHub 开发者画像
+	Counts   bool `json:"counts"`   // 是否公开数据统计
+	Badges   bool `json:"badges"`   // 是否公开已获得勋章
+	Profile  bool `json:"profile"`  // 是否公开个人资料简介
+	Fans     bool `json:"fans"`     // 是否公开粉丝列表
+	Followed bool `json:"followed"` // 是否公开关注列表
+}
+
+// DefaultSpaceModulesConfig 返回默认的主页模块可见性配置（默认全部公开）
+func DefaultSpaceModulesConfig() SpaceModulesConfig {
+	return SpaceModulesConfig{
+		Github:   true,
+		Counts:   true,
+		Badges:   true,
+		Profile:  true,
+		Fans:     true,
+		Followed: true,
+	}
 }
 
 type UserToken struct {
