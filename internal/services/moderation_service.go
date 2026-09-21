@@ -287,6 +287,11 @@ func (s *moderationService) FindPageByParams(params *params.QueryParams) (list [
 	return repositories.ModerationRecordRepository.FindPageByParams(sqls.DB(), params)
 }
 
+// FindPageByCnd 根据条件分页查询风控记录
+func (s *moderationService) FindPageByCnd(cnd *sqls.Cnd) (list []models.ModerationRecord, paging *sqls.Paging) {
+	return repositories.ModerationRecordRepository.FindPageByCnd(sqls.DB(), cnd)
+}
+
 // Count 统计记录数
 func (s *moderationService) Count(cnd *sqls.Cnd) int64 {
 	return repositories.ModerationRecordRepository.Count(sqls.DB(), cnd)

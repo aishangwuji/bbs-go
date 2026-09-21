@@ -79,6 +79,7 @@ const zhCN = {
       categories: "分类",
       links: "链接",
       forbiddenWords: "违禁词",
+      moderationRecords: "风控记录",
       community: "社区",
       users: "用户",
       userList: "用户列表",
@@ -764,8 +765,19 @@ const zhCN = {
       auditUserId: "审核人ID",
       reason: "原因",
       reportTarget: "举报对象",
+      isSpamProb: "垃圾概率",
+      toxicityScore: "违规评分",
+      toxicityConfidence: "置信度",
+      suggestedAction: "建议动作",
+      finalAction: "最终动作",
+      contentSnapshot: "内容快照",
+      rawResponse: "原始诊断",
     },
     pages: {
+      moderationRecords: {
+        title: "风控记录",
+        description: "查看 TypeSafe Jev 智能内容风控与垃圾过滤拦截日志。",
+      },
       users: {
         title: "用户管理",
         description: "搜索、查看、编辑用户账号并重置密码。",

@@ -72,6 +72,10 @@ function dashboardBreadcrumbs(
           title: t("dashboard.nav.forbiddenWords"),
           url: "/dashboard/forbidden-words",
         },
+        "moderation-records": {
+          title: t("dashboard.nav.moderationRecords"),
+          url: "/dashboard/moderation-records",
+        },
       },
     },
     {

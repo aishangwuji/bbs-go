@@ -79,6 +79,7 @@ const enUS = {
       categories: "Categories",
       links: "Links",
       forbiddenWords: "Moderation Rules",
+      moderationRecords: "Moderation Records",
       community: "Community",
       users: "Users",
       userList: "User List",
@@ -781,8 +782,19 @@ const enUS = {
       auditUserId: "Auditor ID",
       reason: "Reason",
       reportTarget: "Reported Target",
+      isSpamProb: "Spam Probability",
+      toxicityScore: "Toxicity Score",
+      toxicityConfidence: "Confidence",
+      suggestedAction: "Suggested Action",
+      finalAction: "Final Action",
+      contentSnapshot: "Content Snapshot",
+      rawResponse: "Diagnosis Payload",
     },
     pages: {
+      moderationRecords: {
+        title: "Moderation Records",
+        description: "Inspect TypeSafe Jev smart content moderation and anti-spam audit logs.",
+      },
       users: {
         title: "Users",
         description: "Search, inspect, edit, and reset user accounts.",

@@ -431,6 +431,10 @@ func registerAdminRoutes(group *gin.RouterGroup) {
 	forbiddenWordGroup.POST("/delete", adminHandlers.ForbiddenWordRemove)
 	forbiddenWordGroup.GET("/:id", adminHandlers.ForbiddenWordDetail)
 
+	moderationRecordGroup := group.Group("/moderation-record")
+	moderationRecordGroup.POST("/list", adminHandlers.ModerationRecordList)
+	moderationRecordGroup.GET("/:id", adminHandlers.ModerationRecordDetail)
+
 	voteGroup := group.Group("/vote")
 	voteGroup.POST("/list", adminHandlers.VoteList)
 	voteGroup.POST("/create", adminHandlers.VoteCreate)

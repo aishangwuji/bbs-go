@@ -73,6 +73,8 @@ var (
 	PermissionForbiddenWordUpdate = PermissionDefinition{Type: TypeDashboard, Code: "dashboard.forbiddenWord.update", GroupName: GroupContent, SortNo: 620, NameEn: "Update Forbidden Words", NameZh: "编辑敏感词"}
 	PermissionForbiddenWordDelete = PermissionDefinition{Type: TypeDashboard, Code: "dashboard.forbiddenWord.delete", GroupName: GroupContent, SortNo: 630, NameEn: "Delete Forbidden Words", NameZh: "删除敏感词"}
 
+	PermissionModerationRecordView = PermissionDefinition{Type: TypeDashboard, Code: "dashboard.moderationRecord.view", GroupName: GroupContent, SortNo: 640, NameEn: "View Moderation Records", NameZh: "查看风控记录"}
+
 	PermissionUserView             = PermissionDefinition{Type: TypeDashboard, Code: "dashboard.user.view", GroupName: GroupCommunity, SortNo: 700, NameEn: "View Users", NameZh: "查看用户"}
 	PermissionUserCreate           = PermissionDefinition{Type: TypeDashboard, Code: "dashboard.user.create", GroupName: GroupCommunity, SortNo: 710, NameEn: "Create Users", NameZh: "创建用户"}
 	PermissionUserUpdate           = PermissionDefinition{Type: TypeDashboard, Code: "dashboard.user.update", GroupName: GroupCommunity, SortNo: 720, NameEn: "Update Users", NameZh: "编辑用户"}
@@ -148,6 +150,7 @@ var Permissions = []PermissionDefinition{
 	PermissionForbiddenWordCreate,
 	PermissionForbiddenWordUpdate,
 	PermissionForbiddenWordDelete,
+	PermissionModerationRecordView,
 	PermissionUserView,
 	PermissionUserCreate,
 	PermissionUserUpdate,

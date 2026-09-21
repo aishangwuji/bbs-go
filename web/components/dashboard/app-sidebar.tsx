@@ -80,6 +80,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             url: "/dashboard/forbidden-words",
             permission: PERMISSIONS.DASHBOARD_FORBIDDEN_WORD_VIEW,
           },
+          {
+            title: t("dashboard.nav.moderationRecords"),
+            url: "/dashboard/moderation-records",
+            permission: PERMISSIONS.DASHBOARD_MODERATION_RECORD_VIEW,
+          },
         ],
       },
       {

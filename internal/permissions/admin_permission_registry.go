@@ -55,6 +55,9 @@ var (
 		{Method: "POST", Pattern: "/api/admin/forbidden-word/update", Permissions: []PermissionDefinition{PermissionForbiddenWordUpdate}},
 		{Method: "POST", Pattern: "/api/admin/forbidden-word/delete", Permissions: []PermissionDefinition{PermissionForbiddenWordDelete}},
 
+		{Method: "GET", Pattern: "/api/admin/moderation-record/*", Permissions: []PermissionDefinition{PermissionModerationRecordView}},
+		{Method: "POST", Pattern: "/api/admin/moderation-record/list", Permissions: []PermissionDefinition{PermissionModerationRecordView}},
+
 		{Method: "GET", Pattern: "/api/admin/user/*", Permissions: []PermissionDefinition{PermissionUserView}},
 		{Method: "GET", Pattern: "/api/admin/user/synccount", Permissions: []PermissionDefinition{PermissionUserUpdate}},
 		{Method: "POST", Pattern: "/api/admin/user/list", Permissions: []PermissionDefinition{PermissionUserView}},
