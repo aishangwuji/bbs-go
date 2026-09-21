@@ -2,6 +2,9 @@
 
 import * as React from "react"
 import {
+  AlertTriangleIcon,
+  CheckCircle2Icon,
+  CheckIcon,
   CopyIcon,
   KeyRoundIcon,
   PlusIcon,
@@ -17,6 +20,8 @@ import {
   type ConfirmDialogState,
 } from "@/components/common/confirm-dialog"
 import { ErrorPage } from "@/components/common/error-page"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -94,7 +99,11 @@ export default function DashboardAgentTokensRoute() {
   const [total, setTotal] = React.useState(0)
 
   const [createOpen, setCreateOpen] = React.useState(false)
-  const [newToken, setNewToken] = React.useState<string | null>(null)
+  const [newTokenInfo, setNewTokenInfo] = React.useState<{
+    token: string
+    name: string
+  } | null>(null)
+  const [tokenCopied, setTokenCopied] = React.useState(false)
 
   const [editing, setEditing] = React.useState<AgentTokenRecord | null>(null)
   const [capabilities, setCapabilities] = React.useState<
@@ -252,7 +261,11 @@ export default function DashboardAgentTokensRoute() {
         "/api/admin/agent-token/create",
         { name, remark, expiredAt }
       )
-      setNewToken(data.token)
+      setNewTokenInfo({
+        token: data.token,
+        name,
+      })
+      setTokenCopied(false)
       await loadList()
       return true
     } catch (err) {
@@ -520,32 +533,101 @@ export default function DashboardAgentTokensRoute() {
       </Dialog>
 
       {/* 令牌明文一次性展示 */}
-      <Dialog open={newToken !== null} onOpenChange={() => setNewToken(null)}>
-        <DialogContent>
+      <Dialog
+        open={newTokenInfo !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setNewTokenInfo(null)
+            setTokenCopied(false)
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>{t("dashboard.agentTokens.tokenCreated")}</DialogTitle>
-            <DialogDescription>
-              {t("dashboard.agentTokens.tokenValue")}
-            </DialogDescription>
-          </DialogHeader>
-          {newToken ? (
             <div className="flex items-center gap-2">
-              <code className="flex-1 overflow-x-auto rounded-md bg-muted px-3 py-2 text-sm">
-                {newToken}
-              </code>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  void navigator.clipboard.writeText(newToken)
-                  msgSuccess(t("dashboard.agentTokens.copied"))
-                }}
-              >
-                <CopyIcon />
-                {t("dashboard.agentTokens.copyToken")}
-              </Button>
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                <CheckCircle2Icon className="h-5 w-5" />
+              </div>
+              <div>
+                <DialogTitle className="text-lg font-bold">
+                  {t("dashboard.agentTokens.tokenCreated")}
+                </DialogTitle>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <Badge variant="outline" className="font-mono text-xs">
+                    {newTokenInfo?.name || "Agent Token"}
+                  </Badge>
+                  <span className="text-xs text-muted-foreground">
+                    {t("dashboard.agentTokens.statusActive")}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <Alert variant="destructive" className="border-amber-500/30 bg-amber-50/50 dark:bg-amber-950/20 text-amber-800 dark:text-amber-300">
+            <AlertTriangleIcon className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            <AlertTitle className="text-xs font-semibold">安全保密提示</AlertTitle>
+            <AlertDescription className="text-xs text-amber-700/90 dark:text-amber-400/90">
+              {t("dashboard.agentTokens.tokenValue")}。关闭此弹窗后将无法再次查看该令牌的明文密钥。
+            </AlertDescription>
+          </Alert>
+
+          {newTokenInfo ? (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span className="font-medium">API Token 密钥串</span>
+                <span>请勿泄漏给不受信任的第三方</span>
+              </div>
+              <div className="relative flex items-center rounded-lg border bg-muted/60 p-1.5 focus-within:ring-2 focus-within:ring-ring">
+                <code className="flex-1 overflow-x-auto px-2.5 py-1.5 font-mono text-xs text-foreground select-all break-all whitespace-pre-wrap">
+                  {newTokenInfo.token}
+                </code>
+                <Button
+                  size="sm"
+                  variant={tokenCopied ? "default" : "secondary"}
+                  className="shrink-0 ml-2 shadow-xs transition-all"
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(newTokenInfo.token)
+                      setTokenCopied(true)
+                      msgSuccess(t("dashboard.agentTokens.copied"))
+                      setTimeout(() => setTokenCopied(false), 2500)
+                    } catch {
+                      msgError("复制失败，请手动选中文本复制")
+                    }
+                  }}
+                >
+                  {tokenCopied ? (
+                    <>
+                      <CheckIcon className="mr-1 h-3.5 w-3.5 text-emerald-400" />
+                      {t("dashboard.agentTokens.copied")}
+                    </>
+                  ) : (
+                    <>
+                      <CopyIcon className="mr-1 h-3.5 w-3.5" />
+                      {t("dashboard.agentTokens.copyToken")}
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           ) : null}
+
+          <DialogFooter className="mt-2 flex items-center justify-between sm:justify-between">
+            <span className="text-xs text-muted-foreground">
+              创建后请进入“授权”配置赋予此令牌可调用的 API 能力
+            </span>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setNewTokenInfo(null)
+                setTokenCopied(false)
+              }}
+            >
+              {t("common.close")}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

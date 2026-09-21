@@ -21,6 +21,7 @@ import {
   SaveIcon,
   ScaleIcon,
   Trash2Icon,
+  UploadIcon,
   XCircleIcon,
 } from "lucide-react"
 
@@ -440,6 +441,231 @@ function ExportConfigDialog({
   )
 }
 
+// 规则配置一键导入弹窗组件
+function ImportConfigDialog({
+  open,
+  onOpenChange,
+  onImport,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onImport: (imported: JevRuleConfig) => void
+}) {
+  const [inputText, setInputText] = React.useState("")
+  const [parseError, setParseError] = React.useState<string | null>(null)
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null)
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      const content = String(event.target?.result || "")
+      setInputText(content)
+      setParseError(null)
+    }
+    reader.onerror = () => {
+      msgError("读取文件失败，请尝试直接粘贴文件内容")
+    }
+    reader.readAsText(file, "UTF-8")
+    e.target.value = ""
+  }
+
+  const validateAndParse = (): JevRuleConfig | null => {
+    const trimmed = inputText.trim()
+    if (!trimmed) {
+      setParseError("请粘贴配置 JSON 或选择文件上传")
+      return null
+    }
+
+    try {
+      const parsed = JSON.parse(trimmed) as Partial<JevRuleConfig>
+      if (typeof parsed !== "object" || parsed === null) {
+        setParseError("无效的 JSON 对象，请检查格式")
+        return null
+      }
+
+      // 组装并清洗各字段，提供健壮的缺省容错
+      const cleanedConfig: JevRuleConfig = {
+        maxContentLength:
+          typeof parsed.maxContentLength === "number" && parsed.maxContentLength > 0
+            ? parsed.maxContentLength
+            : 500,
+        includeTitle: parsed.includeTitle !== false,
+        reviewTimeoutMinutes:
+          typeof parsed.reviewTimeoutMinutes === "number"
+            ? parsed.reviewTimeoutMinutes
+            : 120,
+        reviewTimeoutAction:
+          parsed.reviewTimeoutAction === "reject" ? "reject" : "pass",
+        autoCreateReport: parsed.autoCreateReport !== false,
+        noulQuestions: Array.isArray(parsed.noulQuestions)
+          ? parsed.noulQuestions.map((q) => ({
+              key: String(q.key || `noul_${Date.now()}`),
+              label: String(q.label || "未命名连续概率规则"),
+              instructions: String(q.instructions || ""),
+              rejectThreshold:
+                typeof q.rejectThreshold === "number" ? q.rejectThreshold : 0.85,
+              reviewThreshold:
+                typeof q.reviewThreshold === "number" ? q.reviewThreshold : 0.45,
+              enabled: q.enabled !== false,
+            }))
+          : [],
+        scoreQuestions: Array.isArray(parsed.scoreQuestions)
+          ? parsed.scoreQuestions.map((q) => ({
+              key: String(q.key || `score_${Date.now()}`),
+              label: String(q.label || "未命名阶梯打分规则"),
+              instructions: String(q.instructions || ""),
+              criteria: Array.isArray(q.criteria)
+                ? q.criteria.map(String)
+                : [],
+              rejectThreshold:
+                typeof q.rejectThreshold === "number" ? q.rejectThreshold : 2,
+              reviewThreshold:
+                typeof q.reviewThreshold === "number" ? q.reviewThreshold : 1,
+              enabled: q.enabled !== false,
+            }))
+          : [],
+        choiceQuestions: Array.isArray(parsed.choiceQuestions)
+          ? parsed.choiceQuestions.map((q) => ({
+              key: String(q.key || `choice_${Date.now()}`),
+              label: String(q.label || "未命名离散归类规则"),
+              instructions: String(q.instructions || ""),
+              criteria:
+                typeof q.criteria === "object" && q.criteria !== null
+                  ? (q.criteria as Record<string, string>)
+                  : {},
+              autoRejectOptions: Array.isArray(q.autoRejectOptions)
+                ? q.autoRejectOptions.map(String)
+                : [],
+              autoReviewOptions: Array.isArray(q.autoReviewOptions)
+                ? q.autoReviewOptions.map(String)
+                : [],
+              enabled: q.enabled !== false,
+            }))
+          : [],
+      }
+
+      setParseError(null)
+      return cleanedConfig
+    } catch (err) {
+      setParseError(`JSON 解析失败: ${(err as Error).message}`)
+      return null
+    }
+  }
+
+  const handleApply = () => {
+    const validConfig = validateAndParse()
+    if (!validConfig) return
+
+    onImport(validConfig)
+    onOpenChange(false)
+    setInputText("")
+    setParseError(null)
+    msgSuccess("规则配置已导入至当前编辑态！请检查并点击右上角“保存配置”生效。")
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[88vh] flex flex-col p-6">
+        <DialogHeader>
+          <div className="flex items-center gap-2">
+            <DialogTitle className="text-xl font-bold">一键导入规则引擎配置</DialogTitle>
+            <Badge variant="outline" className="font-mono text-xs">
+              JSON Config Import
+            </Badge>
+          </div>
+          <DialogDescription>
+            支持粘贴导出的 Jev 规则 JSON 文本或直接上传 `.json` 配置文件。导入后将即时载入当前页面供预览与编辑，点击右上角“保存配置”后生效。
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-3 mt-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-muted-foreground">
+              粘贴 JSON 规则代码，或从本地选取文件：
+            </span>
+            <div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".json,application/json"
+                className="hidden"
+                onChange={handleFileUpload}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <UploadIcon className="mr-1.5 h-3.5 w-3.5" />
+                选择本地 JSON 文件
+              </Button>
+            </div>
+          </div>
+
+          <Textarea
+            value={inputText}
+            onChange={(e) => {
+              setInputText(e.target.value)
+              if (parseError) setParseError(null)
+            }}
+            placeholder={`{\n  "maxContentLength": 500,\n  "includeTitle": true,\n  "noulQuestions": [...],\n  "scoreQuestions": [...],\n  "choiceQuestions": [...]\n}`}
+            className="font-mono text-xs min-h-[260px] max-h-[380px] resize-y"
+          />
+
+          {parseError ? (
+            <Alert variant="destructive" className="py-2">
+              <AlertTriangleIcon className="h-4 w-4" />
+              <AlertTitle className="text-xs">格式校验未通过</AlertTitle>
+              <AlertDescription className="text-xs">{parseError}</AlertDescription>
+            </Alert>
+          ) : (
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <InfoIcon className="h-3.5 w-3.5 text-primary" />
+              <span>导入后会完整校验规则结构，并自动合并进 State 变量、Noul、Score 与 Choice 问询列表中。</span>
+            </div>
+          )}
+        </div>
+
+        <DialogFooter className="mt-4 flex items-center justify-between sm:justify-between">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setInputText("")
+              setParseError(null)
+              onOpenChange(false)
+            }}
+          >
+            取消
+          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setInputText("")
+                setParseError(null)
+              }}
+              disabled={!inputText}
+            >
+              清空
+            </Button>
+            <Button type="button" size="sm" onClick={handleApply}>
+              <CheckIcon className="mr-1.5 h-4 w-4" />
+              确认导入至当前配置
+            </Button>
+          </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 export default function DashboardJevRulesRoute() {
   const { t } = useI18n()
   const user = useCurrentUser()
@@ -450,6 +676,7 @@ export default function DashboardJevRulesRoute() {
   const [loading, setLoading] = React.useState(true)
   const [saving, setSaving] = React.useState(false)
   const [exportDialogOpen, setExportDialogOpen] = React.useState(false)
+  const [importDialogOpen, setImportDialogOpen] = React.useState(false)
 
   // Playground 状态
   const [simTitle, setSimTitle] = React.useState("")
@@ -658,6 +885,15 @@ export default function DashboardJevRulesRoute() {
             <DownloadIcon className="mr-1.5 h-4 w-4" />
             一键导出配置
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setImportDialogOpen(true)}
+            disabled={loading}
+          >
+            <UploadIcon className="mr-1.5 h-4 w-4" />
+            一键导入配置
+          </Button>
           <Button variant="outline" size="sm" onClick={handleReset} disabled={loading || saving}>
             <RefreshCwIcon className="mr-1.5 h-4 w-4" />
             恢复推荐预设
@@ -675,6 +911,14 @@ export default function DashboardJevRulesRoute() {
         open={exportDialogOpen}
         onOpenChange={setExportDialogOpen}
         config={config}
+      />
+
+      <ImportConfigDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+        onImport={(imported) => {
+          setConfig(imported)
+        }}
       />
 
       <Tabs defaultValue="playground" className="space-y-4">
