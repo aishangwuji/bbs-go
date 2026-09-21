@@ -9,7 +9,6 @@ import { CheckInCard, TasksUserCard } from "@/components/tasks/task-widgets"
 import { useAppState } from "@/components/app/app-provider"
 import { apiFetch } from "@/lib/api/client"
 import type { Badge, CheckInInfo, UserSummary } from "@/lib/api/types"
-import type { FriendLink } from "@/lib/api/misc"
 import type { TFunction } from "@/lib/i18n"
 import { useI18n } from "@/lib/i18n/provider"
 
@@ -104,60 +103,12 @@ function ScoreRank({
   )
 }
 
-function FriendLinks({
-  title,
-  more,
-  links,
-}: {
-  title: string
-  more: string
-  links: FriendLink[]
-}) {
-  if (!links.length) {
-    return null
-  }
-
-  return (
-    <WidgetCard
-      title={title}
-      actions={
-        <Link
-          href="/links"
-          className="text-muted-foreground hover:text-primary"
-        >
-          {more}
-        </Link>
-      }
-    >
-      <ul className="links">
-        {links.map((link) => (
-          <li key={link.id} className="link">
-            <a
-              href={link.url || "#"}
-              title={link.title}
-              className="link-title"
-              target="_blank"
-              rel="noreferrer"
-            >
-              {link.title}
-            </a>
-            {link.summary ? (
-              <p className="link-summary">{link.summary}</p>
-            ) : null}
-          </li>
-        ))}
-      </ul>
-    </WidgetCard>
-  )
-}
-
 export function HomeAside() {
   const { config, currentUser: user } = useAppState()
   const { t } = useI18n()
   const [scoreRank, setScoreRank] = React.useState<UserSummary[]>([])
   const [checkIn, setCheckIn] = React.useState<CheckInInfo | null>(null)
   const [checkInRank, setCheckInRank] = React.useState<CheckInInfo[]>([])
-  const [friendLinks, setFriendLinks] = React.useState<FriendLink[]>([])
   const [badges, setBadges] = React.useState<Badge[]>([])
 
   React.useEffect(() => {
@@ -166,13 +117,11 @@ export function HomeAside() {
       apiFetch<UserSummary[]>("/api/user/score/rank").catch(() => []),
       apiFetch<CheckInInfo | null>("/api/checkin/checkin").catch(() => null),
       apiFetch<CheckInInfo[]>("/api/checkin/rank").catch(() => []),
-      apiFetch<FriendLink[]>("/api/link/top_links").catch(() => []),
-    ]).then(([nextScoreRank, nextCheckIn, nextCheckInRank, nextLinks]) => {
+    ]).then(([nextScoreRank, nextCheckIn, nextCheckInRank]) => {
       if (!mounted) return
       setScoreRank(Array.isArray(nextScoreRank) ? nextScoreRank : [])
       setCheckIn(nextCheckIn)
       setCheckInRank(Array.isArray(nextCheckInRank) ? nextCheckInRank : [])
-      setFriendLinks(Array.isArray(nextLinks) ? nextLinks : [])
     })
 
     return () => {
@@ -213,11 +162,6 @@ export function HomeAside() {
         title={t("component.scoreRank.title")}
         users={scoreRank}
         t={t}
-      />
-      <FriendLinks
-        title={t("component.friendLinks.title")}
-        more={t("component.friendLinks.more")}
-        links={friendLinks}
       />
     </>
   )
