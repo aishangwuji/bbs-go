@@ -52,7 +52,7 @@ func UserReportList(ctx *gin.Context) {
 		},
 	)
 
-	source := ctx.Query("source")
+	source := ctx.DefaultPostForm("source", ctx.Query("source"))
 	if source == "jev" {
 		cnd.Eq("user_id", 0)
 	} else if source == "user" {
@@ -186,6 +186,15 @@ func buildUserReportTarget(report *models.UserReport) map[string]interface{} {
 			target["entityId"] = comment.EntityId
 			target["quoteId"] = comment.QuoteId
 			target["status"] = comment.Status
+			if comment.EntityType == constants.EntityTopic {
+				target["title"] = "针对话题 #" + strconv.FormatInt(comment.EntityId, 10) + " 的评论"
+				target["url"] = "/topic/" + idcodec.Encode(comment.EntityId)
+			} else if comment.EntityType == constants.EntityArticle {
+				target["title"] = "针对文章 #" + strconv.FormatInt(comment.EntityId, 10) + " 的评论"
+				target["url"] = "/article/" + strconv.FormatInt(comment.EntityId, 10)
+			} else {
+				target["title"] = "评论 #" + strconv.FormatInt(comment.Id, 10)
+			}
 			return target
 		}
 	case "user":

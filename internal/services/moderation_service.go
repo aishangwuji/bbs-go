@@ -480,6 +480,7 @@ func (s *moderationService) createReviewReport(entityType string, entityId int64
 		Eq("data_id", entityId).
 		Eq("audit_status", 0))
 	if existing != nil {
+		slog.Info("[JevModeration] 待审工单已存在，跳过重复创建", slog.String("entityType", entityType), slog.Int64("entityId", entityId), slog.Int64("reportId", existing.Id))
 		return
 	}
 
@@ -499,7 +500,9 @@ func (s *moderationService) createReviewReport(entityType string, entityId int64
 	}
 
 	if err := repositories.UserReportRepository.Create(sqls.DB(), report); err != nil {
-		slog.Error("[JevModeration] 创建用户举报待审工单失败", slog.Any("err", err))
+		slog.Error("[JevModeration] 创建用户举报待审工单失败", slog.String("entityType", entityType), slog.Int64("entityId", entityId), slog.Any("err", err))
+	} else {
+		slog.Info("[JevModeration] 成功创建用户举报待审工单", slog.String("entityType", entityType), slog.Int64("entityId", entityId), slog.Int64("reportId", report.Id))
 	}
 }
 

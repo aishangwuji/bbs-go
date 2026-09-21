@@ -719,6 +719,32 @@ func (s *sysConfigService) GetJevConfig() dto.JevConfig {
 	return cfg
 }
 
+// parseJevRuleConfig 解析 Jev 规则配置 JSON 并执行防御性合并与默认兜底
+func parseJevRuleConfig(str string, defaultCfg dto.JevRuleConfig) dto.JevRuleConfig {
+	if strs.IsBlank(str) {
+		return defaultCfg
+	}
+	cfg := defaultCfg
+	if err := jsons.Parse(str, &cfg); err != nil {
+		slog.Warn("解析数据库 Jev 规则引擎配置失败，使用默认预设", slog.Any("err", err))
+		return defaultCfg
+	}
+	if cfg.MaxContentLength <= 0 {
+		cfg.MaxContentLength = 500
+	}
+	if cfg.ReviewTimeoutMinutes <= 0 {
+		cfg.ReviewTimeoutMinutes = 120
+	}
+	if strs.IsBlank(cfg.ReviewTimeoutAction) {
+		cfg.ReviewTimeoutAction = "pass"
+	}
+	// 避免反序列化零值陷阱：如果数据库旧版本 JSON 中未定义 autoCreateReport，默认开启工单融合
+	if !gjson.Get(str, "autoCreateReport").Exists() {
+		cfg.AutoCreateReport = true
+	}
+	return cfg
+}
+
 // GetJevRuleConfig 获取 Jev 细粒度规则引擎编排配置
 // 优先从数据库 t_sys_config 读取；若未配置或反序列化失败，则回退到 DefaultJevRuleConfig()
 func (s *sysConfigService) GetJevRuleConfig() dto.JevRuleConfig {
@@ -727,18 +753,7 @@ func (s *sysConfigService) GetJevRuleConfig() dto.JevRuleConfig {
 		return defaultCfg
 	}
 	str := cache.SysConfigCache.GetStr(constants.SysConfigJevRuleConfig)
-	if strs.IsBlank(str) {
-		return defaultCfg
-	}
-	var cfg dto.JevRuleConfig
-	if err := jsons.Parse(str, &cfg); err != nil {
-		slog.Warn("解析数据库 Jev 规则引擎配置失败，使用默认预设", slog.Any("err", err))
-		return defaultCfg
-	}
-	if cfg.MaxContentLength <= 0 {
-		cfg.MaxContentLength = 500
-	}
-	return cfg
+	return parseJevRuleConfig(str, defaultCfg)
 }
 
 // SetJevRuleConfig 保存 Jev 细粒度规则引擎编排配置
