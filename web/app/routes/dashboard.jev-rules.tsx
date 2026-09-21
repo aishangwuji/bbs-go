@@ -6,6 +6,10 @@ import {
   CheckCircle2Icon,
   CheckIcon,
   CodeIcon,
+  CopyIcon,
+  DownloadIcon,
+  FileCodeIcon,
+  FileJsonIcon,
   FlaskConicalIcon,
   InfoIcon,
   LayersIcon,
@@ -39,6 +43,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Progress } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
@@ -151,6 +163,283 @@ const DEFAULT_CONFIG: JevRuleConfig = {
   autoCreateReport: true,
 }
 
+// 辅助生成 Idiomatic Go 结构体代码
+function generateGoCode(cfg: JevRuleConfig): string {
+  const noulLines = cfg.noulQuestions
+    .map(
+      (q) => `\t\t\t{
+\t\t\t\tKey:             ${JSON.stringify(q.key)},
+\t\t\t\tLabel:           ${JSON.stringify(q.label)},
+\t\t\t\tInstructions:    ${JSON.stringify(q.instructions)},
+\t\t\t\tRejectThreshold: ${q.rejectThreshold},
+\t\t\t\tReviewThreshold: ${q.reviewThreshold},
+\t\t\t\tEnabled:         ${q.enabled},
+\t\t\t},`
+    )
+    .join("\n")
+
+  const scoreLines = cfg.scoreQuestions
+    .map((q) => {
+      const criteriaStr =
+        q.criteria && q.criteria.length > 0
+          ? `[]string{\n` +
+            q.criteria.map((c) => `\t\t\t\t\t${JSON.stringify(c)},`).join("\n") +
+            `\n\t\t\t\t}`
+          : `nil`
+      return `\t\t\t{
+\t\t\t\tKey:             ${JSON.stringify(q.key)},
+\t\t\t\tLabel:           ${JSON.stringify(q.label)},
+\t\t\t\tInstructions:    ${JSON.stringify(q.instructions)},
+\t\t\t\tCriteria:        ${criteriaStr},
+\t\t\t\tRejectThreshold: ${q.rejectThreshold},
+\t\t\t\tReviewThreshold: ${q.reviewThreshold},
+\t\t\t\tEnabled:         ${q.enabled},
+\t\t\t},`
+    })
+    .join("\n")
+
+  const choiceLines = cfg.choiceQuestions
+    .map((q) => {
+      const criteriaEntries = Object.entries(q.criteria || {})
+        .map(([k, v]) => `\t\t\t\t\t${JSON.stringify(k)}: ${JSON.stringify(v)},`)
+        .join("\n")
+      const criteriaStr =
+        criteriaEntries.length > 0
+          ? `map[string]string{\n${criteriaEntries}\n\t\t\t\t}`
+          : `nil`
+      const rejectOpts =
+        q.autoRejectOptions && q.autoRejectOptions.length > 0
+          ? `[]string{` +
+            q.autoRejectOptions.map((o) => JSON.stringify(o)).join(", ") +
+            `}`
+          : `nil`
+      const reviewOpts =
+        q.autoReviewOptions && q.autoReviewOptions.length > 0
+          ? `[]string{` +
+            q.autoReviewOptions.map((o) => JSON.stringify(o)).join(", ") +
+            `}`
+          : `nil`
+
+      return `\t\t\t{
+\t\t\t\tKey:               ${JSON.stringify(q.key)},
+\t\t\t\tLabel:             ${JSON.stringify(q.label)},
+\t\t\t\tInstructions:      ${JSON.stringify(q.instructions)},
+\t\t\t\tCriteria:          ${criteriaStr},
+\t\t\t\tAutoRejectOptions: ${rejectOpts},
+\t\t\t\tAutoReviewOptions: ${reviewOpts},
+\t\t\t\tEnabled:           ${q.enabled},
+\t\t\t},`
+    })
+    .join("\n")
+
+  return `package dto
+
+// ExportedJevRuleConfig 导出的 Jev 细粒度规则引擎结构体定义
+// 可直接用于 Go 后端配置初始化或单元测试 Mock
+func ExportedJevRuleConfig() JevRuleConfig {
+\treturn JevRuleConfig{
+\t\tMaxContentLength:     ${cfg.maxContentLength},
+\t\tIncludeTitle:         ${cfg.includeTitle},
+\t\tReviewTimeoutMinutes: ${cfg.reviewTimeoutMinutes},
+\t\tReviewTimeoutAction:  ${JSON.stringify(cfg.reviewTimeoutAction)},
+\t\tAutoCreateReport:     ${cfg.autoCreateReport},
+\t\tNoulQuestions: []JevNoulQuestion{
+${noulLines}
+\t\t},
+\t\tScoreQuestions: []JevScoreQuestion{
+${scoreLines}
+\t\t},
+\t\tChoiceQuestions: []JevChoiceQuestion{
+${choiceLines}
+\t\t},
+\t}
+}
+`
+}
+
+// 辅助生成 Jev System One 问询 Payload 结构
+function generateJevPayload(cfg: JevRuleConfig) {
+  const questions: Record<string, unknown> = {}
+
+  cfg.noulQuestions
+    .filter((q) => q.enabled)
+    .forEach((q) => {
+      questions[q.key] = {
+        type: "noul",
+        instructions: q.instructions,
+      }
+    })
+
+  cfg.scoreQuestions
+    .filter((q) => q.enabled)
+    .forEach((q) => {
+      questions[q.key] = {
+        type: "score",
+        instructions: q.instructions,
+        criteria: q.criteria,
+      }
+    })
+
+  cfg.choiceQuestions
+    .filter((q) => q.enabled)
+    .forEach((q) => {
+      questions[q.key] = {
+        type: "choice",
+        instructions: q.instructions,
+        criteria: q.criteria,
+      }
+    })
+
+  return {
+    model: "jev-latest",
+    state: {
+      ...(cfg.includeTitle ? { title: "示例标题 (由 Jev 上下文注入)" } : {}),
+      content: `示例正文内容快照 (最大截断长度: ${cfg.maxContentLength} 字符)`,
+    },
+    questions,
+  }
+}
+
+// 规则配置导出弹窗组件
+function ExportConfigDialog({
+  open,
+  onOpenChange,
+  config,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  config: JevRuleConfig
+}) {
+  const [activeTab, setActiveTab] = React.useState<"json" | "go" | "payload">("json")
+  const [copied, setCopied] = React.useState(false)
+
+  const jsonCode = React.useMemo(() => JSON.stringify(config, null, 2), [config])
+  const goCode = React.useMemo(() => generateGoCode(config), [config])
+  const payloadCode = React.useMemo(
+    () => JSON.stringify(generateJevPayload(config), null, 2),
+    [config]
+  )
+
+  const currentContent = React.useMemo(() => {
+    switch (activeTab) {
+      case "go":
+        return goCode
+      case "payload":
+        return payloadCode
+      case "json":
+      default:
+        return jsonCode
+    }
+  }, [activeTab, goCode, payloadCode, jsonCode])
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(currentContent)
+      setCopied(true)
+      msgSuccess("已成功复制到剪贴板")
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      msgError("复制到剪贴板失败，请手动选择复制")
+    }
+  }
+
+  const handleDownload = () => {
+    let filename = `jev-rules-${Date.now()}.json`
+    let mimeType = "application/json;charset=utf-8"
+    if (activeTab === "go") {
+      filename = `jev_rule_config_${Date.now()}.go`
+      mimeType = "text/plain;charset=utf-8"
+    } else if (activeTab === "payload") {
+      filename = `jev-system-one-payload-${Date.now()}.json`
+    }
+
+    const blob = new Blob([currentContent], { type: mimeType })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+    msgSuccess(`已成功导出并下载 ${filename}`)
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl max-h-[88vh] flex flex-col p-6">
+        <DialogHeader>
+          <div className="flex items-center gap-2">
+            <DialogTitle className="text-xl font-bold">一键导出规则引擎配置</DialogTitle>
+            <Badge variant="secondary" className="font-mono text-xs">
+              Go & JSON Dual-Mode
+            </Badge>
+          </div>
+          <DialogDescription>
+            支持将当前全量问询与分流处置规则导出为标准 JSON、Idiomatic Go 结构体代码或 Jev 原生问询 Payload，便于离线查阅与研发复现。
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="flex items-center justify-between mt-2">
+          <Tabs
+            value={activeTab}
+            onValueChange={(val) => setActiveTab(val as "json" | "go" | "payload")}
+          >
+            <TabsList>
+              <TabsTrigger value="json" className="flex items-center gap-1.5 text-xs">
+                <FileJsonIcon className="h-3.5 w-3.5 text-amber-500" />
+                <span>标准 JSON</span>
+              </TabsTrigger>
+              <TabsTrigger value="go" className="flex items-center gap-1.5 text-xs">
+                <FileCodeIcon className="h-3.5 w-3.5 text-cyan-500" />
+                <span>Idiomatic Go 结构体</span>
+              </TabsTrigger>
+              <TabsTrigger value="payload" className="flex items-center gap-1.5 text-xs">
+                <CodeIcon className="h-3.5 w-3.5 text-purple-500" />
+                <span>Jev 原生问询 Payload</span>
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={handleCopy}>
+              {copied ? (
+                <CheckIcon className="mr-1.5 h-3.5 w-3.5 text-emerald-500" />
+              ) : (
+                <CopyIcon className="mr-1.5 h-3.5 w-3.5" />
+              )}
+              {copied ? "已复制" : "复制内容"}
+            </Button>
+            <Button size="sm" onClick={handleDownload}>
+              <DownloadIcon className="mr-1.5 h-3.5 w-3.5" />
+              下载文件
+            </Button>
+          </div>
+        </div>
+
+        <div className="relative flex-1 min-h-[360px] max-h-[480px] overflow-hidden rounded-md border bg-muted/40 mt-3">
+          <pre className="h-full overflow-auto p-4 font-mono text-xs leading-relaxed select-all">
+            <code>{currentContent}</code>
+          </pre>
+        </div>
+
+        <DialogFooter className="mt-4 flex items-center justify-between sm:justify-between text-xs text-muted-foreground">
+          <p>
+            {activeTab === "go"
+              ? "💡 导出的 Go 代码对应 internal/models/dto/config_dto.go 中的 JevRuleConfig 结构。"
+              : activeTab === "payload"
+              ? "💡 导出的 Payload 结构展示了 bbs-go 调用 Jev System One 模型时实际投递的 questions 映射表。"
+              : "💡 导出的 JSON 可直接用于导入系统或与第三方配置平台联动。"}
+          </p>
+          <Button variant="secondary" size="sm" onClick={() => onOpenChange(false)}>
+            关闭
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 export default function DashboardJevRulesRoute() {
   const { t } = useI18n()
   const user = useCurrentUser()
@@ -160,6 +449,7 @@ export default function DashboardJevRulesRoute() {
   const [config, setConfig] = React.useState<JevRuleConfig>(DEFAULT_CONFIG)
   const [loading, setLoading] = React.useState(true)
   const [saving, setSaving] = React.useState(false)
+  const [exportDialogOpen, setExportDialogOpen] = React.useState(false)
 
   // Playground 状态
   const [simTitle, setSimTitle] = React.useState("")
@@ -359,6 +649,15 @@ export default function DashboardJevRulesRoute() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setExportDialogOpen(true)}
+            disabled={loading}
+          >
+            <DownloadIcon className="mr-1.5 h-4 w-4" />
+            一键导出配置
+          </Button>
           <Button variant="outline" size="sm" onClick={handleReset} disabled={loading || saving}>
             <RefreshCwIcon className="mr-1.5 h-4 w-4" />
             恢复推荐预设
@@ -371,6 +670,12 @@ export default function DashboardJevRulesRoute() {
           )}
         </div>
       </div>
+
+      <ExportConfigDialog
+        open={exportDialogOpen}
+        onOpenChange={setExportDialogOpen}
+        config={config}
+      />
 
       <Tabs defaultValue="playground" className="space-y-4">
         <TabsList className="grid grid-cols-2 md:grid-cols-5 h-auto p-1">
