@@ -92,6 +92,17 @@ export function AccountSettings({
   )
   const [savingConfig, setSavingConfig] = React.useState(false)
 
+  // Reason: currentUser 经 AppProvider 异步 hydrate 后才有值，首屏 useState
+  // 只拿到默认值；服务端配置到达后（且非保存中）需同步一次，否则开关永远显示默认全开。
+  const serverConfigKey = JSON.stringify(user.spaceModulesConfig ?? null)
+  React.useEffect(() => {
+    if (savingConfig) return
+    if (user.spaceModulesConfig) {
+      setSpaceConfig(user.spaceModulesConfig)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [serverConfigKey])
+
   // GitHub 合并 PR 候选集与自主选定代表作
   const mergedPrs = user.githubProfile?.mergedPrs || []
   const [selectedPr, setSelectedPr] = React.useState<string>(
@@ -99,18 +110,34 @@ export function AccountSettings({
   )
   const [savingPr, setSavingPr] = React.useState(false)
 
+  // Reason: 同 spaceConfig，hydrate 后服务端代表作到达时同步一次（保存中跳过防覆盖乐观值）。
+  const serverPrKey = user.githubProfile?.selectedPrUrl ?? ""
+  React.useEffect(() => {
+    if (savingPr) return
+    if (serverPrKey) {
+      setSelectedPr(serverPrKey)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [serverPrKey])
+
   const handleToggleModule = async (key: keyof SpaceModulesConfig, value: boolean) => {
+    const prev = spaceConfig
     const next = { ...spaceConfig, [key]: value }
+    // 乐观更新：开关立即翻转，无需整页 reload（本项目 router.refresh() === window.location.reload()，
+    // 会闪屏并丢掉 toast）。本地 state 已是最新，后端缓存修复后下次进页也能读到新值。
     setSpaceConfig(next)
     setSavingConfig(true)
     try {
+      // Business Rule: apiFetch 要求传对象（内部自动 JSON.stringify + Content-Type），
+      // 直接传 JSON.stringify 后的字符串会丢掉 Content-Type 头。
       await apiFetch("/api/user/space_modules_config", {
         method: "POST",
-        body: JSON.stringify(next),
+        body: next,
       })
       toast.success("个人主页模块展示配置已更新！")
-      router.refresh()
     } catch (err: any) {
+      // 失败回滚，否则开关停在假成功态与服务端不一致。
+      setSpaceConfig(prev)
       toast.error(err?.message || "更新主页配置失败")
     } finally {
       setSavingConfig(false)
@@ -118,16 +145,17 @@ export function AccountSettings({
   }
 
   const handleSelectPr = async (prUrl: string) => {
+    const prev = selectedPr
     setSelectedPr(prUrl)
     setSavingPr(true)
     try {
       await apiFetch("/api/user/select_github_pr", {
         method: "POST",
-        body: JSON.stringify({ prUrl }),
+        body: { prUrl },
       })
       toast.success("已更新主页代表作展示 PR！")
-      router.refresh()
     } catch (err: any) {
+      setSelectedPr(prev)
       toast.error(err?.message || "选择代表作 PR 失败")
     } finally {
       setSavingPr(false)

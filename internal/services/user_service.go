@@ -884,6 +884,8 @@ func (s *userService) calcLevelByExp(tx *gorm.DB, exp int) (int, error) {
 }
 
 // UpdateSpaceModulesConfig 更新用户个人主页模块可见性配置
+// Business Rule: 写后必须失效 UserCache，否则 /api/user/current 与 UserDetail
+// 仍命中 30 分钟内存旧值，前端整页 reload 会把开关弹回原位（本次线上 bug 根因）。
 func (s *userService) UpdateSpaceModulesConfig(userId int64, config *models.SpaceModulesConfig) error {
 	user := s.Get(userId)
 	if user == nil {
@@ -897,10 +899,17 @@ func (s *userService) UpdateSpaceModulesConfig(userId int64, config *models.Spac
 	if err != nil {
 		return err
 	}
-	return repositories.UserRepository.Updates(sqls.DB(), userId, map[string]interface{}{
+	err = repositories.UserRepository.Updates(sqls.DB(), userId, map[string]interface{}{
 		"space_modules_config": string(data),
 		"update_time":          dates.NowTimestamp(),
 	})
+	if err != nil {
+		return err
+	}
+	// Reason: 与 Updates/UpdateColumn 保持一致，写库成功后立即失效内存缓存，
+	// 后续 BuildUserDetail/GetSpaceModulesConfig 才能读到新值。
+	cache.UserCache.Invalidate(userId)
+	return nil
 }
 
 // GetSpaceModulesConfig 获取用户个人主页模块可见性配置（如果未配置则返回全公开默认值）
