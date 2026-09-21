@@ -345,28 +345,6 @@ function ExportConfigDialog({
     }
   }
 
-  const handleDownload = () => {
-    let filename = `jev-rules-${Date.now()}.json`
-    let mimeType = "application/json;charset=utf-8"
-    if (activeTab === "go") {
-      filename = `jev_rule_config_${Date.now()}.go`
-      mimeType = "text/plain;charset=utf-8"
-    } else if (activeTab === "payload") {
-      filename = `jev-system-one-payload-${Date.now()}.json`
-    }
-
-    const blob = new Blob([currentContent], { type: mimeType })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = filename
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-    msgSuccess(`已成功导出并下载 ${filename}`)
-  }
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[88vh] flex flex-col p-6">
@@ -404,7 +382,7 @@ function ExportConfigDialog({
             </TabsList>
           </Tabs>
 
-          <div className="flex items-center justify-end gap-2 shrink-0">
+          <div className="flex items-center justify-end shrink-0">
             <Button variant="outline" size="sm" onClick={handleCopy} className="h-8">
               {copied ? (
                 <CheckIcon className="mr-1.5 h-3.5 w-3.5 text-emerald-500" />
@@ -412,10 +390,6 @@ function ExportConfigDialog({
                 <CopyIcon className="mr-1.5 h-3.5 w-3.5" />
               )}
               {copied ? "已复制" : "复制内容"}
-            </Button>
-            <Button size="sm" onClick={handleDownload} className="h-8">
-              <DownloadIcon className="mr-1.5 h-3.5 w-3.5" />
-              下载文件
             </Button>
           </div>
         </div>
