@@ -119,4 +119,5 @@ func init() {
 	register(17, "signature config defaults", migrate_signature_config_defaults)
 	register(18, "create user github profile table", migrate_user_github_profile)
 	register(19, "add space modules config and github pr fields", migrate_space_and_github_pr_config)
+	register(20, "create moderation record table", migrate_moderation_record)
 }

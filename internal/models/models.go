@@ -22,6 +22,7 @@ var Models = []interface{}{
 	&Attachment{}, &AttachmentDownloadLog{},
 	&AgentToken{}, &AgentTokenApi{},
 	&UserGithubProfile{},
+	&ModerationRecord{},
 }
 
 type Model struct {
@@ -649,3 +650,22 @@ type AgentTokenApi struct {
 	Path       string `gorm:"size:256;not null;uniqueIndex:uk_agent_token_api" json:"path" form:"path"`                                  // 管理端路径（含参数模板，如 /api/admin/topic/:id）
 	CreateTime int64  `gorm:"not null;default:0" json:"createTime" form:"createTime"`                                                    // 授权时间
 }
+
+// ModerationRecord 智能内容风控审核记录
+type ModerationRecord struct {
+	Model
+	EntityType         string  `gorm:"size:32;not null;index:idx_moderation_entity" json:"entityType" form:"entityType"`          // 实体类型：topic-话题、comment-评论、article-文章
+	EntityId           int64   `gorm:"not null;index:idx_moderation_entity" json:"entityId" form:"entityId"`                      // 被审核实体编号
+	UserId             int64   `gorm:"not null;index:idx_moderation_user" json:"userId" form:"userId"`                            // 作者用户编号
+	ContentSnapshot    string  `gorm:"type:text;not null" json:"contentSnapshot" form:"contentSnapshot"`                          // 送审内容文本快照
+	IsSpamProb         float64 `gorm:"type:decimal(5,4);not null;default:0" json:"isSpamProb" form:"isSpamProb"`                  // Jev Noul: 涉垃圾/广告概率值(0~1)
+	ToxicityScore      float64 `gorm:"type:decimal(4,2);not null;default:0" json:"toxicityScore" form:"toxicityScore"`            // Jev Score: 违规攻击性得分(0~2)
+	ToxicityConfidence float64 `gorm:"type:decimal(5,4);not null;default:0" json:"toxicityConfidence" form:"toxicityConfidence"`  // Jev Score: 判定置信度(0~1)
+	SuggestedAction    string  `gorm:"size:32;not null" json:"suggestedAction" form:"suggestedAction"`                            // Jev 建议动作：pass-放行, review-待审, reject-拒绝
+	FinalAction        string  `gorm:"size:32;not null;default:'pending';index:idx_moderation_final_action" json:"finalAction"`    // 最终处置：pass-放行, review-待审, reject-已拒绝
+	RawResponse        string  `gorm:"type:text" json:"rawResponse" form:"rawResponse"`                                           // Jev 原始完整 JSON 响应
+	CreateTime         int64   `gorm:"not null;default:0" json:"createTime" form:"createTime"`                                     // 创建时间戳(毫秒)
+	UpdateTime         int64   `gorm:"not null;default:0" json:"updateTime" form:"updateTime"`                                     // 更新时间戳(毫秒)
+	DeletedAt          *int64  `gorm:"index:idx_moderation_deleted_at" json:"deletedAt,omitempty"`                                // 软删除时间戳(为空未删除)
+}
+

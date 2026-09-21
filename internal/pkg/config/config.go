@@ -75,6 +75,46 @@ type Config struct {
 	DB             DBConfig      `yaml:"db"`             // 数据库配置
 	Smtp           SmtpConfig    `yaml:"smtp"`           // smtp
 	Search         SearchConfig  `yaml:"search"`         // 搜索配置
+	Jev            JevConfig     `yaml:"jev"`            // Jev 智能内容风控配置
+}
+
+type JevConfig struct {
+	Enabled                  bool    `yaml:"enabled"`                  // 是否启用 Jev 智能风控
+	ApiKey                   string  `yaml:"apiKey"`                   // TypeSafe API Key
+	Endpoint                 string  `yaml:"endpoint"`                 // Jev API 接口地址
+	Model                    string  `yaml:"model"`                    // 模型名称 (默认 jev-latest)
+	TimeoutMs                int     `yaml:"timeoutMs"`                // 超时毫秒数 (默认 3000)
+	AutoRejectScoreThreshold float64 `yaml:"autoRejectScoreThreshold"` // 自动驳回严重程度阈值 (Score 0~2)
+	AutoRejectSpamThreshold  float64 `yaml:"autoRejectSpamThreshold"`  // 自动驳回垃圾概率阈值 (Noul 0~1)
+	AutoReviewScoreThreshold float64 `yaml:"autoReviewScoreThreshold"` // 自动进入待审严重程度阈值 (Score 0~2)
+	AutoReviewSpamThreshold  float64 `yaml:"autoReviewSpamThreshold"`  // 自动进入待审垃圾概率阈值 (Noul 0~1)
+}
+
+func SetJevDefaults(cfg *JevConfig) {
+	if cfg == nil {
+		return
+	}
+	if strs.IsBlank(cfg.Endpoint) {
+		cfg.Endpoint = "https://api.typesafe.ai/v1/systemone"
+	}
+	if strs.IsBlank(cfg.Model) {
+		cfg.Model = "jev-latest"
+	}
+	if cfg.TimeoutMs <= 0 {
+		cfg.TimeoutMs = 3000
+	}
+	if cfg.AutoRejectScoreThreshold <= 0 {
+		cfg.AutoRejectScoreThreshold = 1.5
+	}
+	if cfg.AutoRejectSpamThreshold <= 0 {
+		cfg.AutoRejectSpamThreshold = 0.85
+	}
+	if cfg.AutoReviewScoreThreshold <= 0 {
+		cfg.AutoReviewScoreThreshold = 0.8
+	}
+	if cfg.AutoReviewSpamThreshold <= 0 {
+		cfg.AutoReviewSpamThreshold = 0.45
+	}
 }
 
 type IPLocator struct {
@@ -132,6 +172,7 @@ func ReadConfig() (cfg *Config, exists bool, err error) {
 			cfg.Language = DefaultLanguage
 		}
 		SetDbDefaults(&cfg.DB)
+		SetJevDefaults(&cfg.Jev)
 	} else {
 		// default config
 		cfg = &Config{

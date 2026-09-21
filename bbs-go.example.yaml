@@ -29,3 +29,16 @@ DB:
 # search
 Search:
   IndexPath: # 索引路径
+
+# Jev System One 智能内容风控
+Jev:
+  Enabled: false                                   # 是否启用 Jev 智能风控
+  ApiKey:                                          # TypeSafe API Key
+  Endpoint: https://api.typesafe.ai/v1/systemone   # Jev API 接口地址
+  Model: jev-latest                                # 使用的模型
+  TimeoutMs: 3000                                  # 请求超时毫秒数
+  AutoRejectScoreThreshold: 1.5                    # 自动驳回下架的严重程度阈值 (Score 0~2)
+  AutoRejectSpamThreshold: 0.85                    # 自动驳回下架的垃圾概率阈值 (Noul 0~1)
+  AutoReviewScoreThreshold: 0.8                    # 自动转人工待审的严重程度阈值 (Score 0~2)
+  AutoReviewSpamThreshold: 0.45                    # 自动转人工待审的垃圾概率阈值 (Noul 0~1)
+
