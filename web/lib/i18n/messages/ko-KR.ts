@@ -3,6 +3,7 @@ const koKR = {
     noData: "데이터 없음",
     confirm: "확인",
     cancel: "취소",
+    close: "닫기",
     message: "메시지",
     moreActions: "더 많은 작업",
     loadMore: {

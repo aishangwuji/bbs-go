@@ -3,6 +3,7 @@ const jaJP = {
     noData: "データなし",
     confirm: "確認",
     cancel: "キャンセル",
+    close: "閉じる",
     message: "メッセージ",
     moreActions: "その他の操作",
     loadMore: {

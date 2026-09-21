@@ -3,6 +3,7 @@ const enUS = {
     noData: "No items yet",
     confirm: "Confirm",
     cancel: "Cancel",
+    close: "Close",
     message: "Messages",
     moreActions: "More actions",
     loadMore: {

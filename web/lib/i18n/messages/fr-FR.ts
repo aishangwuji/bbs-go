@@ -3,6 +3,7 @@ const frFR = {
     noData: "Aucune donnée",
     confirm: "Confirmer",
     cancel: "Annuler",
+    close: "Fermer",
     message: "Message",
     moreActions: "Plus d'actions",
     loadMore: {

@@ -311,6 +311,7 @@ function ExportConfigDialog({
   onOpenChange: (open: boolean) => void
   config: JevRuleConfig
 }) {
+  const { t } = useI18n()
   const [activeTab, setActiveTab] = React.useState<"json" | "go" | "payload">("json")
   const [copied, setCopied] = React.useState(false)
 
@@ -381,29 +382,30 @@ function ExportConfigDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex items-center justify-between mt-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mt-1">
           <Tabs
             value={activeTab}
             onValueChange={(val) => setActiveTab(val as "json" | "go" | "payload")}
+            className="w-full sm:w-auto"
           >
-            <TabsList>
-              <TabsTrigger value="json" className="flex items-center gap-1.5 text-xs">
+            <TabsList className="grid grid-cols-3 sm:flex h-9 p-0.5">
+              <TabsTrigger value="json" className="flex items-center justify-center gap-1 text-xs px-2.5">
                 <FileJsonIcon className="h-3.5 w-3.5 text-amber-500" />
-                <span>标准 JSON</span>
+                <span>JSON</span>
               </TabsTrigger>
-              <TabsTrigger value="go" className="flex items-center gap-1.5 text-xs">
+              <TabsTrigger value="go" className="flex items-center justify-center gap-1 text-xs px-2.5">
                 <FileCodeIcon className="h-3.5 w-3.5 text-cyan-500" />
-                <span>Idiomatic Go 结构体</span>
+                <span>Go 结构体</span>
               </TabsTrigger>
-              <TabsTrigger value="payload" className="flex items-center gap-1.5 text-xs">
+              <TabsTrigger value="payload" className="flex items-center justify-center gap-1 text-xs px-2.5">
                 <CodeIcon className="h-3.5 w-3.5 text-purple-500" />
-                <span>Jev 原生问询 Payload</span>
+                <span>原生 Payload</span>
               </TabsTrigger>
             </TabsList>
           </Tabs>
 
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handleCopy}>
+          <div className="flex items-center justify-end gap-2 shrink-0">
+            <Button variant="outline" size="sm" onClick={handleCopy} className="h-8">
               {copied ? (
                 <CheckIcon className="mr-1.5 h-3.5 w-3.5 text-emerald-500" />
               ) : (
@@ -411,29 +413,29 @@ function ExportConfigDialog({
               )}
               {copied ? "已复制" : "复制内容"}
             </Button>
-            <Button size="sm" onClick={handleDownload}>
+            <Button size="sm" onClick={handleDownload} className="h-8">
               <DownloadIcon className="mr-1.5 h-3.5 w-3.5" />
               下载文件
             </Button>
           </div>
         </div>
 
-        <div className="relative flex-1 min-h-[360px] max-h-[480px] overflow-hidden rounded-md border bg-muted/40 mt-3">
+        <div className="relative flex-1 min-h-[300px] max-h-[460px] overflow-hidden rounded-md border bg-muted/40 mt-2">
           <pre className="h-full overflow-auto p-4 font-mono text-xs leading-relaxed select-all">
             <code>{currentContent}</code>
           </pre>
         </div>
 
-        <DialogFooter className="mt-4 flex items-center justify-between sm:justify-between text-xs text-muted-foreground">
-          <p>
+        <DialogFooter className="mt-3 flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between text-xs text-muted-foreground">
+          <p className="line-clamp-2 sm:line-clamp-1">
             {activeTab === "go"
               ? "💡 导出的 Go 代码对应 internal/models/dto/config_dto.go 中的 JevRuleConfig 结构。"
               : activeTab === "payload"
               ? "💡 导出的 Payload 结构展示了 bbs-go 调用 Jev System One 模型时实际投递的 questions 映射表。"
               : "💡 导出的 JSON 可直接用于导入系统或与第三方配置平台联动。"}
           </p>
-          <Button variant="secondary" size="sm" onClick={() => onOpenChange(false)}>
-            关闭
+          <Button variant="secondary" size="sm" onClick={() => onOpenChange(false)} className="shrink-0">
+            {t("common.close")}
           </Button>
         </DialogFooter>
       </DialogContent>

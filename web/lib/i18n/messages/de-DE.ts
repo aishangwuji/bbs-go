@@ -3,6 +3,7 @@ const deDE = {
     noData: "Keine Daten verfügbar",
     confirm: "Bestätigen",
     cancel: "Abbrechen",
+    close: "Schließen",
     message: "Nachricht",
     moreActions: "Weitere Aktionen",
     loadMore: {

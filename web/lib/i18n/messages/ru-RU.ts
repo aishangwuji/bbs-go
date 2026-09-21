@@ -3,6 +3,7 @@ const ruRU = {
     noData: "Нет данных",
     confirm: "Подтвердить",
     cancel: "Отмена",
+    close: "Закрыть",
     message: "Сообщение",
     moreActions: "Дополнительные действия",
     loadMore: {

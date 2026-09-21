@@ -3,6 +3,7 @@ const zhCN = {
     noData: "暂无数据",
     confirm: "确定",
     cancel: "取消",
+    close: "关闭",
     message: "消息",
     moreActions: "更多操作",
     loadMore: {
