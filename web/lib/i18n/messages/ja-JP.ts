@@ -4,6 +4,11 @@ const jaJP = {
     confirm: "確認",
     cancel: "キャンセル",
     close: "閉じる",
+    pagination: {
+      previous: "前へ",
+      next: "次へ",
+      prev: "« 前へ",
+    },
     message: "メッセージ",
     moreActions: "その他の操作",
     loadMore: {

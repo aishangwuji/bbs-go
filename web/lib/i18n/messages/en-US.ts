@@ -4,6 +4,11 @@ const enUS = {
     confirm: "Confirm",
     cancel: "Cancel",
     close: "Close",
+    pagination: {
+      previous: "Previous",
+      next: "Next",
+      prev: "« Previous",
+    },
     message: "Messages",
     moreActions: "More actions",
     loadMore: {

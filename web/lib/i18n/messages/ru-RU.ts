@@ -4,6 +4,11 @@ const ruRU = {
     confirm: "Подтвердить",
     cancel: "Отмена",
     close: "Закрыть",
+    pagination: {
+      previous: "Предыдущая",
+      next: "Следующая",
+      prev: "« Предыдущая",
+    },
     message: "Сообщение",
     moreActions: "Дополнительные действия",
     loadMore: {

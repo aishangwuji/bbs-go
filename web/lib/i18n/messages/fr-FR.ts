@@ -4,6 +4,11 @@ const frFR = {
     confirm: "Confirmer",
     cancel: "Annuler",
     close: "Fermer",
+    pagination: {
+      previous: "Précédent",
+      next: "Suivant",
+      prev: "« Précédent",
+    },
     message: "Message",
     moreActions: "Plus d'actions",
     loadMore: {

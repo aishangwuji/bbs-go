@@ -42,8 +42,10 @@ export function CommentPager({
     }
   }
 
-  const prevText = t("common.pagination.prev") || "« 上一页"
-  const nextText = t("common.pagination.next") || "下一页 »"
+  const rawPrev = t("common.pagination.prev")
+  const prevText = rawPrev && rawPrev !== "common.pagination.prev" ? rawPrev : "« 上一页"
+  const rawNext = t("common.pagination.next")
+  const nextText = rawNext && rawNext !== "common.pagination.next" ? rawNext : "下一页 »"
 
   return (
     <div className={cn("flex items-center justify-end py-2 select-none", className)}>

@@ -4,6 +4,11 @@ const deDE = {
     confirm: "Bestätigen",
     cancel: "Abbrechen",
     close: "Schließen",
+    pagination: {
+      previous: "Zurück",
+      next: "Weiter",
+      prev: "« Zurück",
+    },
     message: "Nachricht",
     moreActions: "Weitere Aktionen",
     loadMore: {

@@ -4,6 +4,11 @@ const koKR = {
     confirm: "확인",
     cancel: "취소",
     close: "닫기",
+    pagination: {
+      previous: "이전",
+      next: "다음",
+      prev: "« 이전",
+    },
     message: "메시지",
     moreActions: "더 많은 작업",
     loadMore: {

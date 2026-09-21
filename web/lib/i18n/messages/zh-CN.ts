@@ -4,6 +4,11 @@ const zhCN = {
     confirm: "确定",
     cancel: "取消",
     close: "关闭",
+    pagination: {
+      previous: "上一页",
+      next: "下一页",
+      prev: "« 上一页",
+    },
     message: "消息",
     moreActions: "更多操作",
     loadMore: {
