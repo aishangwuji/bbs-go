@@ -275,3 +275,94 @@ type JevConfig struct {
 	AutoReviewSpamThreshold  float64 `json:"autoReviewSpamThreshold"`  // 自动进入待审垃圾概率阈值 (Noul 0~1)
 }
 
+// JevRuleConfig Jev 决策模型与问询规则中心配置
+type JevRuleConfig struct {
+	MaxContentLength int                 `json:"maxContentLength"` // 提取正文快照最大字符长度（默认 500）
+	IncludeTitle     bool                `json:"includeTitle"`     // 是否注入标题字段至 State
+	NoulQuestions    []JevNoulQuestion   `json:"noulQuestions"`    // Noul 概率类问题列表 (0~1)
+	ScoreQuestions   []JevScoreQuestion  `json:"scoreQuestions"`   // Score 阶梯打分类问题列表 (0, 1, 2...)
+	ChoiceQuestions  []JevChoiceQuestion `json:"choiceQuestions"`  // Choice 离散归类问题列表
+}
+
+// JevNoulQuestion Jev Noul 连续概率问题定义 (P ∈ [0, 1])
+type JevNoulQuestion struct {
+	Key             string  `json:"key"`             // 问询唯一标识，如 is_spam
+	Label           string  `json:"label"`           // 中文展示名，如 垃圾推广概率
+	Instructions    string  `json:"instructions"`    // Jev 判定指令提示词
+	RejectThreshold float64 `json:"rejectThreshold"` // 触发自动下架驳回的概率阈值 (0~1)
+	ReviewThreshold float64 `json:"reviewThreshold"` // 触发人工审核待审的概率阈值 (0~1)
+	Enabled         bool    `json:"enabled"`         // 是否启用该维度判定
+}
+
+// JevScoreQuestion Jev Score 离散打分问题定义 (分值 0, 1, 2...)
+type JevScoreQuestion struct {
+	Key             string   `json:"key"`             // 问询唯一标识，如 toxicity
+	Label           string   `json:"label"`           // 中文展示名，如 攻击性与辱骂程度
+	Instructions    string   `json:"instructions"`    // Jev 判定指令提示词
+	Criteria        []string `json:"criteria"`        // 阶梯判定标准列表 [0级说明, 1级说明, 2级说明]
+	RejectThreshold float64  `json:"rejectThreshold"` // 触发自动下架驳回的分值阈值
+	ReviewThreshold float64  `json:"reviewThreshold"` // 触发人工审核待审的分值阈值
+	Enabled         bool     `json:"enabled"`         // 是否启用该维度判定
+}
+
+// JevChoiceQuestion Jev Choice 离散多分类归因问题定义
+type JevChoiceQuestion struct {
+	Key               string            `json:"key"`               // 问询唯一标识，如 violation_category
+	Label             string            `json:"label"`             // 中文展示名，如 违规归因分类
+	Instructions      string            `json:"instructions"`      // Jev 判定指令提示词
+	Criteria          map[string]string `json:"criteria"`          // 选项与含义映射 [key -> 说明]
+	AutoRejectOptions []string          `json:"autoRejectOptions"` // 命中即触发自动下架驳回的选项集合
+	AutoReviewOptions []string          `json:"autoReviewOptions"` // 命中即触发人工待审的选项集合
+	Enabled           bool              `json:"enabled"`           // 是否启用该维度判定
+}
+
+// DefaultJevRuleConfig 提供生产默认预设
+func DefaultJevRuleConfig() JevRuleConfig {
+	return JevRuleConfig{
+		MaxContentLength: 500,
+		IncludeTitle:     true,
+		NoulQuestions: []JevNoulQuestion{
+			{
+				Key:             "is_spam",
+				Label:           "垃圾营销广告",
+				Instructions:    "Does `title` or `content` contain spam, commercial ads, fraudulent schemes, or prohibited promotional links?",
+				RejectThreshold: 0.85,
+				ReviewThreshold: 0.45,
+				Enabled:         true,
+			},
+		},
+		ScoreQuestions: []JevScoreQuestion{
+			{
+				Key:          "toxicity",
+				Label:        "攻击辱骂严重度",
+				Instructions: "How toxic, abusive, or hostile is the tone of this post?",
+				Criteria: []string{
+					"Civil and rational discussion; friendly or neutral",
+					"Mildly uncivil, sarcastic, or slightly provocative, but still technical/relevant",
+					"Severe personal attacks, vulgar abuse, hate speech, threats, or explicit harassment",
+				},
+				RejectThreshold: 1.5,
+				ReviewThreshold: 0.8,
+				Enabled:         true,
+			},
+		},
+		ChoiceQuestions: []JevChoiceQuestion{
+			{
+				Key:          "violation_category",
+				Label:        "违规类型归类",
+				Instructions: "If this content violates community standards, which category does it primarily belong to?",
+				Criteria: map[string]string{
+					"clean":        "No violation found; normal discussion",
+					"spam_ad":      "Unsolicited advertisement, promotional spam, or marketing",
+					"flame_abuse":  "Personal attacks, insults, or harassment",
+					"illegal_info": "Fraud, gambling, pornography, or prohibited items",
+					"other":        "Other community guideline violations",
+				},
+				AutoRejectOptions: []string{"illegal_info"},
+				AutoReviewOptions: []string{"spam_ad", "flame_abuse"},
+				Enabled:           true,
+			},
+		},
+	}
+}
+

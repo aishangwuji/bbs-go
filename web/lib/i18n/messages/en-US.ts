@@ -80,6 +80,7 @@ const enUS = {
       links: "Links",
       forbiddenWords: "Moderation Rules",
       moderationRecords: "Moderation Records",
+      jevRules: "Jev Rules",
       community: "Community",
       users: "Users",
       userList: "User List",

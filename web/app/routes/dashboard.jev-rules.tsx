@@ -1,0 +1,1205 @@
+"use client"
+
+import * as React from "react"
+import {
+  AlertTriangleIcon,
+  CheckCircle2Icon,
+  CheckIcon,
+  CodeIcon,
+  FlaskConicalIcon,
+  InfoIcon,
+  LayersIcon,
+  ListFilterIcon,
+  PercentIcon,
+  PlayIcon,
+  PlusIcon,
+  RefreshCwIcon,
+  SaveIcon,
+  ScaleIcon,
+  Trash2Icon,
+  XCircleIcon,
+} from "lucide-react"
+
+import { adminGet, adminPostJson } from "@/lib/api/admin"
+import { PERMISSIONS } from "@/lib/auth/permissions.generated"
+import { userHasPermission } from "@/lib/auth/roles"
+import { useI18n } from "@/lib/i18n/provider"
+import { msgError, msgSuccess } from "@/lib/toast"
+import { useCurrentUser } from "@/components/app/app-provider"
+import { ErrorPage } from "@/components/common/error-page"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Progress } from "@/components/ui/progress"
+import { Separator } from "@/components/ui/separator"
+import { Switch } from "@/components/ui/switch"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Textarea } from "@/components/ui/textarea"
+
+// 结构定义
+interface JevNoulQuestion {
+  key: string
+  label: string
+  instructions: string
+  rejectThreshold: number
+  reviewThreshold: number
+  enabled: boolean
+}
+
+interface JevScoreQuestion {
+  key: string
+  label: string
+  instructions: string
+  criteria: string[]
+  rejectThreshold: number
+  reviewThreshold: number
+  enabled: boolean
+}
+
+interface JevChoiceQuestion {
+  key: string
+  label: string
+  instructions: string
+  criteria: Record<string, string>
+  autoRejectOptions: string[]
+  autoReviewOptions: string[]
+  enabled: boolean
+}
+
+interface JevRuleConfig {
+  maxContentLength: number
+  includeTitle: boolean
+  noulQuestions: JevNoulQuestion[]
+  scoreQuestions: JevScoreQuestion[]
+  choiceQuestions: JevChoiceQuestion[]
+}
+
+interface SimulationDecision {
+  suggestedAction: string
+  finalAction: string
+  rejectReasons: string[]
+  reviewReasons: string[]
+  isSpamProb: number
+  toxicityScore: number
+  toxicityConfidence: number
+  choiceResults: Record<string, string>
+  rawResponse: string
+}
+
+const DEFAULT_CONFIG: JevRuleConfig = {
+  maxContentLength: 500,
+  includeTitle: true,
+  noulQuestions: [
+    {
+      key: "is_spam",
+      label: "垃圾营销广告",
+      instructions:
+        "Does `title` or `content` contain spam, commercial ads, fraudulent schemes, or prohibited promotional links?",
+      rejectThreshold: 0.85,
+      reviewThreshold: 0.45,
+      enabled: true,
+    },
+  ],
+  scoreQuestions: [
+    {
+      key: "toxicity",
+      label: "攻击辱骂严重度",
+      instructions: "How toxic, abusive, or hostile is the tone of this post?",
+      criteria: [
+        "Civil and rational discussion; friendly or neutral",
+        "Mildly uncivil, sarcastic, or slightly provocative, but still technical/relevant",
+        "Severe personal attacks, vulgar abuse, hate speech, threats, or explicit harassment",
+      ],
+      rejectThreshold: 1.5,
+      reviewThreshold: 0.8,
+      enabled: true,
+    },
+  ],
+  choiceQuestions: [
+    {
+      key: "violation_category",
+      label: "违规类型归类",
+      instructions:
+        "If this content violates community standards, which category does it primarily belong to?",
+      criteria: {
+        clean: "No violation found; normal discussion",
+        spam_ad: "Unsolicited advertisement, promotional spam, or marketing",
+        flame_abuse: "Personal attacks, insults, or harassment",
+        illegal_info: "Fraud, gambling, pornography, or prohibited items",
+        other: "Other community guideline violations",
+      },
+      autoRejectOptions: ["illegal_info"],
+      autoReviewOptions: ["spam_ad", "flame_abuse"],
+      enabled: true,
+    },
+  ],
+}
+
+export default function DashboardJevRulesRoute() {
+  const { t } = useI18n()
+  const user = useCurrentUser()
+  const canView = userHasPermission(user, PERMISSIONS.DASHBOARD_JEV_RULE_VIEW)
+  const canUpdate = userHasPermission(user, PERMISSIONS.DASHBOARD_JEV_RULE_UPDATE)
+
+  const [config, setConfig] = React.useState<JevRuleConfig>(DEFAULT_CONFIG)
+  const [loading, setLoading] = React.useState(true)
+  const [saving, setSaving] = React.useState(false)
+
+  // Playground 状态
+  const [simTitle, setSimTitle] = React.useState("")
+  const [simContent, setSimContent] = React.useState(
+    "垃圾，什么玩意，纯垃圾，乐色，纯废物，傻逼"
+  )
+  const [simUseCurrentDraft, setSimUseCurrentDraft] = React.useState(true)
+  const [simulating, setSimulating] = React.useState(false)
+  const [simResult, setSimResult] = React.useState<SimulationDecision | null>(null)
+  const [simRawResponse, setSimRawResponse] = React.useState("")
+
+  const loadConfig = React.useCallback(async () => {
+    try {
+      setLoading(true)
+      const res = await adminGet<JevRuleConfig>("/api/admin/jev-rule/get")
+      if (res) {
+        setConfig({
+          maxContentLength: res.maxContentLength || 500,
+          includeTitle: res.includeTitle !== false,
+          noulQuestions: res.noulQuestions || [],
+          scoreQuestions: res.scoreQuestions || [],
+          choiceQuestions: res.choiceQuestions || [],
+        })
+      }
+    } catch (err: unknown) {
+      const e = err as Error
+      msgError(e?.message || "获取 Jev 规则配置失败")
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  React.useEffect(() => {
+    if (canView) {
+      loadConfig()
+    }
+  }, [canView, loadConfig])
+
+  if (!canView) {
+    return <ErrorPage statusCode={403} message="您没有查看 Jev 规则配置的权限" />
+  }
+
+  const handleSave = async () => {
+    if (!canUpdate) {
+      msgError("您没有修改 Jev 规则配置的权限")
+      return
+    }
+    try {
+      setSaving(true)
+      await adminPostJson("/api/admin/jev-rule/save", config)
+      msgSuccess("Jev 规则引擎配置保存成功")
+    } catch (err: unknown) {
+      const e = err as Error
+      msgError(e?.message || "保存配置失败")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleReset = () => {
+    if (window.confirm("确定将规则配置重置为系统默认推荐预设吗？")) {
+      setConfig(JSON.parse(JSON.stringify(DEFAULT_CONFIG)))
+      msgSuccess("已恢复为默认推荐配置预设，请点击右上角“保存配置”生效")
+    }
+  }
+
+  const handleSimulate = async () => {
+    if (!simContent.trim()) {
+      msgError("请输入待仿真的内容文本")
+      return
+    }
+    try {
+      setSimulating(true)
+      setSimResult(null)
+      setSimRawResponse("")
+
+      const payload = {
+        title: simTitle,
+        content: simContent,
+        ruleCfg: simUseCurrentDraft ? config : undefined,
+      }
+
+      const res = await adminPostJson<{
+        decision: SimulationDecision
+        rawResponse: string
+      }>("/api/admin/jev-rule/simulate", payload)
+
+      if (res?.decision) {
+        setSimResult(res.decision)
+        setSimRawResponse(res.rawResponse || res.decision.rawResponse || "")
+        msgSuccess("仿真评估完成！")
+      }
+    } catch (err: unknown) {
+      const e = err as Error
+      msgError(e?.message || "仿真评测执行失败")
+    } finally {
+      setSimulating(false)
+    }
+  }
+
+  // Noul 操作
+  const addNoulQuestion = () => {
+    setConfig((prev) => ({
+      ...prev,
+      noulQuestions: [
+        ...prev.noulQuestions,
+        {
+          key: `noul_rule_${Date.now()}`,
+          label: "新连续概率问询",
+          instructions: "Is this content ...?",
+          rejectThreshold: 0.85,
+          reviewThreshold: 0.5,
+          enabled: true,
+        },
+      ],
+    }))
+  }
+
+  const removeNoulQuestion = (index: number) => {
+    setConfig((prev) => ({
+      ...prev,
+      noulQuestions: prev.noulQuestions.filter((_, i) => i !== index),
+    }))
+  }
+
+  // Score 操作
+  const addScoreQuestion = () => {
+    setConfig((prev) => ({
+      ...prev,
+      scoreQuestions: [
+        ...prev.scoreQuestions,
+        {
+          key: `score_rule_${Date.now()}`,
+          label: "新阶梯打分问询",
+          instructions: "Rate the severity of ...",
+          criteria: ["Level 0: None", "Level 1: Moderate", "Level 2: Severe"],
+          rejectThreshold: 1.5,
+          reviewThreshold: 0.8,
+          enabled: true,
+        },
+      ],
+    }))
+  }
+
+  const removeScoreQuestion = (index: number) => {
+    setConfig((prev) => ({
+      ...prev,
+      scoreQuestions: prev.scoreQuestions.filter((_, i) => i !== index),
+    }))
+  }
+
+  // Choice 操作
+  const addChoiceQuestion = () => {
+    setConfig((prev) => ({
+      ...prev,
+      choiceQuestions: [
+        ...prev.choiceQuestions,
+        {
+          key: `choice_rule_${Date.now()}`,
+          label: "新离散归因分类",
+          instructions: "Which category does this violation belong to?",
+          criteria: {
+            normal: "Normal clean content",
+            risk_high: "High risk violation",
+          },
+          autoRejectOptions: ["risk_high"],
+          autoReviewOptions: [],
+          enabled: true,
+        },
+      ],
+    }))
+  }
+
+  const removeChoiceQuestion = (index: number) => {
+    setConfig((prev) => ({
+      ...prev,
+      choiceQuestions: prev.choiceQuestions.filter((_, i) => i !== index),
+    }))
+  }
+
+  return (
+    <div className="space-y-6 p-6">
+      {/* 头部标题与保存按钮 */}
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold tracking-tight">Jev 规则引擎配置</h1>
+            <Badge variant="outline" className="border-primary/40 text-primary">
+              Speculative Fan-out
+            </Badge>
+          </div>
+          <p className="text-sm text-muted-foreground mt-1">
+            自主编排 State 上下文变量、Noul 连续概率、Score 阶梯加权、Choice 离散分类及自动化处置流。
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleReset} disabled={loading || saving}>
+            <RefreshCwIcon className="mr-1.5 h-4 w-4" />
+            恢复推荐预设
+          </Button>
+          {canUpdate && (
+            <Button size="sm" onClick={handleSave} disabled={loading || saving}>
+              <SaveIcon className="mr-1.5 h-4 w-4" />
+              {saving ? "保存中..." : "保存配置"}
+            </Button>
+          )}
+        </div>
+      </div>
+
+      <Tabs defaultValue="playground" className="space-y-4">
+        <TabsList className="grid grid-cols-2 md:grid-cols-5 h-auto p-1">
+          <TabsTrigger value="playground" className="flex items-center gap-1.5 py-2">
+            <FlaskConicalIcon className="h-4 w-4 text-emerald-500" />
+            <span>仿真沙盒 (Playground)</span>
+          </TabsTrigger>
+          <TabsTrigger value="state" className="flex items-center gap-1.5 py-2">
+            <LayersIcon className="h-4 w-4" />
+            <span>State 变量</span>
+          </TabsTrigger>
+          <TabsTrigger value="noul" className="flex items-center gap-1.5 py-2">
+            <PercentIcon className="h-4 w-4" />
+            <span>Noul 连续概率</span>
+          </TabsTrigger>
+          <TabsTrigger value="score" className="flex items-center gap-1.5 py-2">
+            <ScaleIcon className="h-4 w-4" />
+            <span>Score 阶梯打分</span>
+          </TabsTrigger>
+          <TabsTrigger value="choice" className="flex items-center gap-1.5 py-2">
+            <ListFilterIcon className="h-4 w-4" />
+            <span>Choice 归因分类</span>
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Tab 1: Playground 在线仿真沙盒 */}
+        <TabsContent value="playground" className="space-y-4">
+          <Card className="border-emerald-500/20 shadow-sm">
+            <CardHeader className="bg-emerald-500/5 pb-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2 text-base text-emerald-700 dark:text-emerald-400">
+                    <FlaskConicalIcon className="h-5 w-5" />
+                    Jev 规则引擎实时仿真沙盒
+                  </CardTitle>
+                  <CardDescription>
+                    在无需向生产业务数据库发布真实帖子的情况下，即时测试当前规则对特定文本的判定结果与各项维度得分。
+                  </CardDescription>
+                </div>
+                <div className="flex items-center gap-2 text-xs">
+                  <Switch
+                    id="use-draft"
+                    checked={simUseCurrentDraft}
+                    onCheckedChange={setSimUseCurrentDraft}
+                  />
+                  <label htmlFor="use-draft" className="cursor-pointer font-medium">
+                    使用本页未保存的草稿规则
+                  </label>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4 pt-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground uppercase">
+                      测试标题 (可选 State.title)
+                    </label>
+                    <Input
+                      value={simTitle}
+                      onChange={(e) => setSimTitle(e.target.value)}
+                      placeholder="例如：急急急，请问这个怎么解决？"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground uppercase">
+                      测试正文内容 (State.content)
+                    </label>
+                    <Textarea
+                      rows={5}
+                      value={simContent}
+                      onChange={(e) => setSimContent(e.target.value)}
+                      placeholder="输入待测试的评论、文章或帖子正文..."
+                      className="mt-1 font-mono text-sm"
+                    />
+                  </div>
+                  <Button
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+                    onClick={handleSimulate}
+                    disabled={simulating}
+                  >
+                    <PlayIcon className="mr-2 h-4 w-4" />
+                    {simulating ? "Jev 模型并行求值中..." : "开始执行 Jev 仿真评测"}
+                  </Button>
+                </div>
+
+                {/* 仿真评测结果展示区 */}
+                <div className="rounded-lg border bg-muted/30 p-4 space-y-3 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between border-b pb-2">
+                      <span className="text-sm font-semibold">综合裁决决策</span>
+                      {simResult ? (
+                        simResult.finalAction === "pass" ? (
+                          <Badge className="bg-emerald-500 text-white gap-1">
+                            <CheckCircle2Icon className="h-3.5 w-3.5" /> 放行 (Pass)
+                          </Badge>
+                        ) : simResult.finalAction === "review" ? (
+                          <Badge className="bg-amber-500 text-white gap-1">
+                            <AlertTriangleIcon className="h-3.5 w-3.5" /> 待人工审核 (Review)
+                          </Badge>
+                        ) : (
+                          <Badge variant="destructive" className="gap-1">
+                            <XCircleIcon className="h-3.5 w-3.5" /> 自动驳回拦截 (Reject)
+                          </Badge>
+                        )
+                      ) : (
+                        <Badge variant="outline">等待运行</Badge>
+                      )}
+                    </div>
+
+                    {simResult ? (
+                      <div className="space-y-3 mt-3">
+                        {/* 拦截/审核原因 */}
+                        {simResult.rejectReasons.length > 0 && (
+                          <Alert variant="destructive" className="py-2 text-xs">
+                            <AlertTitle className="text-xs font-bold">触发自动下架规则：</AlertTitle>
+                            <AlertDescription className="mt-1 space-y-0.5">
+                              {simResult.rejectReasons.map((r, i) => (
+                                <div key={i}>• {r}</div>
+                              ))}
+                            </AlertDescription>
+                          </Alert>
+                        )}
+                        {simResult.reviewReasons.length > 0 && (
+                          <Alert className="border-amber-500/50 bg-amber-500/10 text-amber-900 dark:text-amber-200 py-2 text-xs">
+                            <AlertTitle className="text-xs font-bold">触发人工待审规则：</AlertTitle>
+                            <AlertDescription className="mt-1 space-y-0.5">
+                              {simResult.reviewReasons.map((r, i) => (
+                                <div key={i}>• {r}</div>
+                              ))}
+                            </AlertDescription>
+                          </Alert>
+                        )}
+
+                        {/* 各维度指标 */}
+                        <div className="space-y-2 text-xs">
+                          <div>
+                            <div className="flex justify-between font-mono">
+                              <span>垃圾营销概率 (is_spam)</span>
+                              <span className="font-bold">
+                                {(simResult.isSpamProb * 100).toFixed(1)}% ({simResult.isSpamProb.toFixed(4)})
+                              </span>
+                            </div>
+                            <Progress value={simResult.isSpamProb * 100} className="h-1.5 mt-1" />
+                          </div>
+
+                          <div>
+                            <div className="flex justify-between font-mono">
+                              <span>攻击辱骂得分 (toxicity score)</span>
+                              <span className="font-bold">
+                                {simResult.toxicityScore.toFixed(2)} / 2.0 (置信度:{" "}
+                                {(simResult.toxicityConfidence * 100).toFixed(0)}%)
+                              </span>
+                            </div>
+                            <Progress
+                              value={(simResult.toxicityScore / 2) * 100}
+                              className="h-1.5 mt-1"
+                            />
+                          </div>
+
+                          {Object.keys(simResult.choiceResults || {}).length > 0 && (
+                            <div className="pt-1">
+                              <span className="font-semibold block mb-1">离散归因分类结果：</span>
+                              <div className="flex flex-wrap gap-1.5">
+                                {Object.entries(simResult.choiceResults).map(([k, v]) => (
+                                  <Badge key={k} variant="secondary" className="font-mono text-[11px]">
+                                    {k}: <span className="font-bold ml-1 text-primary">{v}</span>
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="py-8 text-center text-xs text-muted-foreground">
+                        在左侧输入测试内容并点击“开始执行 Jev 仿真评测”即可在此查看完整的量化指标分布
+                      </div>
+                    )}
+                  </div>
+
+                  {simRawResponse && (
+                    <details className="mt-2 text-xs">
+                      <summary className="cursor-pointer text-muted-foreground hover:text-foreground font-mono flex items-center gap-1">
+                        <CodeIcon className="h-3.5 w-3.5" />
+                        查看 Jev 原始响应 JSON
+                      </summary>
+                      <pre className="mt-1.5 max-h-40 overflow-auto rounded bg-black/80 p-2 font-mono text-[10px] text-green-400">
+                        {JSON.stringify(JSON.parse(simRawResponse), null, 2)}
+                      </pre>
+                    </details>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Tab 2: State 变量配置 */}
+        <TabsContent value="state" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">State 上下文环境编排</CardTitle>
+              <CardDescription>
+                Jev 属于统一状态决策模型，它依据传入的 State 字典或文本作为背景知识对后续的所有问询进行一次性推演。
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between border-b pb-4">
+                <div>
+                  <h4 className="font-medium text-sm">单次送审文本最大字符截断数</h4>
+                  <p className="text-xs text-muted-foreground">
+                    当用户发表长篇文章时，截取前 N 个字符送入 Jev，防止消耗过大的 Token 窗口（默认推荐 500 字）。
+                  </p>
+                </div>
+                <Input
+                  type="number"
+                  className="w-32 text-right"
+                  value={config.maxContentLength}
+                  onChange={(e) =>
+                    setConfig((prev) => ({
+                      ...prev,
+                      maxContentLength: parseInt(e.target.value, 10) || 500,
+                    }))
+                  }
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-medium text-sm">包含标题变量 (State.title)</h4>
+                  <p className="text-xs text-muted-foreground">
+                    对包含标题的实体（话题、文章），将 State 构造为包含 `title` 和 `content` 的复合 JSON 变量供问询使用。
+                  </p>
+                </div>
+                <Switch
+                  checked={config.includeTitle}
+                  onCheckedChange={(checked) =>
+                    setConfig((prev) => ({ ...prev, includeTitle: checked }))
+                  }
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Tab 3: Noul 连续概率问询 */}
+        <TabsContent value="noul" className="space-y-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="text-base">Noul 连续概率问询列表</CardTitle>
+                <CardDescription>
+                  评估二元陈述的真实性，模型直接输出 0.0~1.0 的连续校准概率值（如垃圾广告概率）。
+                </CardDescription>
+              </div>
+              <Button size="sm" variant="outline" onClick={addNoulQuestion}>
+                <PlusIcon className="mr-1.5 h-4 w-4" />
+                新增 Noul 问询
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {config.noulQuestions.map((q, idx) => (
+                <div key={idx} className="rounded-lg border p-4 space-y-3 bg-card">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="font-mono">
+                        Noul
+                      </Badge>
+                      <Input
+                        value={q.label}
+                        onChange={(e) => {
+                          const val = e.target.value
+                          setConfig((prev) => {
+                            const list = [...prev.noulQuestions]
+                            list[idx] = { ...list[idx], label: val }
+                            return { ...prev, noulQuestions: list }
+                          })
+                        }}
+                        className="w-48 font-semibold h-8 text-sm"
+                        placeholder="中文展示名"
+                      />
+                      <Input
+                        value={q.key}
+                        onChange={(e) => {
+                          const val = e.target.value
+                          setConfig((prev) => {
+                            const list = [...prev.noulQuestions]
+                            list[idx] = { ...list[idx], key: val }
+                            return { ...prev, noulQuestions: list }
+                          })
+                        }}
+                        className="w-36 font-mono h-8 text-xs text-muted-foreground"
+                        placeholder="key (唯一标识)"
+                      />
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-1.5 text-xs">
+                        <Switch
+                          checked={q.enabled}
+                          onCheckedChange={(checked) => {
+                            setConfig((prev) => {
+                              const list = [...prev.noulQuestions]
+                              list[idx] = { ...list[idx], enabled: checked }
+                              return { ...prev, noulQuestions: list }
+                            })
+                          }}
+                        />
+                        <span className="text-muted-foreground">启用</span>
+                      </div>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="text-destructive h-8 w-8"
+                        onClick={() => removeNoulQuestion(idx)}
+                      >
+                        <Trash2Icon className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-muted-foreground block mb-1">
+                      评测指令 (Instructions)
+                    </label>
+                    <Textarea
+                      rows={2}
+                      value={q.instructions}
+                      onChange={(e) => {
+                        const val = e.target.value
+                        setConfig((prev) => {
+                          const list = [...prev.noulQuestions]
+                          list[idx] = { ...list[idx], instructions: val }
+                          return { ...prev, noulQuestions: list }
+                        })
+                      }}
+                      className="font-mono text-xs"
+                      placeholder="向 Jev 描述需要判定的二元命题..."
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 pt-1">
+                    <div>
+                      <label className="text-xs text-muted-foreground">
+                        自动下架驳回阈值 (0.0~1.0，达到即下架)
+                      </label>
+                      <Input
+                        type="number"
+                        step="0.05"
+                        min="0"
+                        max="1"
+                        value={q.rejectThreshold}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value) || 0
+                          setConfig((prev) => {
+                            const list = [...prev.noulQuestions]
+                            list[idx] = { ...list[idx], rejectThreshold: val }
+                            return { ...prev, noulQuestions: list }
+                          })
+                        }}
+                        className="h-8 font-mono text-sm mt-1"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">
+                        自动转人工待审阈值 (0.0~1.0，达到即待审)
+                      </label>
+                      <Input
+                        type="number"
+                        step="0.05"
+                        min="0"
+                        max="1"
+                        value={q.reviewThreshold}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value) || 0
+                          setConfig((prev) => {
+                            const list = [...prev.noulQuestions]
+                            list[idx] = { ...list[idx], reviewThreshold: val }
+                            return { ...prev, noulQuestions: list }
+                          })
+                        }}
+                        className="h-8 font-mono text-sm mt-1"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Tab 4: Score 阶梯打分问询 */}
+        <TabsContent value="score" className="space-y-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="text-base">Score 阶梯打分问询列表</CardTitle>
+                <CardDescription>
+                  在有序谱系（从轻微到极恶劣）中打分，加权输出连续期望得分与置信度。
+                </CardDescription>
+              </div>
+              <Button size="sm" variant="outline" onClick={addScoreQuestion}>
+                <PlusIcon className="mr-1.5 h-4 w-4" />
+                新增 Score 问询
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {config.scoreQuestions.map((q, idx) => (
+                <div key={idx} className="rounded-lg border p-4 space-y-3 bg-card">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="font-mono">
+                        Score
+                      </Badge>
+                      <Input
+                        value={q.label}
+                        onChange={(e) => {
+                          const val = e.target.value
+                          setConfig((prev) => {
+                            const list = [...prev.scoreQuestions]
+                            list[idx] = { ...list[idx], label: val }
+                            return { ...prev, scoreQuestions: list }
+                          })
+                        }}
+                        className="w-48 font-semibold h-8 text-sm"
+                        placeholder="中文展示名"
+                      />
+                      <Input
+                        value={q.key}
+                        onChange={(e) => {
+                          const val = e.target.value
+                          setConfig((prev) => {
+                            const list = [...prev.scoreQuestions]
+                            list[idx] = { ...list[idx], key: val }
+                            return { ...prev, scoreQuestions: list }
+                          })
+                        }}
+                        className="w-36 font-mono h-8 text-xs text-muted-foreground"
+                        placeholder="key"
+                      />
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-1.5 text-xs">
+                        <Switch
+                          checked={q.enabled}
+                          onCheckedChange={(checked) => {
+                            setConfig((prev) => {
+                              const list = [...prev.scoreQuestions]
+                              list[idx] = { ...list[idx], enabled: checked }
+                              return { ...prev, scoreQuestions: list }
+                            })
+                          }}
+                        />
+                        <span className="text-muted-foreground">启用</span>
+                      </div>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="text-destructive h-8 w-8"
+                        onClick={() => removeScoreQuestion(idx)}
+                      >
+                        <Trash2Icon className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-muted-foreground block mb-1">
+                      打分指令 (Instructions)
+                    </label>
+                    <Textarea
+                      rows={2}
+                      value={q.instructions}
+                      onChange={(e) => {
+                        const val = e.target.value
+                        setConfig((prev) => {
+                          const list = [...prev.scoreQuestions]
+                          list[idx] = { ...list[idx], instructions: val }
+                          return { ...prev, scoreQuestions: list }
+                        })
+                      }}
+                      className="font-mono text-xs"
+                      placeholder="向 Jev 描述打分的目标..."
+                    />
+                  </div>
+
+                  {/* 阶梯 Criteria */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-xs font-semibold text-muted-foreground">
+                        阶梯标准 (Criteria，索引 0 到 N)
+                      </label>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 text-xs"
+                        onClick={() => {
+                          setConfig((prev) => {
+                            const list = [...prev.scoreQuestions]
+                            list[idx] = {
+                              ...list[idx],
+                              criteria: [...list[idx].criteria, "新阶梯等级说明"],
+                            }
+                            return { ...prev, scoreQuestions: list }
+                          })
+                        }}
+                      >
+                        <PlusIcon className="mr-1 h-3 w-3" />
+                        添加阶梯
+                      </Button>
+                    </div>
+                    <div className="space-y-1.5">
+                      {q.criteria.map((c, cIdx) => (
+                        <div key={cIdx} className="flex items-center gap-2">
+                          <span className="font-mono text-xs font-bold text-muted-foreground w-6">
+                            [{cIdx}]
+                          </span>
+                          <Input
+                            value={c}
+                            onChange={(e) => {
+                              const val = e.target.value
+                              setConfig((prev) => {
+                                const list = [...prev.scoreQuestions]
+                                const newCrit = [...list[idx].criteria]
+                                newCrit[cIdx] = val
+                                list[idx] = { ...list[idx], criteria: newCrit }
+                                return { ...prev, scoreQuestions: list }
+                              })
+                            }}
+                            className="h-7 text-xs font-mono"
+                          />
+                          {q.criteria.length > 2 && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                              onClick={() => {
+                                setConfig((prev) => {
+                                  const list = [...prev.scoreQuestions]
+                                  const newCrit = list[idx].criteria.filter((_, i) => i !== cIdx)
+                                  list[idx] = { ...list[idx], criteria: newCrit }
+                                  return { ...prev, scoreQuestions: list }
+                                })
+                              }}
+                            >
+                              <Trash2Icon className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 pt-1">
+                    <div>
+                      <label className="text-xs text-muted-foreground">
+                        自动下架驳回分值 (达到即下架，默认 1.5)
+                      </label>
+                      <Input
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        max={q.criteria.length - 1}
+                        value={q.rejectThreshold}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value) || 0
+                          setConfig((prev) => {
+                            const list = [...prev.scoreQuestions]
+                            list[idx] = { ...list[idx], rejectThreshold: val }
+                            return { ...prev, scoreQuestions: list }
+                          })
+                        }}
+                        className="h-8 font-mono text-sm mt-1"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">
+                        自动转人工待审分值 (达到即待审，默认 0.8)
+                      </label>
+                      <Input
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        max={q.criteria.length - 1}
+                        value={q.reviewThreshold}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value) || 0
+                          setConfig((prev) => {
+                            const list = [...prev.scoreQuestions]
+                            list[idx] = { ...list[idx], reviewThreshold: val }
+                            return { ...prev, scoreQuestions: list }
+                          })
+                        }}
+                        className="h-8 font-mono text-sm mt-1"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Tab 5: Choice 离散归因分类 */}
+        <TabsContent value="choice" className="space-y-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="text-base">Choice 离散多分类归因问询</CardTitle>
+                <CardDescription>
+                  从预设的分类集合中评选出最匹配的违规原因，并根据归类直接触发裁决。
+                </CardDescription>
+              </div>
+              <Button size="sm" variant="outline" onClick={addChoiceQuestion}>
+                <PlusIcon className="mr-1.5 h-4 w-4" />
+                新增 Choice 问询
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {config.choiceQuestions.map((q, idx) => (
+                <div key={idx} className="rounded-lg border p-4 space-y-3 bg-card">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="font-mono">
+                        Choice
+                      </Badge>
+                      <Input
+                        value={q.label}
+                        onChange={(e) => {
+                          const val = e.target.value
+                          setConfig((prev) => {
+                            const list = [...prev.choiceQuestions]
+                            list[idx] = { ...list[idx], label: val }
+                            return { ...prev, choiceQuestions: list }
+                          })
+                        }}
+                        className="w-48 font-semibold h-8 text-sm"
+                        placeholder="中文展示名"
+                      />
+                      <Input
+                        value={q.key}
+                        onChange={(e) => {
+                          const val = e.target.value
+                          setConfig((prev) => {
+                            const list = [...prev.choiceQuestions]
+                            list[idx] = { ...list[idx], key: val }
+                            return { ...prev, choiceQuestions: list }
+                          })
+                        }}
+                        className="w-36 font-mono h-8 text-xs text-muted-foreground"
+                        placeholder="key"
+                      />
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-1.5 text-xs">
+                        <Switch
+                          checked={q.enabled}
+                          onCheckedChange={(checked) => {
+                            setConfig((prev) => {
+                              const list = [...prev.choiceQuestions]
+                              list[idx] = { ...list[idx], enabled: checked }
+                              return { ...prev, choiceQuestions: list }
+                            })
+                          }}
+                        />
+                        <span className="text-muted-foreground">启用</span>
+                      </div>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="text-destructive h-8 w-8"
+                        onClick={() => removeChoiceQuestion(idx)}
+                      >
+                        <Trash2Icon className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-muted-foreground block mb-1">
+                      分类指令 (Instructions)
+                    </label>
+                    <Textarea
+                      rows={2}
+                      value={q.instructions}
+                      onChange={(e) => {
+                        const val = e.target.value
+                        setConfig((prev) => {
+                          const list = [...prev.choiceQuestions]
+                          list[idx] = { ...list[idx], instructions: val }
+                          return { ...prev, choiceQuestions: list }
+                        })
+                      }}
+                      className="font-mono text-xs"
+                    />
+                  </div>
+
+                  {/* 选项映射表 */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-xs font-semibold text-muted-foreground">
+                        分类选项映射 (Key ➔ 说明)
+                      </label>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 text-xs"
+                        onClick={() => {
+                          const newKey = `opt_${Date.now()}`
+                          setConfig((prev) => {
+                            const list = [...prev.choiceQuestions]
+                            list[idx] = {
+                              ...list[idx],
+                              criteria: {
+                                ...list[idx].criteria,
+                                [newKey]: "新选项说明",
+                              },
+                            }
+                            return { ...prev, choiceQuestions: list }
+                          })
+                        }}
+                      >
+                        <PlusIcon className="mr-1 h-3 w-3" />
+                        添加分类选项
+                      </Button>
+                    </div>
+                    <div className="space-y-1.5">
+                      {Object.entries(q.criteria).map(([optKey, optDesc]) => (
+                        <div key={optKey} className="flex items-center gap-2">
+                          <Input
+                            value={optKey}
+                            onChange={(e) => {
+                              const newK = e.target.value
+                              setConfig((prev) => {
+                                const list = [...prev.choiceQuestions]
+                                const oldCrit = list[idx].criteria
+                                const newCrit: Record<string, string> = {}
+                                Object.entries(oldCrit).forEach(([k, v]) => {
+                                  if (k === optKey) {
+                                    newCrit[newK] = v
+                                  } else {
+                                    newCrit[k] = v
+                                  }
+                                })
+                                list[idx] = { ...list[idx], criteria: newCrit }
+                                return { ...prev, choiceQuestions: list }
+                              })
+                            }}
+                            className="w-36 h-7 text-xs font-mono font-bold"
+                          />
+                          <Input
+                            value={optDesc}
+                            onChange={(e) => {
+                              const newDesc = e.target.value
+                              setConfig((prev) => {
+                                const list = [...prev.choiceQuestions]
+                                list[idx] = {
+                                  ...list[idx],
+                                  criteria: {
+                                    ...list[idx].criteria,
+                                    [optKey]: newDesc,
+                                  },
+                                }
+                                return { ...prev, choiceQuestions: list }
+                              })
+                            }}
+                            className="h-7 text-xs flex-1"
+                          />
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                            onClick={() => {
+                              setConfig((prev) => {
+                                const list = [...prev.choiceQuestions]
+                                const newCrit = { ...list[idx].criteria }
+                                delete newCrit[optKey]
+                                list[idx] = { ...list[idx], criteria: newCrit }
+                                return { ...prev, choiceQuestions: list }
+                              })
+                            }}
+                          >
+                            <Trash2Icon className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 pt-1">
+                    <div>
+                      <label className="text-xs text-muted-foreground">
+                        命中即下架的选项（逗号隔开，如 illegal_info）
+                      </label>
+                      <Input
+                        value={q.autoRejectOptions.join(", ")}
+                        onChange={(e) => {
+                          const val = e.target.value
+                            .split(",")
+                            .map((s) => s.trim())
+                            .filter(Boolean)
+                          setConfig((prev) => {
+                            const list = [...prev.choiceQuestions]
+                            list[idx] = { ...list[idx], autoRejectOptions: val }
+                            return { ...prev, choiceQuestions: list }
+                          })
+                        }}
+                        className="h-8 font-mono text-xs mt-1"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">
+                        命中即待审的选项（逗号隔开，如 spam_ad, flame_abuse）
+                      </label>
+                      <Input
+                        value={q.autoReviewOptions.join(", ")}
+                        onChange={(e) => {
+                          const val = e.target.value
+                            .split(",")
+                            .map((s) => s.trim())
+                            .filter(Boolean)
+                          setConfig((prev) => {
+                            const list = [...prev.choiceQuestions]
+                            list[idx] = { ...list[idx], autoReviewOptions: val }
+                            return { ...prev, choiceQuestions: list }
+                          })
+                        }}
+                        className="h-8 font-mono text-xs mt-1"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  )
+}

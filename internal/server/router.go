@@ -436,6 +436,12 @@ func registerAdminRoutes(group *gin.RouterGroup) {
 	moderationRecordGroup.POST("/list", adminHandlers.ModerationRecordList)
 	moderationRecordGroup.GET("/:id", adminHandlers.ModerationRecordDetail)
 
+	jevRuleGroup := group.Group("/jev-rule")
+	jevRuleGroup.GET("/get", adminHandlers.JevRuleGet)
+	jevRuleGroup.POST("/get", adminHandlers.JevRuleGet)
+	jevRuleGroup.POST("/save", adminHandlers.JevRuleSave)
+	jevRuleGroup.POST("/simulate", adminHandlers.JevRuleSimulate)
+
 	voteGroup := group.Group("/vote")
 	voteGroup.POST("/list", adminHandlers.VoteList)
 	voteGroup.POST("/create", adminHandlers.VoteCreate)

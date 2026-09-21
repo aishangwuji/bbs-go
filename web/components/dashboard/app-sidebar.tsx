@@ -85,6 +85,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             url: "/dashboard/moderation-records",
             permission: PERMISSIONS.DASHBOARD_MODERATION_RECORD_VIEW,
           },
+          {
+            title: t("dashboard.nav.jevRules"),
+            url: "/dashboard/jev-rules",
+            permission: PERMISSIONS.DASHBOARD_JEV_RULE_VIEW,
+          },
         ],
       },
       {

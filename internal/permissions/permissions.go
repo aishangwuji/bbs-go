@@ -74,6 +74,8 @@ var (
 	PermissionForbiddenWordDelete = PermissionDefinition{Type: TypeDashboard, Code: "dashboard.forbiddenWord.delete", GroupName: GroupContent, SortNo: 630, NameEn: "Delete Forbidden Words", NameZh: "删除敏感词"}
 
 	PermissionModerationRecordView = PermissionDefinition{Type: TypeDashboard, Code: "dashboard.moderationRecord.view", GroupName: GroupContent, SortNo: 640, NameEn: "View Moderation Records", NameZh: "查看风控记录"}
+	PermissionJevRuleView          = PermissionDefinition{Type: TypeDashboard, Code: "dashboard.jevRule.view", GroupName: GroupContent, SortNo: 650, NameEn: "View Jev Rules", NameZh: "查看Jev规则"}
+	PermissionJevRuleUpdate        = PermissionDefinition{Type: TypeDashboard, Code: "dashboard.jevRule.update", GroupName: GroupContent, SortNo: 660, NameEn: "Update Jev Rules", NameZh: "编辑Jev规则"}
 
 	PermissionUserView             = PermissionDefinition{Type: TypeDashboard, Code: "dashboard.user.view", GroupName: GroupCommunity, SortNo: 700, NameEn: "View Users", NameZh: "查看用户"}
 	PermissionUserCreate           = PermissionDefinition{Type: TypeDashboard, Code: "dashboard.user.create", GroupName: GroupCommunity, SortNo: 710, NameEn: "Create Users", NameZh: "创建用户"}
@@ -151,6 +153,8 @@ var Permissions = []PermissionDefinition{
 	PermissionForbiddenWordUpdate,
 	PermissionForbiddenWordDelete,
 	PermissionModerationRecordView,
+	PermissionJevRuleView,
+	PermissionJevRuleUpdate,
 	PermissionUserView,
 	PermissionUserCreate,
 	PermissionUserUpdate,

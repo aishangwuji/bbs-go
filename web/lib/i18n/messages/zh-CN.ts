@@ -80,6 +80,7 @@ const zhCN = {
       links: "链接",
       forbiddenWords: "违禁词",
       moderationRecords: "风控记录",
+      jevRules: "Jev 规则配置",
       community: "社区",
       users: "用户",
       userList: "用户列表",

@@ -25,6 +25,9 @@ func newSysConfigCache() *sysConfigCache {
 	return &sysConfigCache{
 		cache: cache.NewLoadingCache(
 			func(key cache.Key) (value cache.Value, e error) {
+				if sqls.DB() == nil {
+					return nil, errors.New("db not initialized")
+				}
 				if ret := repositories.SysConfigRepository.GetByKey(sqls.DB(), key.(string)); ret != nil {
 					value = ret
 				} else {

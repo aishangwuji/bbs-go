@@ -76,6 +76,10 @@ function dashboardBreadcrumbs(
           title: t("dashboard.nav.moderationRecords"),
           url: "/dashboard/moderation-records",
         },
+        "jev-rules": {
+          title: t("dashboard.nav.jevRules"),
+          url: "/dashboard/jev-rules",
+        },
       },
     },
     {

@@ -719,3 +719,61 @@ func (s *sysConfigService) GetJevConfig() dto.JevConfig {
 	return cfg
 }
 
+// GetJevRuleConfig 获取 Jev 细粒度规则引擎编排配置
+// 优先从数据库 t_sys_config 读取；若未配置或反序列化失败，则回退到 DefaultJevRuleConfig()
+func (s *sysConfigService) GetJevRuleConfig() dto.JevRuleConfig {
+	defaultCfg := dto.DefaultJevRuleConfig()
+	if sqls.DB() == nil {
+		return defaultCfg
+	}
+	str := cache.SysConfigCache.GetStr(constants.SysConfigJevRuleConfig)
+	if strs.IsBlank(str) {
+		return defaultCfg
+	}
+	var cfg dto.JevRuleConfig
+	if err := jsons.Parse(str, &cfg); err != nil {
+		slog.Warn("解析数据库 Jev 规则引擎配置失败，使用默认预设", slog.Any("err", err))
+		return defaultCfg
+	}
+	if cfg.MaxContentLength <= 0 {
+		cfg.MaxContentLength = 500
+	}
+	return cfg
+}
+
+// SetJevRuleConfig 保存 Jev 细粒度规则引擎编排配置
+func (s *sysConfigService) SetJevRuleConfig(cfg dto.JevRuleConfig) error {
+	if cfg.MaxContentLength <= 0 {
+		cfg.MaxContentLength = 500
+	}
+	for _, n := range cfg.NoulQuestions {
+		if strs.IsBlank(n.Key) {
+			return errors.New("Noul 问询的 key 不能为空")
+		}
+	}
+	for _, sc := range cfg.ScoreQuestions {
+		if strs.IsBlank(sc.Key) {
+			return errors.New("Score 问询的 key 不能为空")
+		}
+		if len(sc.Criteria) == 0 {
+			return errors.New("Score 问询的阶梯标准 criteria 不能为空")
+		}
+	}
+	for _, c := range cfg.ChoiceQuestions {
+		if strs.IsBlank(c.Key) {
+			return errors.New("Choice 问询的 key 不能为空")
+		}
+		if len(c.Criteria) == 0 {
+			return errors.New("Choice 问询的分类标准 criteria 不能为空")
+		}
+	}
+
+	val, err := jsons.ToStr(cfg)
+	if err != nil {
+		return err
+	}
+	return sqls.DB().Transaction(func(tx *gorm.DB) error {
+		return s.setSingle(tx, constants.SysConfigJevRuleConfig, val, "Jev 规则引擎编排配置", "Jev 内容风控模型 State/Noul/Score/Choice 细粒度判定与处置规则")
+	})
+}
+
