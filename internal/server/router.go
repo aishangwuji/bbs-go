@@ -354,6 +354,7 @@ func registerAdminRoutes(group *gin.RouterGroup) {
 	sysConfigGroup.POST("/list", adminHandlers.SysConfigList)
 	sysConfigGroup.GET("/configs", adminHandlers.SysConfigConfigs)
 	sysConfigGroup.POST("/save", adminHandlers.SysConfigSave)
+	sysConfigGroup.POST("/test_jev", adminHandlers.SysConfigTestJev)
 	sysConfigGroup.GET("/:id", adminHandlers.SysConfigDetail)
 
 	searchGroup := group.Group("/search")

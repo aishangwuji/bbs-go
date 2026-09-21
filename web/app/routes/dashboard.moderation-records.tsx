@@ -27,6 +27,7 @@ export default function DashboardModerationRecordsRoute() {
         options: [
           { label: "全部类型", value: "" },
           { label: "话题 (topic)", value: "topic" },
+          { label: "文章 (article)", value: "article" },
           { label: "评论 (comment)", value: "comment" },
         ],
       },
@@ -63,11 +64,15 @@ export default function DashboardModerationRecordsRoute() {
         className: "w-24",
         render: (record) => {
           const type = String(record.entityType || "")
-          return type === "topic" ? (
-            <Badge variant="secondary">话题</Badge>
-          ) : (
-            <Badge variant="outline">评论</Badge>
-          )
+          if (type === "topic") return <Badge variant="secondary">话题</Badge>
+          if (type === "article") {
+            return (
+              <Badge variant="secondary" className="border-blue-300 text-blue-700 dark:text-blue-300">
+                文章
+              </Badge>
+            )
+          }
+          return <Badge variant="outline">评论</Badge>
         },
       },
       {
@@ -81,6 +86,18 @@ export default function DashboardModerationRecordsRoute() {
             return (
               <a
                 href={`/topic/${id}`}
+                target="_blank"
+                rel="noreferrer"
+                className="font-mono text-xs text-primary hover:underline"
+              >
+                #{id}
+              </a>
+            )
+          }
+          if (type === "article" && id) {
+            return (
+              <a
+                href={`/article/${id}`}
                 target="_blank"
                 rel="noreferrer"
                 className="font-mono text-xs text-primary hover:underline"

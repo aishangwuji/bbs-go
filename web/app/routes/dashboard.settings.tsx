@@ -1580,6 +1580,7 @@ function SpamSettings({ settings, saving, s, update, onSave }: SettingsProps) {
   const jev = getObject(settings.jevConfig)
   const isEnabled = Boolean(jev.enabled)
   const provider = getString(jev.provider) || "openrouter"
+  const [testingJev, setTestingJev] = React.useState(false)
 
   function selectProvider(p: "openrouter" | "typesafe") {
     update("jevConfig.provider", p)
@@ -1592,11 +1593,56 @@ function SpamSettings({ settings, saving, s, update, onSave }: SettingsProps) {
     }
   }
 
+  async function handleTestConnectivity() {
+    const apiKey = getString(jev.apiKey)
+    if (!apiKey) {
+      msgError("请先在下方输入框填写 API Key，再测试连通性")
+      return
+    }
+    setTestingJev(true)
+    try {
+      const res = await adminPostJson<{ message?: string; latencyMs?: number }>(
+        "/api/admin/sys-config/test_jev",
+        {
+          provider,
+          endpoint:
+            getString(jev.endpoint) ||
+            (provider === "openrouter"
+              ? "https://openrouter.ai/api/alpha/decisions"
+              : "https://api.typesafe.ai/v1/systemone"),
+          apiKey,
+          model:
+            getString(jev.model) ||
+            (provider === "openrouter" ? "~typesafe/jev-latest" : "jev-latest"),
+          timeoutMs: getNumber(jev.timeoutMs) || 5000,
+        }
+      )
+      msgSuccess(res.message || "接口连通性测试成功！")
+    } catch (err) {
+      msgError(err instanceof Error ? err.message : "接口连通性测试失败")
+    } finally {
+      setTestingJev(false)
+    }
+  }
+
   return (
     <SettingsForm
       onSave={onSave}
       saving={saving}
       submitLabel={s("spam.submit")}
+      extraActions={
+        isEnabled ? (
+          <Button
+            type="button"
+            variant="outline"
+            disabled={testingJev || saving}
+            onClick={handleTestConnectivity}
+          >
+            <RefreshCwIcon className={testingJev ? "animate-spin" : undefined} />
+            {testingJev ? "正在测试连通性..." : "测试接口连通性"}
+          </Button>
+        ) : null
+      }
     >
       <SectionTitle>基础发帖防灌水门槛</SectionTitle>
       {[
@@ -2636,21 +2682,26 @@ function SettingsForm({
   saving,
   submitLabel,
   onSave,
+  extraActions,
 }: {
   children: React.ReactNode
   saving: boolean
   submitLabel: string
   onSave: () => void
+  extraActions?: React.ReactNode
 }) {
   return (
     <div className="w-full overflow-hidden rounded-lg border bg-[var(--dashboard-panel)] shadow-xs">
       <FieldGroup className="gap-5 p-5">{children}</FieldGroup>
       <div className="grid gap-2 border-t bg-[var(--dashboard-panel-muted)]/60 px-5 py-4 sm:grid-cols-[184px_minmax(0,520px)] sm:gap-4">
         <div className="hidden sm:block" />
-        <Button className="w-fit" disabled={saving} onClick={onSave}>
-          <SaveIcon />
-          {submitLabel}
-        </Button>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button className="w-fit" disabled={saving} onClick={onSave}>
+            <SaveIcon />
+            {submitLabel}
+          </Button>
+          {extraActions}
+        </div>
       </div>
     </div>
   )

@@ -3,6 +3,7 @@ package services
 import (
 	"bbs-go/internal/models/constants"
 	"bbs-go/internal/models/req"
+	"bbs-go/internal/pkg/event"
 	"bbs-go/internal/pkg/locales"
 	"bbs-go/internal/pkg/search"
 	"errors"
@@ -196,6 +197,11 @@ func (s *articleService) Publish(userId int64, form req.CreateArticleReq) (artic
 	})
 	if err == nil {
 		search.UpdateArticleIndex(article)
+		event.Send(event.ArticleCreateEvent{
+			UserId:     article.UserId,
+			ArticleId:  article.Id,
+			CreateTime: article.CreateTime,
+		})
 	}
 
 	return
@@ -231,7 +237,16 @@ func (s *articleService) Edit(articleId int64, tags []string, title, content str
 	})
 	cache.ArticleTagCache.Invalidate(articleId)
 	if err == nil {
-		search.UpdateArticleIndex(s.Get(articleId))
+		latestArticle := s.Get(articleId)
+		search.UpdateArticleIndex(latestArticle)
+		var uid int64
+		if latestArticle != nil {
+			uid = latestArticle.UserId
+		}
+		event.Send(event.ArticleUpdateEvent{
+			UserId:    uid,
+			ArticleId: articleId,
+		})
 	}
 	return err
 }

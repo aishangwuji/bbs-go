@@ -53,6 +53,17 @@ type CommentCreateEvent struct {
 	CommentId int64 `json:"commentId"`
 }
 
+type ArticleCreateEvent struct {
+	UserId     int64 `json:"userId"`
+	ArticleId  int64 `json:"articleId"`
+	CreateTime int64 `json:"createTime"`
+}
+
+type ArticleUpdateEvent struct {
+	UserId    int64 `json:"userId"`
+	ArticleId int64 `json:"articleId"`
+}
+
 type TopicRecommendEvent struct {
 	TopicId   int64 `json:"topicId"`
 	Recommend bool  `json:"recommend"`

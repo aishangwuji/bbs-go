@@ -277,6 +277,134 @@ func (s *moderationService) AuditComment(ctx context.Context, comment *models.Co
 	return record, nil
 }
 
+// AuditArticle 对文章（Article）执行异步智能风控与垃圾过滤
+func (s *moderationService) AuditArticle(ctx context.Context, article *models.Article) (*models.ModerationRecord, error) {
+	if article == nil {
+		return nil, errors.New("article is nil")
+	}
+
+	cfg := SysConfigService.GetJevConfig()
+	if !cfg.Enabled || cfg.ApiKey == "" {
+		// 未启用 Jev 或未配置 API Key，静默跳过
+		return nil, nil
+	}
+
+	client := s.getClient(cfg)
+	if client == nil {
+		return nil, errors.New("jev client not initialized")
+	}
+
+	// 截取内容快照
+	contentRune := []rune(article.Content)
+	if len(contentRune) > 500 {
+		contentRune = contentRune[:500]
+	}
+	snapshot := fmt.Sprintf("Title: %s\nContent: %s", article.Title, string(contentRune))
+
+	req := &jev.SystemOneRequest{
+		Model: cfg.Model,
+		State: map[string]string{
+			"title":   article.Title,
+			"content": string(contentRune),
+		},
+		Questions: map[string]jev.Question{
+			"is_spam": {
+				Type:         jev.TypeNoul,
+				Instructions: "Does `title` or `content` contain spam, commercial ads, fraudulent schemes, or prohibited promotional links?",
+			},
+			"toxicity": {
+				Type:         jev.TypeScore,
+				Instructions: "How toxic, abusive, or hostile is the tone of this article?",
+				Criteria: []string{
+					"Civil and rational discussion; friendly or neutral",
+					"Mildly uncivil, sarcastic, or slightly provocative, but still technical/relevant",
+					"Severe personal attacks, vulgar abuse, hate speech, threats, or explicit harassment",
+				},
+			},
+			"violation_category": {
+				Type:         jev.TypeChoice,
+				Instructions: "If this content violates community standards, which category does it primarily belong to?",
+				Criteria: map[string]string{
+					"clean":        "No violation found; normal discussion",
+					"spam_ad":      "Unsolicited advertisement, promotional spam, or marketing",
+					"flame_abuse":  "Personal attacks, insults, or harassment",
+					"illegal_info": "Fraud, gambling, pornography, or prohibited items",
+					"other":        "Other community guideline violations",
+				},
+			},
+		},
+	}
+
+	resp, err := client.Evaluate(ctx, req)
+	if err != nil {
+		slog.Warn("[JevModeration] 文章评估请求失败，降级跳过", slog.Int64("articleId", article.Id), slog.Any("err", err))
+		return nil, err
+	}
+
+	var isSpamProb float64
+	var toxicityScore float64
+	var toxicityConfidence float64
+
+	if noulAns, err := jev.ParseNoul(resp, "is_spam"); err == nil {
+		isSpamProb = noulAns.Noul
+	}
+	if scoreAns, err := jev.ParseScore(resp, "toxicity"); err == nil {
+		toxicityScore = scoreAns.Score
+		toxicityConfidence = scoreAns.Confidence
+	}
+
+	suggestedAction := "pass"
+	finalAction := "pass"
+
+	isHighRisk := isSpamProb >= cfg.AutoRejectSpamThreshold || toxicityScore >= cfg.AutoRejectScoreThreshold
+	isMediumRisk := isSpamProb >= cfg.AutoReviewSpamThreshold || toxicityScore >= cfg.AutoReviewScoreThreshold || (toxicityScore > 0.6 && toxicityConfidence < 0.5)
+
+	if isHighRisk {
+		suggestedAction = "reject"
+		finalAction = "reject"
+		slog.Warn("[JevModeration] 文章命中高危阈值，执行自动下架",
+			slog.Int64("articleId", article.Id),
+			slog.Float64("spam", isSpamProb),
+			slog.Float64("toxicity", toxicityScore),
+		)
+		_ = repositories.ArticleRepository.UpdateColumn(sqls.DB(), article.Id, "status", constants.StatusDeleted)
+	} else if isMediumRisk {
+		suggestedAction = "review"
+		finalAction = "review"
+		slog.Info("[JevModeration] 文章判定存疑，进入待审队列",
+			slog.Int64("articleId", article.Id),
+			slog.Float64("spam", isSpamProb),
+			slog.Float64("toxicity", toxicityScore),
+			slog.Float64("confidence", toxicityConfidence),
+		)
+		_ = repositories.ArticleRepository.UpdateColumn(sqls.DB(), article.Id, "status", constants.StatusReview)
+	}
+
+	rawJSON, _ := json.Marshal(resp)
+	now := dates.NowTimestamp()
+
+	record := &models.ModerationRecord{
+		EntityType:         constants.EntityArticle,
+		EntityId:           article.Id,
+		UserId:             article.UserId,
+		ContentSnapshot:    snapshot,
+		IsSpamProb:         isSpamProb,
+		ToxicityScore:      toxicityScore,
+		ToxicityConfidence: toxicityConfidence,
+		SuggestedAction:    suggestedAction,
+		FinalAction:        finalAction,
+		RawResponse:        string(rawJSON),
+		CreateTime:         now,
+		UpdateTime:         now,
+	}
+
+	if err := repositories.ModerationRecordRepository.Create(sqls.DB(), record); err != nil {
+		slog.Error("[JevModeration] 保存文章留痕记录失败", slog.Any("err", err))
+	}
+
+	return record, nil
+}
+
 // Get 根据 ID 获取风控记录
 func (s *moderationService) Get(id int64) *models.ModerationRecord {
 	return repositories.ModerationRecordRepository.Get(sqls.DB(), id)

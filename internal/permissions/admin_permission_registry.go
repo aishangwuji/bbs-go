@@ -79,6 +79,7 @@ var (
 		{Method: "GET", Pattern: "/api/admin/sys-config/**", Permissions: []PermissionDefinition{PermissionSettingView}},
 		{Method: "POST", Pattern: "/api/admin/sys-config/list", Permissions: []PermissionDefinition{PermissionSettingView}},
 		{Method: "POST", Pattern: "/api/admin/sys-config/save", Permissions: []PermissionDefinition{PermissionSettingUpdate}},
+		{Method: "POST", Pattern: "/api/admin/sys-config/test_jev", Permissions: []PermissionDefinition{PermissionSettingUpdate}},
 		{Method: "GET", Pattern: "/api/admin/search/reindex/status", Permissions: []PermissionDefinition{PermissionSearchReindex}},
 		{Method: "POST", Pattern: "/api/admin/search/reindex", Permissions: []PermissionDefinition{PermissionSearchReindex}},
 		{Method: "GET", Pattern: "/api/admin/seo/sitemap/status", Permissions: []PermissionDefinition{PermissionSitemapGenerate}},
