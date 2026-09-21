@@ -3,6 +3,7 @@ package services
 import (
 	"bbs-go/internal/models/constants"
 	"bbs-go/internal/models/dto"
+	"bbs-go/internal/pkg/config"
 	"bbs-go/internal/pkg/locales"
 	"bbs-go/internal/pkg/msg"
 	"errors"
@@ -659,3 +660,62 @@ func validateScriptInjections(scriptInjectionsJSON string) error {
 	}
 	return nil
 }
+
+// GetJevConfig 获取 Jev / OpenRouter 智能内容风控配置
+// 优先读取数据库 t_sys_config 中的 jevConfig；若未配置，则回退读取配置文件 bbs-go.yaml
+func (s *sysConfigService) GetJevConfig() dto.JevConfig {
+	var cfg dto.JevConfig
+	str := cache.SysConfigCache.GetStr(constants.SysConfigJevConfig)
+	if strs.IsNotBlank(str) {
+		if err := jsons.Parse(str, &cfg); err != nil {
+			slog.Warn("解析数据库 Jev 配置错误", slog.Any("err", err))
+		}
+	} else if config.Instance != nil {
+		// 回退使用 yaml 静态配置
+		yamlCfg := config.Instance.Jev
+		cfg = dto.JevConfig{
+			Enabled:                  yamlCfg.Enabled,
+			ApiKey:                   yamlCfg.ApiKey,
+			Endpoint:                 yamlCfg.Endpoint,
+			Model:                    yamlCfg.Model,
+			TimeoutMs:                yamlCfg.TimeoutMs,
+			AutoRejectScoreThreshold: yamlCfg.AutoRejectScoreThreshold,
+			AutoRejectSpamThreshold:  yamlCfg.AutoRejectSpamThreshold,
+			AutoReviewScoreThreshold: yamlCfg.AutoReviewScoreThreshold,
+			AutoReviewSpamThreshold:  yamlCfg.AutoReviewSpamThreshold,
+		}
+	}
+
+	// 默认兜底与自动识别 Provider
+	if strs.IsBlank(cfg.Endpoint) {
+		cfg.Endpoint = "https://openrouter.ai/api/alpha/decisions"
+	}
+	if strs.IsBlank(cfg.Model) {
+		cfg.Model = "~typesafe/jev-latest"
+	}
+	if strs.IsBlank(cfg.Provider) {
+		if strings.Contains(cfg.Endpoint, "openrouter") {
+			cfg.Provider = "openrouter"
+		} else {
+			cfg.Provider = "typesafe"
+		}
+	}
+	if cfg.TimeoutMs <= 0 {
+		cfg.TimeoutMs = 3000
+	}
+	if cfg.AutoRejectScoreThreshold <= 0 {
+		cfg.AutoRejectScoreThreshold = 1.5
+	}
+	if cfg.AutoRejectSpamThreshold <= 0 {
+		cfg.AutoRejectSpamThreshold = 0.85
+	}
+	if cfg.AutoReviewScoreThreshold <= 0 {
+		cfg.AutoReviewScoreThreshold = 0.8
+	}
+	if cfg.AutoReviewSpamThreshold <= 0 {
+		cfg.AutoReviewSpamThreshold = 0.45
+	}
+
+	return cfg
+}
+

@@ -73,6 +73,7 @@ const (
 	SysConfigQaBountyMax                = "qaBountyMax"                // 问答悬赏积分上限
 	SysConfigQaBountyRequired           = "qaBountyRequired"           // 问答帖是否必填悬赏
 	SysConfigNotificationTypes          = "notificationTypes"          // 通知类型配置（站内信+邮件开关）
+	SysConfigJevConfig                  = "jevConfig"                  // Jev 智能风控模型配置
 )
 
 const (

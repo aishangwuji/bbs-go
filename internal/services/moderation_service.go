@@ -6,12 +6,11 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"sync"
 	"time"
 
 	"bbs-go/internal/models"
 	"bbs-go/internal/models/constants"
-	"bbs-go/internal/pkg/config"
+	"bbs-go/internal/models/dto"
 	"bbs-go/internal/pkg/jev"
 	"bbs-go/internal/pkg/params"
 	"bbs-go/internal/repositories"
@@ -27,20 +26,15 @@ func newModerationService() *moderationService {
 }
 
 type moderationService struct {
-	clientOnce sync.Once
-	client     *jev.Client
 }
 
-// getClient 获取或惰性初始化 Jev 客户端
-func (s *moderationService) getClient() *jev.Client {
-	s.clientOnce.Do(func() {
-		cfg := config.Instance
-		if cfg != nil && cfg.Jev.ApiKey != "" {
-			timeout := time.Duration(cfg.Jev.TimeoutMs) * time.Millisecond
-			s.client = jev.NewClient(cfg.Jev.Endpoint, cfg.Jev.ApiKey, timeout)
-		}
-	})
-	return s.client
+// getClient 根据当前最新配置构建 Jev 客户端实例
+func (s *moderationService) getClient(cfg dto.JevConfig) *jev.Client {
+	timeout := time.Duration(cfg.TimeoutMs) * time.Millisecond
+	if timeout <= 0 {
+		timeout = 3 * time.Second
+	}
+	return jev.NewClient(cfg.Endpoint, cfg.ApiKey, timeout)
 }
 
 // AuditTopic 对话题（Topic）执行异步智能风控与垃圾过滤
@@ -49,13 +43,13 @@ func (s *moderationService) AuditTopic(ctx context.Context, topic *models.Topic)
 		return nil, errors.New("topic is nil")
 	}
 
-	cfg := config.Instance
-	if cfg == nil || !cfg.Jev.Enabled || cfg.Jev.ApiKey == "" {
+	cfg := SysConfigService.GetJevConfig()
+	if !cfg.Enabled || cfg.ApiKey == "" {
 		// 未启用 Jev 或未配置 API Key，静默跳过
 		return nil, nil
 	}
 
-	client := s.getClient()
+	client := s.getClient(cfg)
 	if client == nil {
 		return nil, errors.New("jev client not initialized")
 	}
@@ -69,7 +63,7 @@ func (s *moderationService) AuditTopic(ctx context.Context, topic *models.Topic)
 
 	// 1. 构造 Speculative Fan-out 评估请求
 	req := &jev.SystemOneRequest{
-		Model: cfg.Jev.Model,
+		Model: cfg.Model,
 		State: map[string]string{
 			"title":   topic.Title,
 			"content": string(contentRune),
@@ -129,8 +123,8 @@ func (s *moderationService) AuditTopic(ctx context.Context, topic *models.Topic)
 	suggestedAction := "pass"
 	finalAction := "pass"
 
-	isHighRisk := isSpamProb >= cfg.Jev.AutoRejectSpamThreshold || toxicityScore >= cfg.Jev.AutoRejectScoreThreshold
-	isMediumRisk := isSpamProb >= cfg.Jev.AutoReviewSpamThreshold || toxicityScore >= cfg.Jev.AutoReviewScoreThreshold || (toxicityScore > 0.6 && toxicityConfidence < 0.5)
+	isHighRisk := isSpamProb >= cfg.AutoRejectSpamThreshold || toxicityScore >= cfg.AutoRejectScoreThreshold
+	isMediumRisk := isSpamProb >= cfg.AutoReviewSpamThreshold || toxicityScore >= cfg.AutoReviewScoreThreshold || (toxicityScore > 0.6 && toxicityConfidence < 0.5)
 
 	if isHighRisk {
 		suggestedAction = "reject"
@@ -186,12 +180,12 @@ func (s *moderationService) AuditComment(ctx context.Context, comment *models.Co
 		return nil, errors.New("comment is nil")
 	}
 
-	cfg := config.Instance
-	if cfg == nil || !cfg.Jev.Enabled || cfg.Jev.ApiKey == "" {
+	cfg := SysConfigService.GetJevConfig()
+	if !cfg.Enabled || cfg.ApiKey == "" {
 		return nil, nil
 	}
 
-	client := s.getClient()
+	client := s.getClient(cfg)
 	if client == nil {
 		return nil, errors.New("jev client not initialized")
 	}
@@ -203,7 +197,7 @@ func (s *moderationService) AuditComment(ctx context.Context, comment *models.Co
 	snapshot := string(contentRune)
 
 	req := &jev.SystemOneRequest{
-		Model: cfg.Jev.Model,
+		Model: cfg.Model,
 		State: snapshot,
 		Questions: map[string]jev.Question{
 			"is_spam": {
@@ -243,8 +237,8 @@ func (s *moderationService) AuditComment(ctx context.Context, comment *models.Co
 	suggestedAction := "pass"
 	finalAction := "pass"
 
-	isHighRisk := isSpamProb >= cfg.Jev.AutoRejectSpamThreshold || toxicityScore >= cfg.Jev.AutoRejectScoreThreshold
-	isMediumRisk := isSpamProb >= cfg.Jev.AutoReviewSpamThreshold || toxicityScore >= cfg.Jev.AutoReviewScoreThreshold
+	isHighRisk := isSpamProb >= cfg.AutoRejectSpamThreshold || toxicityScore >= cfg.AutoRejectScoreThreshold
+	isMediumRisk := isSpamProb >= cfg.AutoReviewSpamThreshold || toxicityScore >= cfg.AutoReviewScoreThreshold
 
 	if isHighRisk {
 		suggestedAction = "reject"

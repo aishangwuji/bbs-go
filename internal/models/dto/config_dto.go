@@ -41,6 +41,7 @@ type SysConfigAdminResponse struct {
 	UploadConfig               UploadConfig                `json:"uploadConfig"`               // 上传配置
 	AttachmentConfig           AttachmentConfig            `json:"attachmentConfig"`           // 附件配置
 	ScriptInjections           []ScriptInjection           `json:"scriptInjections"`           // head脚本注入
+	JevConfig                  JevConfig                   `json:"jevConfig"`                  // Jev/OpenRouter 智能风控配置
 }
 
 // SysConfigOpenResponse
@@ -259,3 +260,18 @@ type AttachmentConfig struct {
 	MaxSizeMB    int      `json:"maxSizeMB"`    // 单个附件大小限制(MB)，0 表示默认 10MB
 	MaxCount     int      `json:"maxCount"`     // 每篇帖子最多附件数，0 表示默认 5
 }
+
+// JevConfig 智能内容风控配置 (Jev / OpenRouter)
+type JevConfig struct {
+	Enabled                  bool    `json:"enabled"`                  // 是否启用 Jev 智能风控
+	Provider                 string  `json:"provider"`                 // 提供商类型：openrouter 或 typesafe
+	ApiKey                   string  `json:"apiKey"`                   // API Key
+	Endpoint                 string  `json:"endpoint"`                 // API 端点
+	Model                    string  `json:"model"`                    // 模型标识 (如 ~typesafe/jev-latest)
+	TimeoutMs                int     `json:"timeoutMs"`                // 超时毫秒数 (默认 3000)
+	AutoRejectScoreThreshold float64 `json:"autoRejectScoreThreshold"` // 自动驳回严重程度阈值 (Score 0~2)
+	AutoRejectSpamThreshold  float64 `json:"autoRejectSpamThreshold"`  // 自动驳回垃圾概率阈值 (Noul 0~1)
+	AutoReviewScoreThreshold float64 `json:"autoReviewScoreThreshold"` // 自动进入待审严重程度阈值 (Score 0~2)
+	AutoReviewSpamThreshold  float64 `json:"autoReviewSpamThreshold"`  // 自动进入待审垃圾概率阈值 (Noul 0~1)
+}
+

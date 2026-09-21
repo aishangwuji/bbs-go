@@ -68,6 +68,10 @@ func (c *Client) Evaluate(ctx context.Context, req *SystemOneRequest) (*SystemOn
 
 	httpReq.Header.Set("Content-Type", "application/json")
 	httpReq.Header.Set("Authorization", "Bearer "+c.apiKey)
+	if strings.Contains(c.endpoint, "openrouter.ai") {
+		httpReq.Header.Set("HTTP-Referer", "https://bbs.originagent.cn")
+		httpReq.Header.Set("X-Title", "bbs-go")
+	}
 
 	httpResp, err := c.httpClient.Do(httpReq)
 	if err != nil {

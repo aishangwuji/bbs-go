@@ -636,6 +636,7 @@ export default function DashboardSettingsRoute() {
                   articlePending: settings.articlePending,
                   topicPending: settings.topicPending,
                   userObserveSeconds: settings.userObserveSeconds,
+                  jevConfig: settings.jevConfig,
                 })
               }
             />
@@ -1576,12 +1577,28 @@ function ChildrenTable({
 }
 
 function SpamSettings({ settings, saving, s, update, onSave }: SettingsProps) {
+  const jev = getObject(settings.jevConfig)
+  const isEnabled = Boolean(jev.enabled)
+  const provider = getString(jev.provider) || "openrouter"
+
+  function selectProvider(p: "openrouter" | "typesafe") {
+    update("jevConfig.provider", p)
+    if (p === "openrouter") {
+      update("jevConfig.endpoint", "https://openrouter.ai/api/alpha/decisions")
+      update("jevConfig.model", "~typesafe/jev-latest")
+    } else {
+      update("jevConfig.endpoint", "https://api.typesafe.ai/v1/systemone")
+      update("jevConfig.model", "jev-latest")
+    }
+  }
+
   return (
     <SettingsForm
       onSave={onSave}
       saving={saving}
       submitLabel={s("spam.submit")}
     >
+      <SectionTitle>基础发帖防灌水门槛</SectionTitle>
       {[
         ["topicCaptcha", "topicCaptcha"],
         ["createTopicEmailVerified", "createTopicEmailVerified"],
@@ -1607,6 +1624,145 @@ function SpamSettings({ settings, saving, s, update, onSave }: SettingsProps) {
           onChange={(value) => update("userObserveSeconds", value)}
         />
       </Field>
+
+      <SectionTitle>智能内容风控（Jev / OpenRouter）</SectionTitle>
+      <Field label="启用智能风控">
+        <SwitchControl
+          checked={isEnabled}
+          onChange={(checked) => update("jevConfig.enabled", checked)}
+        />
+      </Field>
+
+      {isEnabled ? (
+        <>
+          <Field label="服务商预设">
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                className={cn(
+                  "rounded-md border px-3 py-1.5 text-xs font-medium transition-colors",
+                  provider === "openrouter"
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-input bg-background hover:bg-muted"
+                )}
+                onClick={() => selectProvider("openrouter")}
+              >
+                OpenRouter（推荐）
+              </button>
+              <button
+                type="button"
+                className={cn(
+                  "rounded-md border px-3 py-1.5 text-xs font-medium transition-colors",
+                  provider === "typesafe"
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-input bg-background hover:bg-muted"
+                )}
+                onClick={() => selectProvider("typesafe")}
+              >
+                TypeSafe 官方
+              </button>
+            </div>
+          </Field>
+
+          <Field label="API Key">
+            <Input
+              type="password"
+              placeholder={provider === "openrouter" ? "sk-or-v1-..." : "typesafe-api-key"}
+              value={getString(jev.apiKey)}
+              onChange={(e) => update("jevConfig.apiKey", e.target.value.trim())}
+            />
+          </Field>
+
+          <Field label="接口地址 (Endpoint)">
+            <Input
+              value={getString(jev.endpoint) || (provider === "openrouter" ? "https://openrouter.ai/api/alpha/decisions" : "https://api.typesafe.ai/v1/systemone")}
+              onChange={(e) => update("jevConfig.endpoint", e.target.value.trim())}
+            />
+          </Field>
+
+          <Field label="模型标识 (Model)">
+            <Input
+              value={getString(jev.model) || (provider === "openrouter" ? "~typesafe/jev-latest" : "jev-latest")}
+              onChange={(e) => update("jevConfig.model", e.target.value.trim())}
+            />
+          </Field>
+
+          <Field label="请求超时 (毫秒)">
+            <Input
+              type="number"
+              min={500}
+              max={15000}
+              step={500}
+              value={getNumber(jev.timeoutMs) || 3000}
+              onChange={(e) => update("jevConfig.timeoutMs", Number(e.target.value))}
+            />
+          </Field>
+
+          <Field label="自动驳回严重度阈值">
+            <div className="grid w-full gap-1">
+              <Input
+                type="number"
+                min={0}
+                max={2}
+                step={0.1}
+                value={getNumber(jev.autoRejectScoreThreshold) || 1.5}
+                onChange={(e) => update("jevConfig.autoRejectScoreThreshold", Number(e.target.value))}
+              />
+              <span className="text-xs text-muted-foreground">
+                基于 Jev 攻击性打分(0~2)，超过该分值的话题/评论将自动下架删除（建议 1.5）
+              </span>
+            </div>
+          </Field>
+
+          <Field label="自动驳回垃圾概率阈值">
+            <div className="grid w-full gap-1">
+              <Input
+                type="number"
+                min={0}
+                max={1}
+                step={0.05}
+                value={getNumber(jev.autoRejectSpamThreshold) || 0.85}
+                onChange={(e) => update("jevConfig.autoRejectSpamThreshold", Number(e.target.value))}
+              />
+              <span className="text-xs text-muted-foreground">
+                基于 Jev 垃圾/推广概率(0~1)，超过该概率的话题/评论将自动下架删除（建议 0.85）
+              </span>
+            </div>
+          </Field>
+
+          <Field label="自动待审严重度阈值">
+            <div className="grid w-full gap-1">
+              <Input
+                type="number"
+                min={0}
+                max={2}
+                step={0.1}
+                value={getNumber(jev.autoReviewScoreThreshold) || 0.8}
+                onChange={(e) => update("jevConfig.autoReviewScoreThreshold", Number(e.target.value))}
+              />
+              <span className="text-xs text-muted-foreground">
+                存疑攻击性阈值，达到该分值的内容自动转入人工待审队列（建议 0.8）
+              </span>
+            </div>
+          </Field>
+
+          <Field label="自动待审垃圾概率阈值">
+            <div className="grid w-full gap-1">
+              <Input
+                type="number"
+                min={0}
+                max={1}
+                step={0.05}
+                value={getNumber(jev.autoReviewSpamThreshold) || 0.45}
+                onChange={(e) => update("jevConfig.autoReviewSpamThreshold", Number(e.target.value))}
+              />
+              <span className="text-xs text-muted-foreground">
+                存疑垃圾概率阈值，达到该概率的内容自动转入人工待审队列（建议 0.45）
+              </span>
+            </div>
+          </Field>
+        </>
+      ) : null}
     </SettingsForm>
   )
 }
