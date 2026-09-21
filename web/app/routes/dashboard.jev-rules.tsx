@@ -82,6 +82,9 @@ interface JevRuleConfig {
   noulQuestions: JevNoulQuestion[]
   scoreQuestions: JevScoreQuestion[]
   choiceQuestions: JevChoiceQuestion[]
+  reviewTimeoutMinutes: number
+  reviewTimeoutAction: string
+  autoCreateReport: boolean
 }
 
 interface SimulationDecision {
@@ -143,6 +146,9 @@ const DEFAULT_CONFIG: JevRuleConfig = {
       enabled: true,
     },
   ],
+  reviewTimeoutMinutes: 120,
+  reviewTimeoutAction: "pass",
+  autoCreateReport: true,
 }
 
 export default function DashboardJevRulesRoute() {
@@ -176,6 +182,9 @@ export default function DashboardJevRulesRoute() {
           noulQuestions: res.noulQuestions || [],
           scoreQuestions: res.scoreQuestions || [],
           choiceQuestions: res.choiceQuestions || [],
+          reviewTimeoutMinutes: res.reviewTimeoutMinutes ?? 120,
+          reviewTimeoutAction: res.reviewTimeoutAction || "pass",
+          autoCreateReport: res.autoCreateReport !== false,
         })
       }
     } catch (err: unknown) {
@@ -604,6 +613,76 @@ export default function DashboardJevRulesRoute() {
                     setConfig((prev) => ({ ...prev, includeTitle: checked }))
                   }
                 />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 人工待审时限与工单流转策略 */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">人工待审时限与工单流转策略 (Review Timeout & Inbox)</CardTitle>
+              <CardDescription>
+                打通 Jev 存疑预警与「用户举报 / 审核工单」中枢，并设置超时自动流转时限，避免人工漏审导致全流程死锁阻塞。
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between border-b pb-4">
+                <div>
+                  <h4 className="font-medium text-sm">自动汇入用户举报/审核工单中枢</h4>
+                  <p className="text-xs text-muted-foreground">
+                    开启后，当 Jev 判定内容存疑待审（StatusReview）时，自动创建一条工单汇入「社区 ➔ 用户举报」中统一处理。
+                  </p>
+                </div>
+                <Switch
+                  checked={config.autoCreateReport}
+                  onCheckedChange={(checked) =>
+                    setConfig((prev) => ({ ...prev, autoCreateReport: checked }))
+                  }
+                />
+              </div>
+
+              <div className="flex items-center justify-between border-b pb-4">
+                <div>
+                  <h4 className="font-medium text-sm">人工审核超时时限（分钟）</h4>
+                  <p className="text-xs text-muted-foreground">
+                    待审核内容在此时间内若无管理员介入处理，将自动触发兜底处置动作（默认 120 分钟即 2 小时；设为 0 表示不限制）。
+                  </p>
+                </div>
+                <Input
+                  type="number"
+                  className="w-32 text-right"
+                  value={config.reviewTimeoutMinutes}
+                  onChange={(e) =>
+                    setConfig((prev) => ({
+                      ...prev,
+                      reviewTimeoutMinutes: parseInt(e.target.value, 10) || 0,
+                    }))
+                  }
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-medium text-sm">超时自动处置策略</h4>
+                  <p className="text-xs text-muted-foreground">
+                    当超过时限仍未人工处理时执行的兜底决策（推荐“宽容放行上线”，保证正常发帖闭环不卡死）。
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <select
+                    className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    value={config.reviewTimeoutAction}
+                    onChange={(e) =>
+                      setConfig((prev) => ({
+                        ...prev,
+                        reviewTimeoutAction: e.target.value,
+                      }))
+                    }
+                  >
+                    <option value="pass">自动放行解冻 (Fail-Open / 推荐)</option>
+                    <option value="reject">自动驳回下架 (Fail-Closed)</option>
+                  </select>
+                </div>
               </div>
             </CardContent>
           </Card>

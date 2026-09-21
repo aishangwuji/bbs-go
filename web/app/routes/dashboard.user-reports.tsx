@@ -8,6 +8,7 @@ import {
 } from "@/components/dashboard/data"
 import * as dashboardData from "@/components/dashboard/data/dashboard-data-route-utils"
 import { HtmlImagePreview } from "@/components/common/image-preview"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -92,6 +93,16 @@ export default function DashboardUserReportsRoute() {
     filters: [
       { name: "dataId", label: dashboardData.label(t, "dataId") },
       {
+        name: "source",
+        label: "工单来源",
+        type: "select",
+        options: [
+          { label: "全部来源 (All)", value: "" },
+          { label: "🤖 Jev 智能风控送审", value: "jev" },
+          { label: "👤 用户人工举报", value: "user" },
+        ],
+      },
+      {
         name: "dataType",
         label: dashboardData.label(t, "dataType"),
         type: "select",
@@ -118,11 +129,36 @@ export default function DashboardUserReportsRoute() {
         label: dashboardData.label(t, "reportTarget"),
         render: (record) => dashboardData.reportTargetCell(t, record),
       },
-      { key: "userId", label: dashboardData.label(t, "userId") },
+      {
+        key: "userId",
+        label: "来源 / 举报人",
+        render: (record) => {
+          const uid = Number(record.userId || 0)
+          if (uid === 0) {
+            return (
+              <Badge variant="outline" className="border-purple-500/40 text-purple-600 dark:text-purple-400 bg-purple-500/10 text-xs">
+                🤖 Jev AI 风控
+              </Badge>
+            )
+          }
+          return <span className="font-mono text-xs">用户 #{uid}</span>
+        },
+      },
       {
         key: "reason",
         label: dashboardData.label(t, "reason"),
         className: "min-w-72",
+        render: (record) => {
+          const reason = String(record.reason || "-")
+          if (reason.startsWith("[Jev 智能风控]")) {
+            return (
+              <span className="text-xs text-purple-700 dark:text-purple-300 font-mono">
+                {reason}
+              </span>
+            )
+          }
+          return <span className="text-xs">{reason}</span>
+        },
       },
       {
         key: "auditStatus",
@@ -232,21 +268,23 @@ function ReportProcessDialog({
           <Button
             type="button"
             variant="outline"
+            className="border-emerald-600 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950"
             disabled={Boolean(submittingStatus)}
             onClick={() => onSubmitStatus(2)}
           >
             {submittingStatus === 2
               ? t("dashboard.actions.save")
-              : t("dashboard.reportActions.markIgnored")}
+              : "合规放行 (解冻上线)"}
           </Button>
           <Button
             type="button"
+            variant="destructive"
             disabled={Boolean(submittingStatus)}
             onClick={() => onSubmitStatus(1)}
           >
             {submittingStatus === 1
               ? t("dashboard.actions.save")
-              : t("dashboard.reportActions.markProcessed")}
+              : "确认违规 (软删除下架)"}
           </Button>
         </DialogFooter>
       </DialogContent>

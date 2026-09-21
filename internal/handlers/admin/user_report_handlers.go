@@ -2,14 +2,17 @@ package admin
 
 import (
 	"bbs-go/internal/models"
+	"bbs-go/internal/models/constants"
 	"bbs-go/internal/pkg/common"
 	"bbs-go/internal/pkg/errs"
 	"bbs-go/internal/pkg/idcodec"
+	"bbs-go/internal/repositories"
 	"bbs-go/internal/services"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/mlogclub/simple/common/dates"
+	"github.com/mlogclub/simple/sqls"
 
 	"bbs-go/internal/pkg/ginx"
 	"bbs-go/internal/pkg/params"
@@ -34,7 +37,7 @@ func UserReportDetail(ctx *gin.Context) {
 }
 
 func UserReportList(ctx *gin.Context) {
-	list, paging := services.UserReportService.FindPageByCnd(params.NewPagedSqlCnd(ctx,
+	cnd := params.NewPagedSqlCnd(ctx,
 		params.QueryFilter{
 			ParamName: "dataType",
 			Op:        params.Eq,
@@ -47,7 +50,16 @@ func UserReportList(ctx *gin.Context) {
 			ParamName: "auditStatus",
 			Op:        params.Eq,
 		},
-	).Desc("id"))
+	)
+
+	source := ctx.Query("source")
+	if source == "jev" {
+		cnd.Eq("user_id", 0)
+	} else if source == "user" {
+		cnd.Gt("user_id", 0)
+	}
+
+	list, paging := services.UserReportService.FindPageByCnd(cnd.Desc("id"))
 	ginx.WriteJSON(ctx, &web.PageResult{Results: list, Page: paging})
 }
 
@@ -100,8 +112,31 @@ func UserReportAudit(ctx *gin.Context) {
 		ginx.WriteJSON(ctx, ginx.ErrorMessage(err.Error()))
 		return
 	}
-	ginx.WriteJSON(ctx, t)
 
+	// 联动级联处理底层业务实体状态
+	if auditStatus == 2 {
+		// 合规放行通过：若原实体处于待审状态，解冻恢复正常
+		switch t.DataType {
+		case "topic":
+			_ = services.TopicService.Audit(t.DataId)
+		case "article":
+			_ = services.ArticleService.UpdateColumn(t.DataId, "status", constants.StatusOk)
+		case "comment":
+			_ = services.CommentService.Audit(t.DataId)
+		}
+	} else if auditStatus == 1 {
+		// 违规下架驳回：将原实体软删除
+		switch t.DataType {
+		case "topic":
+			_ = repositories.TopicRepository.UpdateColumn(sqls.DB(), t.DataId, "status", constants.StatusDeleted)
+		case "article":
+			_ = repositories.ArticleRepository.UpdateColumn(sqls.DB(), t.DataId, "status", constants.StatusDeleted)
+		case "comment":
+			_ = services.CommentService.Delete(t.DataId)
+		}
+	}
+
+	ginx.WriteJSON(ctx, t)
 }
 
 func buildUserReportDetail(report *models.UserReport) map[string]interface{} {

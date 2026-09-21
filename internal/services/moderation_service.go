@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	"bbs-go/internal/models"
@@ -279,6 +280,9 @@ func (s *moderationService) AuditTopic(ctx context.Context, topic *models.Topic)
 			slog.Any("reasons", decision.ReviewReasons),
 		)
 		_ = repositories.TopicRepository.UpdateColumn(sqls.DB(), topic.Id, "status", constants.StatusReview)
+		if ruleCfg.AutoCreateReport {
+			s.createReviewReport(constants.EntityTopic, topic.Id, decision.ReviewReasons)
+		}
 	}
 
 	now := dates.NowTimestamp()
@@ -344,6 +348,9 @@ func (s *moderationService) AuditComment(ctx context.Context, comment *models.Co
 			slog.Any("reasons", decision.ReviewReasons),
 		)
 		_ = repositories.CommentRepository.UpdateColumn(sqls.DB(), comment.Id, "status", constants.StatusReview)
+		if ruleCfg.AutoCreateReport {
+			s.createReviewReport(constants.EntityComment, comment.Id, decision.ReviewReasons)
+		}
 	}
 
 	now := dates.NowTimestamp()
@@ -409,6 +416,9 @@ func (s *moderationService) AuditArticle(ctx context.Context, article *models.Ar
 			slog.Any("reasons", decision.ReviewReasons),
 		)
 		_ = repositories.ArticleRepository.UpdateColumn(sqls.DB(), article.Id, "status", constants.StatusReview)
+		if ruleCfg.AutoCreateReport {
+			s.createReviewReport(constants.EntityArticle, article.Id, decision.ReviewReasons)
+		}
 	}
 
 	now := dates.NowTimestamp()
@@ -457,4 +467,173 @@ func (s *moderationService) FindPageByCnd(cnd *sqls.Cnd) (list []models.Moderati
 // Count 统计记录数
 func (s *moderationService) Count(cnd *sqls.Cnd) int64 {
 	return repositories.ModerationRecordRepository.Count(sqls.DB(), cnd)
+}
+
+// createReviewReport 当内容存疑进入待审时，自动创建一条待人工复核的工单（统一收拢至用户举报工作流）
+func (s *moderationService) createReviewReport(entityType string, entityId int64, reasons []string) {
+	if sqls.DB() == nil {
+		return
+	}
+	// 幂等防重：若已存在针对该实体的未处理工单，则不重复写入
+	existing := repositories.UserReportRepository.FindOne(sqls.DB(), sqls.NewCnd().
+		Eq("data_type", entityType).
+		Eq("data_id", entityId).
+		Eq("audit_status", 0))
+	if existing != nil {
+		return
+	}
+
+	reasonText := "[Jev 智能风控] 判定存疑，进入待审队列"
+	if len(reasons) > 0 {
+		reasonText = fmt.Sprintf("[Jev 智能风控] %s", strings.Join(reasons, "; "))
+	}
+
+	now := dates.NowTimestamp()
+	report := &models.UserReport{
+		DataType:    entityType,
+		DataId:      entityId,
+		UserId:      0, // 0 标识该工单由 Jev AI 自动送审
+		Reason:      reasonText,
+		AuditStatus: 0, // 0: 待处理
+		CreateTime:  now,
+	}
+
+	if err := repositories.UserReportRepository.Create(sqls.DB(), report); err != nil {
+		slog.Error("[JevModeration] 创建用户举报待审工单失败", slog.Any("err", err))
+	}
+}
+
+// HandleAuditTimeouts 扫描并自动处理超时未审的内容，解决人工审核通道死锁阻塞
+func (s *moderationService) HandleAuditTimeouts(ctx context.Context) error {
+	if sqls.DB() == nil {
+		return nil
+	}
+	ruleCfg := SysConfigService.GetJevRuleConfig()
+	if ruleCfg.ReviewTimeoutMinutes <= 0 {
+		return nil // 未开启超时自动处置
+	}
+
+	// 计算超时时间戳（毫秒）
+	timeoutMs := int64(ruleCfg.ReviewTimeoutMinutes) * 60 * 1000
+	now := dates.NowTimestamp()
+	threshold := now - timeoutMs
+
+	targetAction := strings.ToLower(ruleCfg.ReviewTimeoutAction)
+	if targetAction != "reject" {
+		targetAction = "pass" // 默认宽容放行
+	}
+
+	s.resolveTimeoutTopics(threshold, targetAction, now)
+	s.resolveTimeoutArticles(threshold, targetAction, now)
+	s.resolveTimeoutComments(threshold, targetAction, now)
+
+	return nil
+}
+
+// resolveTimeoutTopics 处理超时话题
+func (s *moderationService) resolveTimeoutTopics(threshold int64, targetAction string, now int64) {
+	var topics []models.Topic
+	sqls.DB().Where("status = ? AND create_time <= ?", constants.StatusReview, threshold).
+		Limit(50).Find(&topics)
+
+	for _, topic := range topics {
+		if targetAction == "pass" {
+			if err := TopicService.Audit(topic.Id); err != nil {
+				slog.Error("[AuditTimeout] 超时放行话题失败", slog.Int64("topicId", topic.Id), slog.Any("err", err))
+				continue
+			}
+			slog.Info("[AuditTimeout] 话题超时未审，执行自动放行上线", slog.Int64("topicId", topic.Id))
+			s.closeUserReport(constants.EntityTopic, topic.Id, 2)
+			s.recordTimeoutAudit(constants.EntityTopic, topic.Id, topic.UserId, "timeout_pass")
+		} else {
+			res := sqls.DB().Model(&models.Topic{}).Where("id = ? AND status = ?", topic.Id, constants.StatusReview).
+				Updates(map[string]interface{}{"status": constants.StatusDeleted})
+			if res.RowsAffected > 0 {
+				slog.Warn("[AuditTimeout] 话题超时未审，执行自动下架", slog.Int64("topicId", topic.Id))
+				s.closeUserReport(constants.EntityTopic, topic.Id, 1)
+				s.recordTimeoutAudit(constants.EntityTopic, topic.Id, topic.UserId, "timeout_reject")
+			}
+		}
+	}
+}
+
+// resolveTimeoutArticles 处理超时文章
+func (s *moderationService) resolveTimeoutArticles(threshold int64, targetAction string, now int64) {
+	var articles []models.Article
+	sqls.DB().Where("status = ? AND create_time <= ?", constants.StatusReview, threshold).
+		Limit(50).Find(&articles)
+
+	for _, article := range articles {
+		if targetAction == "pass" {
+			if err := ArticleService.UpdateColumn(article.Id, "status", constants.StatusOk); err != nil {
+				slog.Error("[AuditTimeout] 超时放行文章失败", slog.Int64("articleId", article.Id), slog.Any("err", err))
+				continue
+			}
+			slog.Info("[AuditTimeout] 文章超时未审，执行自动放行上线", slog.Int64("articleId", article.Id))
+			s.closeUserReport(constants.EntityArticle, article.Id, 2)
+			s.recordTimeoutAudit(constants.EntityArticle, article.Id, article.UserId, "timeout_pass")
+		} else {
+			res := sqls.DB().Model(&models.Article{}).Where("id = ? AND status = ?", article.Id, constants.StatusReview).
+				Updates(map[string]interface{}{"status": constants.StatusDeleted})
+			if res.RowsAffected > 0 {
+				slog.Warn("[AuditTimeout] 文章超时未审，执行自动下架", slog.Int64("articleId", article.Id))
+				s.closeUserReport(constants.EntityArticle, article.Id, 1)
+				s.recordTimeoutAudit(constants.EntityArticle, article.Id, article.UserId, "timeout_reject")
+			}
+		}
+	}
+}
+
+// resolveTimeoutComments 处理超时评论
+func (s *moderationService) resolveTimeoutComments(threshold int64, targetAction string, now int64) {
+	var comments []models.Comment
+	sqls.DB().Where("status = ? AND create_time <= ?", constants.StatusReview, threshold).
+		Limit(50).Find(&comments)
+
+	for _, comment := range comments {
+		if targetAction == "pass" {
+			if err := CommentService.Audit(comment.Id); err != nil {
+				slog.Error("[AuditTimeout] 超时放行评论失败", slog.Int64("commentId", comment.Id), slog.Any("err", err))
+				continue
+			}
+			slog.Info("[AuditTimeout] 评论超时未审，执行自动放行上线", slog.Int64("commentId", comment.Id))
+			s.closeUserReport(constants.EntityComment, comment.Id, 2)
+			s.recordTimeoutAudit(constants.EntityComment, comment.Id, comment.UserId, "timeout_pass")
+		} else {
+			res := sqls.DB().Model(&models.Comment{}).Where("id = ? AND status = ?", comment.Id, constants.StatusReview).
+				Updates(map[string]interface{}{"status": constants.StatusDeleted})
+			if res.RowsAffected > 0 {
+				slog.Warn("[AuditTimeout] 评论超时未审，执行自动下架", slog.Int64("commentId", comment.Id))
+				s.closeUserReport(constants.EntityComment, comment.Id, 1)
+				s.recordTimeoutAudit(constants.EntityComment, comment.Id, comment.UserId, "timeout_reject")
+			}
+		}
+	}
+}
+
+// closeUserReport 闭环超时工单状态
+func (s *moderationService) closeUserReport(dataType string, dataId int64, auditStatus int64) {
+	sqls.DB().Model(&models.UserReport{}).
+		Where("data_type = ? AND data_id = ? AND audit_status = 0", dataType, dataId).
+		Updates(map[string]interface{}{
+			"audit_status":  auditStatus,
+			"audit_user_id": 0, // 0 标识系统超时流转
+			"audit_time":    dates.NowTimestamp(),
+		})
+}
+
+// recordTimeoutAudit 留痕超时处置事件
+func (s *moderationService) recordTimeoutAudit(entityType string, entityId, userId int64, finalAction string) {
+	now := dates.NowTimestamp()
+	rec := &models.ModerationRecord{
+		EntityType:      entityType,
+		EntityId:        entityId,
+		UserId:          userId,
+		ContentSnapshot: "[审核超时自动兜底流转]",
+		SuggestedAction: "review",
+		FinalAction:     finalAction,
+		CreateTime:      now,
+		UpdateTime:      now,
+	}
+	_ = repositories.ModerationRecordRepository.Create(sqls.DB(), rec)
 }

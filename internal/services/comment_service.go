@@ -94,6 +94,26 @@ func (s *commentService) Delete(id int64) error {
 	return nil
 }
 
+// Audit 审核通过评论（解冻恢复为正常状态 StatusOk）
+func (s *commentService) Audit(id int64) error {
+	comment := s.Get(id)
+	if comment == nil {
+		return errors.New("comment not found")
+	}
+	if comment.Status == constants.StatusOk {
+		return nil
+	}
+	err := sqls.DB().Transaction(func(tx *gorm.DB) error {
+		if err := repositories.CommentRepository.UpdateColumn(tx, id, "status", constants.StatusOk); err != nil {
+			return err
+		}
+		// 恢复用户跟帖计数
+		UserService.IncrCommentCount(comment.UserId)
+		return nil
+	})
+	return err
+}
+
 func (s *commentService) DeleteByUser(user *models.User, id int64) error {
 	if user == nil {
 		return errs.NotLogin()

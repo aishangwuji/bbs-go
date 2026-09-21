@@ -277,11 +277,14 @@ type JevConfig struct {
 
 // JevRuleConfig Jev 决策模型与问询规则中心配置
 type JevRuleConfig struct {
-	MaxContentLength int                 `json:"maxContentLength"` // 提取正文快照最大字符长度（默认 500）
-	IncludeTitle     bool                `json:"includeTitle"`     // 是否注入标题字段至 State
-	NoulQuestions    []JevNoulQuestion   `json:"noulQuestions"`    // Noul 概率类问题列表 (0~1)
-	ScoreQuestions   []JevScoreQuestion  `json:"scoreQuestions"`   // Score 阶梯打分类问题列表 (0, 1, 2...)
-	ChoiceQuestions  []JevChoiceQuestion `json:"choiceQuestions"`  // Choice 离散归类问题列表
+	MaxContentLength     int                 `json:"maxContentLength"`     // 提取正文快照最大字符长度（默认 500）
+	IncludeTitle         bool                `json:"includeTitle"`         // 是否注入标题字段至 State
+	NoulQuestions        []JevNoulQuestion   `json:"noulQuestions"`        // Noul 概率类问题列表 (0~1)
+	ScoreQuestions       []JevScoreQuestion  `json:"scoreQuestions"`       // Score 阶梯打分类问题列表 (0, 1, 2...)
+	ChoiceQuestions      []JevChoiceQuestion `json:"choiceQuestions"`      // Choice 离散归类问题列表
+	ReviewTimeoutMinutes int                 `json:"reviewTimeoutMinutes"` // 超时时限（分钟，默认 120 分钟即 2 小时），0 为不开启自动流转
+	ReviewTimeoutAction  string              `json:"reviewTimeoutAction"`  // 超时默认处置动作："pass" (自动放行) | "reject" (自动驳回)
+	AutoCreateReport     bool                `json:"autoCreateReport"`     // 判定待审时是否自动汇入用户举报/审核工单中枢（默认 true）
 }
 
 // JevNoulQuestion Jev Noul 连续概率问题定义 (P ∈ [0, 1])
@@ -363,6 +366,9 @@ func DefaultJevRuleConfig() JevRuleConfig {
 				Enabled:           true,
 			},
 		},
+		ReviewTimeoutMinutes: 120,
+		ReviewTimeoutAction:  "pass",
+		AutoCreateReport:     true,
 	}
 }
 
