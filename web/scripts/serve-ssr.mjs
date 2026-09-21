@@ -75,12 +75,28 @@ createServer(async (req, res) => {
   if (shouldProxyToServer(url.pathname)) {
     try {
       const upstream = new URL(`${url.pathname}${url.search}`, serverURL)
+      const proxyHeaders = new Headers()
+      for (const [k, v] of Object.entries(req.headers)) {
+        if (typeof v === "string" || Array.isArray(v)) {
+          const lk = k.toLowerCase()
+          if (lk !== "connection" && lk !== "keep-alive" && lk !== "host") {
+            if (Array.isArray(v)) {
+              for (const item of v) proxyHeaders.append(k, item)
+            } else {
+              proxyHeaders.set(k, v)
+            }
+          }
+        }
+      }
+      proxyHeaders.set("host", upstream.host)
+
       const response = await fetch(upstream, {
         method: req.method,
-        headers: req.headers,
+        headers: proxyHeaders,
         body:
           req.method === "GET" || req.method === "HEAD" ? undefined : req,
         duplex: "half",
+        signal: AbortSignal.timeout(30000),
       })
 
       res.statusCode = response.status

@@ -103,15 +103,12 @@ func (s *commentService) Audit(id int64) error {
 	if comment.Status == constants.StatusOk {
 		return nil
 	}
-	err := sqls.DB().Transaction(func(tx *gorm.DB) error {
-		if err := repositories.CommentRepository.UpdateColumn(tx, id, "status", constants.StatusOk); err != nil {
-			return err
-		}
-		// 恢复用户跟帖计数
-		UserService.IncrCommentCount(comment.UserId)
-		return nil
-	})
-	return err
+	if err := repositories.CommentRepository.UpdateColumn(sqls.DB(), id, "status", constants.StatusOk); err != nil {
+		return err
+	}
+	// 恢复用户跟帖计数（单语句更新完成后调用，避免在事务内嵌套申请连接导致 SQLite 单连接池死锁）
+	UserService.IncrCommentCount(comment.UserId)
+	return nil
 }
 
 func (s *commentService) DeleteByUser(user *models.User, id int64) error {
