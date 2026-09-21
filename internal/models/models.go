@@ -126,6 +126,7 @@ type User struct {
 	CommentCount     int              `gorm:"type:int;not null" json:"commentCount" form:"commentCount"`           // 跟帖数量
 	FollowCount      int              `gorm:"type:int;not null" json:"followCount" form:"followCount"`             // 关注数量
 	FansCount        int              `gorm:"type:int;not null" json:"fansCount" form:"fansCount"`                 // 粉丝数量
+	ViolationCount   int              `gorm:"type:int;not null;default:0;index:idx_user_violation_count" json:"violationCount" form:"violationCount"` // 违规累计次数（智能风控拦截、工单违规确认、违禁词命中等）
 	Roles            string           `gorm:"type:text" json:"roles" form:"roles"`                                 // 角色
 	SpaceModulesConfig string         `gorm:"size:512;not null;default:''" json:"spaceModulesConfig" form:"spaceModulesConfig"` // 个人主页模块可见性配置（JSON：github/counts/badges/profile/fans/followed）
 	ForbiddenEndTime int64            `gorm:"not null;default:0" json:"forbiddenEndTime" form:"forbiddenEndTime"`  // 禁言结束时间

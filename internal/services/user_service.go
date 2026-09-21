@@ -611,6 +611,34 @@ func (s *userService) DecrCommentCount(userId int64) {
 	}
 }
 
+// IncrViolationCount 增加用户累计违规次数（原子自增）
+func (s *userService) IncrViolationCount(userId int64, reason string) {
+	if userId <= 0 {
+		return
+	}
+	if err := repositories.UserRepository.UpdateColumn(sqls.DB(), userId, "violation_count",
+		gorm.Expr("violation_count + 1")); err != nil {
+		slog.Error("[UserViolation] 递增违规次数失败", slog.Int64("userId", userId), slog.String("reason", reason), slog.Any("err", err))
+	} else {
+		cache.UserCache.Invalidate(userId)
+		slog.Warn("[UserViolation] 用户违规次数原子自增+1", slog.Int64("userId", userId), slog.String("reason", reason))
+	}
+}
+
+// DecrViolationCount 减少用户累计违规次数（原子递减纠偏，不低于 0）
+func (s *userService) DecrViolationCount(userId int64) {
+	if userId <= 0 {
+		return
+	}
+	if err := repositories.UserRepository.UpdateColumn(sqls.DB(), userId, "violation_count",
+		gorm.Expr("CASE WHEN violation_count > 0 THEN violation_count - 1 ELSE 0 END")); err != nil {
+		slog.Error("[UserViolation] 递减违规次数失败", slog.Int64("userId", userId), slog.Any("err", err))
+	} else {
+		cache.UserCache.Invalidate(userId)
+		slog.Info("[UserViolation] 用户违规次数回退纠偏-1", slog.Int64("userId", userId))
+	}
+}
+
 // SendEmailVerifyEmail 发送邮箱验证邮件
 func (s *userService) SendEmailVerifyEmail(userId int64) error {
 	user := s.Get(userId)

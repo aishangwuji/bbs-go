@@ -38,7 +38,8 @@ func userBuildUserItem(user *models.User, buildRoleIds bool) map[string]interfac
 		Put("username", user.Username.String).
 		Put("email", user.Email.String).
 		Put("score", user.Score).
-		Put("forbidden", user.IsForbidden())
+		Put("forbidden", user.IsForbidden()).
+		Put("violationCount", user.ViolationCount)
 	if buildRoleIds {
 		b.Put("roleIds", services.UserRoleService.GetUserRoleIds(user.Id))
 	}
@@ -203,6 +204,7 @@ func UserForbidden(ctx *gin.Context) {
 			ginx.WriteJSON(ctx, err)
 			return
 		}
+		services.UserService.IncrViolationCount(req.UserId, "管理员执行账号禁言处罚")
 	}
 	ginx.WriteJSON(ctx, nil)
 

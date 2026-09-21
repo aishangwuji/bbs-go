@@ -274,6 +274,7 @@ func (s *moderationService) AuditTopic(ctx context.Context, topic *models.Topic)
 			slog.Any("reasons", decision.RejectReasons),
 		)
 		_ = repositories.TopicRepository.UpdateColumn(sqls.DB(), topic.Id, "status", constants.StatusDeleted)
+		UserService.IncrViolationCount(topic.UserId, fmt.Sprintf("Jev智能风控拦截话题 #%d: %s", topic.Id, strings.Join(decision.RejectReasons, "; ")))
 	} else if decision.FinalAction == "review" {
 		slog.Info("[JevModeration] 话题判定存疑，进入待审队列",
 			slog.Int64("topicId", topic.Id),
@@ -342,6 +343,7 @@ func (s *moderationService) AuditComment(ctx context.Context, comment *models.Co
 			slog.Any("reasons", decision.RejectReasons),
 		)
 		_ = repositories.CommentRepository.UpdateColumn(sqls.DB(), comment.Id, "status", constants.StatusDeleted)
+		UserService.IncrViolationCount(comment.UserId, fmt.Sprintf("Jev智能风控拦截评论 #%d: %s", comment.Id, strings.Join(decision.RejectReasons, "; ")))
 	} else if decision.FinalAction == "review" {
 		slog.Info("[JevModeration] 评论判定存疑，转为待审",
 			slog.Int64("commentId", comment.Id),
@@ -410,6 +412,7 @@ func (s *moderationService) AuditArticle(ctx context.Context, article *models.Ar
 			slog.Any("reasons", decision.RejectReasons),
 		)
 		_ = repositories.ArticleRepository.UpdateColumn(sqls.DB(), article.Id, "status", constants.StatusDeleted)
+		UserService.IncrViolationCount(article.UserId, fmt.Sprintf("Jev智能风控拦截文章 #%d: %s", article.Id, strings.Join(decision.RejectReasons, "; ")))
 	} else if decision.FinalAction == "review" {
 		slog.Info("[JevModeration] 文章判定存疑，进入待审队列",
 			slog.Int64("articleId", article.Id),

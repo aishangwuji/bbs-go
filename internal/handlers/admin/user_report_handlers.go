@@ -8,6 +8,7 @@ import (
 	"bbs-go/internal/pkg/idcodec"
 	"bbs-go/internal/repositories"
 	"bbs-go/internal/services"
+	"fmt"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -125,14 +126,29 @@ func UserReportAudit(ctx *gin.Context) {
 			_ = services.CommentService.Audit(t.DataId)
 		}
 	} else if auditStatus == 1 {
-		// 违规下架驳回：将原实体软删除
+		// 违规下架驳回：将原实体软删除，并累加原作者的累计违规次数
+		var targetUserId int64
 		switch t.DataType {
 		case "topic":
+			if topic := services.TopicService.Get(t.DataId); topic != nil {
+				targetUserId = topic.UserId
+			}
 			_ = repositories.TopicRepository.UpdateColumn(sqls.DB(), t.DataId, "status", constants.StatusDeleted)
 		case "article":
+			if article := services.ArticleService.Get(t.DataId); article != nil {
+				targetUserId = article.UserId
+			}
 			_ = repositories.ArticleRepository.UpdateColumn(sqls.DB(), t.DataId, "status", constants.StatusDeleted)
 		case "comment":
+			if comment := services.CommentService.Get(t.DataId); comment != nil {
+				targetUserId = comment.UserId
+			}
 			_ = services.CommentService.Delete(t.DataId)
+		case "user":
+			targetUserId = t.DataId
+		}
+		if targetUserId > 0 {
+			services.UserService.IncrViolationCount(targetUserId, fmt.Sprintf("审核工单 #%d 确认违规下架 (%s #%d)", t.Id, t.DataType, t.DataId))
 		}
 	}
 

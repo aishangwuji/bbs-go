@@ -5,6 +5,7 @@ import {
   type DashboardDataPageConfig,
 } from "@/components/dashboard/data"
 import * as dashboardData from "@/components/dashboard/data/dashboard-data-route-utils"
+import { Badge } from "@/components/ui/badge"
 import { useI18n } from "@/lib/i18n/provider"
 import { PERMISSIONS } from "@/lib/auth/permissions.generated"
 
@@ -65,6 +66,28 @@ export default function DashboardUsersRoute() {
       { key: "email", label: dashboardData.label(t, "email") },
       { key: "score", label: dashboardData.label(t, "score") },
       { key: "level", label: dashboardData.label(t, "level") },
+      {
+        key: "violationCount",
+        label: "违规次数",
+        render: (record) => {
+          const count = Number(record.violationCount || 0)
+          if (count === 0) {
+            return <span className="text-muted-foreground font-mono">0</span>
+          }
+          if (count >= 3) {
+            return (
+              <Badge variant="destructive" className="font-mono text-xs px-2">
+                {count} 次高危
+              </Badge>
+            )
+          }
+          return (
+            <Badge variant="outline" className="border-amber-500/50 text-amber-600 dark:text-amber-400 font-mono text-xs">
+              {count} 次
+            </Badge>
+          )
+        },
+      },
       {
         key: "forbidden",
         label: dashboardData.label(t, "forbidden"),
