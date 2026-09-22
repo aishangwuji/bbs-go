@@ -16,7 +16,8 @@ func setupCommentServiceTestDB(t *testing.T) {
 	t.Helper()
 	config.Instance = &config.Config{Language: config.DefaultLanguage}
 	db := setupTestDB(t)
-	if err := db.AutoMigrate(&models.Comment{}, &models.Role{}, &models.UserRole{}, &models.Permission{}, &models.RolePermission{}); err != nil {
+	// Transition 会联动 t_topic 计数（EntityTopic 评论），此处一并建表；t_user 已由 setupTestDB 建表。
+	if err := db.AutoMigrate(&models.Comment{}, &models.Topic{}, &models.Role{}, &models.UserRole{}, &models.Permission{}, &models.RolePermission{}); err != nil {
 		t.Fatalf("auto migrate comment: %v", err)
 	}
 	PermissionService.ClearCache()
