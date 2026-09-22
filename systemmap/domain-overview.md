@@ -4,7 +4,7 @@ last_verified: 2026-08-11
 ---
 
 <!-- __SYSMAP_INDEX__ -->
-## 文档索引（index_updated: 2026-08-11）
+## 文档索引（index_updated: 2026-09-20）
 | 行号 | 主题 |
 |------|------|
 | L23-L31 |   一、项目定位与仓库关系 |
@@ -15,9 +15,14 @@ last_verified: 2026-08-11
 | L63-L74 |     4.1 用户发帖/评论计数一致性（PR #297） |
 | L75-L81 |     4.2 评论输入框 Firefox 显示 bug（PR #301） |
 | L82-L100 |     4.3 Agent 接入模块（Agent Gateway，2026-08-11 新增） |
-| L101-L102 |   五、开发注意（本仓库约定） |
-| L103-L110 |     5.1 分支工作流（2026-08-08 整理后） |
-| L111-L115 |     5.2 其他开发约定 |
+| L102-L115 |     4.4 个性签名（Signature，2026-09-18 新增） |
+| L118-L125 |     4.5 用户悬浮卡片（User Card，2026-09-19 新增） |
+| L127-L134 |     4.6 多语言（i18n，2026-09-19 新增） |
+| L136-L141 |     4.7 用户中心嵌套布局路由（2026-09-20 新增） |
+| L144-L149 |     4.8 资料/账号设置内嵌为个人主页 Tab（2026-09-20 新增） |
+| L150-L151 |   五、开发注意（本仓库约定） |
+| L152-L158 |     5.1 分支工作流（2026-08-08 整理后） |
+| L160-L164 |     5.2 其他开发约定 |
 <!-- __SYSMAP_INDEX_END__ -->
 
 ## 一、项目定位与仓库关系
@@ -97,6 +102,51 @@ last_verified: 2026-08-11
 - **文档**：`docs/agent-access-skill.md` 为 Agent 调用指南。
 - **测试**：`internal/permissions/agent_capabilities_test.go`、`internal/services/agent_token_service_test.go`、`internal/server/agent_gateway_test.go`（鉴权/白名单/防自提权/新路由默认拒）、`internal/handlers/admin/agent_token_handlers_test.go`（越权放权拒绝）。
 - **注意**：能力集在 `newRouter()` 时构建并写入 `permissions` 包全局；仅在有权限映射的路由快照下生成，agent-token 前缀硬排除。
+
+### 4.4 个性签名（Signature，2026-09-18 新增）
+
+- **目标**：楼层（评论）与帖子正文下方展示用户个性签名，支持 Markdown（超链接/加粗/图片），按等级门槛由管理员配置开放。
+- **存储**：`t_user.signature`（TEXT，存 **Markdown 原文**，由 `AutoMigrate` 加列）；评论表**不冗余**签名，仅存 `user_id`。
+- **渲染链路**：`internal/pkg/markdown/utils.go` `ToSignatureHTML` = `lute` Markdown → `bluemonday` **严格白名单**：
+  - 仅允许 `p/span/strong/em/code/pre/blockquote/del/ul/ol/li/br/a/img`
+  - **刻意剔除** `h1-h6`（防大标题破坏版面）、`script/iframe`、`on*` 事件
+  - 链接仅 `http(s)`，强制 `rel="noreferrer noopener" target="_blank"`；图片限高
+- **关联输出**：`internal/handlers/render/user_render.go` `BuildUserInfo` 注入 `signature` + `signatureHtml`，评论/帖子响应中的 `user` 自动携带。
+- **门槛配置**：`t_sys_config.signatureMinLevel`（默认 3，`0` 表示不限），后台 **系统 → 站点设置 → 页面 → 个性签名** 配置；用户侧 `dashboard.settings.tsx` `PageSettings`。
+- **前端**：`web/components/common/signature.tsx`（通用组件）、`comment/index.tsx`（楼层）、`topic-detail-client-page.tsx`（帖子）；样式 `web/styles/content.css` `.bbs-signature`（虚线分隔 + 12px 褪色 + `max-height:60px` + 图片 `30px`）。个人设置 `web/components/user/profile-form.tsx` 含等级闸门/200 字上限/Markdown 提示。
+- **治理**：管理员可在 后台用户管理 编辑/清空签名（`AdminUserUpdateReq.Signature`，限 200 字符）。
+- **测试**：`internal/pkg/markdown/signature_test.go` 覆盖 `script`/`javascript:` 伪协议/`iframe`/`onclick`/`h1` 拦截与安全链接保留。
+- **⚠️ 迁移版本坑**：本功能迁移必须用 **version 17**。生产库 `t_migration` 残留 `16 = "sync user topic/comment counts"`（文件已从仓库移除但 `success=1` 记录仍在），若复用 16 会被 `runMigration` 判定已成功而**静默跳过**。`migrations/migration.go` 已加注释警戒。
+
+### 4.5 用户悬浮卡片（User Card，2026-09-19 新增）
+
+- **目标**：悬浮头像/昵称弹出用户资料卡（Discourse 风格），展示基础信息 + 已获得勋章 + 关注入口。
+- **接口**：`GET /api/user/:id/card`（`internal/handlers/api/user_handlers.go` `UserCard`）→ `resp.UserCardResponse`（内嵌 `UserInfo` + `Badges` + `BadgeCount` + `Followed`）。
+- **聚合与性能**：`idcodec.Decode` 校验 → `cache.UserCache` → `render.BuildUserInfo`（复用等级/脱敏）→ `cache.UserBadgeCache` + `cache.BadgeCache` 关联**已获得**勋章（佩戴优先、其次 sortNo，map 索引 O(n)）→ `UserFollowService.IsFollowed` 注入当前登录用户关注态。全程内存缓存，无新增回源 SQL。
+- **前端**：`web/components/user/user-hover-card.tsx`，复用既有 `web/components/ui/hover-card.tsx`（Radix，内置 Portal + floating-ui 边界翻转），**不引入新依赖**。模块级 60s 短缓存 + inflight 请求合并 + 请求序号竞态保护（防快速切换用户时旧响应覆盖新卡片）；**缓存键含观看者身份**（`viewer:user`），避免 `followed` 跨登录态污染。
+- **接入状态**：已接入评论楼层（`web/components/comment/index.tsx` 主楼层/子楼层的头像与昵称、子楼层引用对象昵称）。其他页面按需用 `UserHoverCard` 包裹 `UserAvatar`/昵称即可。
+- **测试**：`internal/handlers/api/user_card_test.go`（只返回已获得勋章、佩戴优先排序、空数组非 null）；`internal/server/router_test.go` 含路由注册断言。
+
+### 4.6 多语言（i18n，2026-09-19 新增）
+
+- **范围**：前端用户界面语言，新增 `de-DE / fr-FR / ja-JP / ko-KR / ru-RU`（共 7 种，含既有 en-US、zh-CN）。
+- **接线**：`web/lib/i18n/index.ts`（`Locale` 类型 + `messages` + i18next `resources`；`matchLocale` 支持主语言前缀匹配，`normalizeLocale` 兜底 en-US）；`web/app/route-helpers/locale.ts` `getBrowserLocale` 按 `navigator.languages` 自动选择；`web/components/language-toggle.tsx` 语言切换项。
+- **站点语言 vs 用户语言**：安装向导仍只提供 en-US/zh-CN（站点语言，后端 `locales/*.yml` 仅此两种）；用户可在页头切换其余语言，仅影响前端文案，后端错误/默认文案仍走站点语言。
+- **修复**：`web/lib/seo.ts` `localizedTitle` 原来「非 en-US 即中文」，新语言会显示中文 meta，已改为「仅 zh-CN 走中文，其余回退英文」。
+- **文案**：5 个语言包补齐用户卡 `component.userCard.*`。
+
+### 4.7 用户中心嵌套布局路由（2026-09-20 新增）
+
+- **目标**：修复个人中心切 tab 闪烁。原先 5 个分区是独立顶层路由（`user_.$userId.*` 非嵌套），每次切换都整页重建外壳（横幅/侧边栏）+ `useRouteData` 空白占位 + 重复取数。
+- **结构**：`user.$userId.tsx` 改为布局路由（一次拉取外壳 `UserCenterData` + 渲染 `UserCenterShell`/`UserCenterTabs` + `<Outlet context>`）；`user.$userId._index/articles/badges/fans/followed.tsx` 为子路由，按需加载各 tab 首屏；`shouldRevalidate` 按 `userId` 裁决，`preview_role` 变化时放行（兼容管理员预览视角）。
+- **效果**：布局跨 tab 保持挂载；切换时旧内容保留直到新 loader 就绪，内容区无空白；URL/深链/SEO 不变；`meta` 在布局统一按子路径产出分区标题。
+- **删除**：`user_.$userId.*`（4 个）、`user-profile-client-page.tsx`（内容视图迁入 `user-center-views.tsx`）。
+
+### 4.8 资料/账号设置内嵌为个人主页 Tab（2026-09-20 新增）
+
+- **目标**：`UserCenterTabs` 追加「资料/账号设置」（仅自己可见），废弃独立的 `/user/profile*` 页面与头像菜单入口。
+- **结构**：`user.$userId.profile/account.tsx` 为布局子路由（`RequireUser` + loader 本人校验，非本人回公开页）；旧 `/user/profile*` 改为重定向（兼容书签与站内入口）；布局 `meta` 对资料/账号返回 noindex。
+- **删除**：`profile-shell.tsx`、`profile-back-link.tsx`（已无引用）；头像菜单与移动端菜单的「编辑资料」下线，侧边栏编辑资料改为直链嵌套地址。
 
 ## 五、开发注意（本仓库约定）
 
