@@ -86,15 +86,12 @@ func (s *commentService) Delete(id int64) error {
 	if comment == nil || comment.Status == constants.StatusDeleted {
 		return nil
 	}
-	if err := repositories.CommentRepository.UpdateColumn(sqls.DB(), id, "status", constants.StatusDeleted); err != nil {
-		return err
-	}
-	// 用户跟帖计数 -1
-	UserService.DecrCommentCount(comment.UserId)
-	return nil
+	_, err := s.Transition(id, constants.StatusDeleted)
+	return err
 }
 
 // Audit 审核通过评论（解冻恢复为正常状态 StatusOk）
+// Business Rule: 仅 StatusOk 计入话题/用户/父评论计数，经 Transition 按可见性 delta 联动，避免重复加。
 func (s *commentService) Audit(id int64) error {
 	comment := s.Get(id)
 	if comment == nil {
@@ -103,12 +100,95 @@ func (s *commentService) Audit(id int64) error {
 	if comment.Status == constants.StatusOk {
 		return nil
 	}
-	if err := repositories.CommentRepository.UpdateColumn(sqls.DB(), id, "status", constants.StatusOk); err != nil {
-		return err
+	_, err := s.Transition(id, constants.StatusOk)
+	return err
+}
+
+// Transition 将评论流转到目标状态，计数与可见性同增同减，CAS 幂等。
+// Business Rule: 仅 StatusOk 为可见并计入 t_topic/t_comment(父级)/t_user 的 comment_count；
+// 可见性 delta = (to==Ok?1:0) - (from==Ok?1:0)，+1/-1/0 三种情况。
+// Reason: Jev 异步拦截、人工审核、超时兜底、用户删除四条路径并发，必须单点收敛，否则重复扣/漏扣。
+// 注意：EntityArticle 的文章侧 comment_count 历史上 Publish 就未维护（见 Publish 仅处理 topic/comment），
+// 此处只联动用户计数，文章侧计数缺口另行立项修复，不在此处引入新的漂移。
+func (s *commentService) Transition(id int64, to int) (bool, error) {
+	comment := s.Get(id)
+	if comment == nil {
+		return false, errors.New("comment not found")
 	}
-	// 恢复用户跟帖计数（单语句更新完成后调用，避免在事务内嵌套申请连接导致 SQLite 单连接池死锁）
-	UserService.IncrCommentCount(comment.UserId)
-	return nil
+	if comment.Status == to {
+		return false, nil
+	}
+	return s.TransitionFrom(id, comment.Status, to)
+}
+
+// TransitionFrom 仅当评论当前处于 expectFrom 时才流转到 to，CAS 保证幂等。
+// Jev 拦截/超时路径必须用它（期望 StatusOk），防止与人工删除/审核并发时重复扣减。
+func (s *commentService) TransitionFrom(id int64, expectFrom, to int) (bool, error) {
+	if expectFrom == to {
+		return false, nil
+	}
+	comment := s.Get(id)
+	if comment == nil {
+		return false, errors.New("comment not found")
+	}
+	if comment.Status != expectFrom {
+		return false, nil
+	}
+	from := comment.Status
+	delta := 0
+	if from == constants.StatusOk && to != constants.StatusOk {
+		delta = -1
+	} else if from != constants.StatusOk && to == constants.StatusOk {
+		delta = 1
+	}
+
+	applied := false
+	err := sqls.WithTransaction(func(ctx *sqls.TxContext) error {
+		res := ctx.Tx.Model(&models.Comment{}).Where("id = ? AND status = ?", id, from).Update("status", to)
+		if res.Error != nil {
+			return res.Error
+		}
+		if res.RowsAffected == 0 {
+			return nil
+		}
+		applied = true
+		if delta == 0 {
+			return nil
+		}
+		// 话题/父评论计数联动（与 Publish 的 onComment 路径对称）
+		if comment.EntityType == constants.EntityTopic {
+			colVal := gorm.Expr("comment_count + 1")
+			if delta < 0 {
+				colVal = gorm.Expr("CASE WHEN comment_count > 0 THEN comment_count - 1 ELSE 0 END")
+			}
+			if err := repositories.TopicRepository.UpdateColumn(ctx.Tx, comment.EntityId, "comment_count", colVal); err != nil {
+				return err
+			}
+		} else if comment.EntityType == constants.EntityComment {
+			colVal := gorm.Expr("comment_count + 1")
+			if delta < 0 {
+				colVal = gorm.Expr("CASE WHEN comment_count > 0 THEN comment_count - 1 ELSE 0 END")
+			}
+			if err := repositories.CommentRepository.UpdateColumn(ctx.Tx, comment.EntityId, "comment_count", colVal); err != nil {
+				return err
+			}
+		}
+		// 用户跟帖计数联动（Publish 对所有 entityType 都 +1，此处对称处理）
+		if delta > 0 {
+			if err := UserService.IncrCommentCountTx(ctx, comment.UserId); err != nil {
+				return err
+			}
+		} else {
+			if err := UserService.DecrCommentCountTx(ctx, comment.UserId); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return false, err
+	}
+	return applied, nil
 }
 
 func (s *commentService) DeleteByUser(user *models.User, id int64) error {

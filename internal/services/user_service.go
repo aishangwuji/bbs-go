@@ -591,6 +591,31 @@ func (s *userService) DecrTopicCount(ctx *sqls.TxContext, userId int64) error {
 	return nil
 }
 
+// IncrCommentCountTx comment_count + 1（事务内，提交后失效缓存）
+// Business Rule: 评论可见性计数仅统计 StatusOk，与 CommentService.Transition 同增同减。
+func (s *userService) IncrCommentCountTx(ctx *sqls.TxContext, userId int64) error {
+	if err := repositories.UserRepository.UpdateColumn(ctx.Tx, userId, "comment_count",
+		gorm.Expr("comment_count + 1")); err != nil {
+		return err
+	}
+	ctx.RegisterCallback(func() {
+		cache.UserCache.Invalidate(userId)
+	})
+	return nil
+}
+
+// DecrCommentCountTx comment_count - 1（事务内，不低于 0，提交后失效缓存）
+func (s *userService) DecrCommentCountTx(ctx *sqls.TxContext, userId int64) error {
+	if err := repositories.UserRepository.UpdateColumn(ctx.Tx, userId, "comment_count",
+		gorm.Expr("CASE WHEN comment_count > 0 THEN comment_count - 1 ELSE 0 END")); err != nil {
+		return err
+	}
+	ctx.RegisterCallback(func() {
+		cache.UserCache.Invalidate(userId)
+	})
+	return nil
+}
+
 // IncrCommentCount comment_count + 1
 func (s *userService) IncrCommentCount(userId int64) {
 	if err := repositories.UserRepository.UpdateColumn(sqls.DB(), userId, "comment_count",
