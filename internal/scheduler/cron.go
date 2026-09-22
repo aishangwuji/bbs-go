@@ -25,6 +25,20 @@ func Start() {
 		}
 	})
 
+	// 每日低峰对账评论计数（话题/父评论/用户三路，脏行才写，收敛 Jev 拦截与历史漂移）
+	// Business Rule: 冗余 comment_count 必须等于 status=0 的可见数；增量由 CommentService.Transition 保证，此处只做自愈。
+	addCronFunc(c, "30 3 * * *", func() {
+		if _, _, err := services.CommentService.ReconcileTopicCommentCounts(500); err != nil {
+			slog.Error("reconcile topic comment counts error", slog.Any("err", err))
+		}
+		if _, _, err := services.CommentService.ReconcileReplyCommentCounts(500); err != nil {
+			slog.Error("reconcile reply comment counts error", slog.Any("err", err))
+		}
+		if _, _, err := services.CommentService.ReconcileUserCommentCounts(500); err != nil {
+			slog.Error("reconcile user comment counts error", slog.Any("err", err))
+		}
+	})
+
 	c.Start()
 }
 
