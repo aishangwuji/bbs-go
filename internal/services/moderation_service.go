@@ -342,15 +342,20 @@ func (s *moderationService) AuditComment(ctx context.Context, comment *models.Co
 			slog.Int64("commentId", comment.Id),
 			slog.Any("reasons", decision.RejectReasons),
 		)
-		_ = repositories.CommentRepository.UpdateColumn(sqls.DB(), comment.Id, "status", constants.StatusDeleted)
-		UserService.IncrViolationCount(comment.UserId, fmt.Sprintf("Jev智能风控拦截评论 #%d: %s", comment.Id, strings.Join(decision.RejectReasons, "; ")))
+		// Business Rule: 经 Transition CAS 从 StatusOk 流转，未生效（并发已删/已审）则不重复扣计数、不重复记违规。
+		if applied, err := CommentService.TransitionFrom(comment.Id, constants.StatusOk, constants.StatusDeleted); err != nil {
+			slog.Warn("[JevModeration] 评论下架流转失败", slog.Int64("commentId", comment.Id), slog.Any("err", err))
+		} else if applied {
+			UserService.IncrViolationCount(comment.UserId, fmt.Sprintf("Jev智能风控拦截评论 #%d: %s", comment.Id, strings.Join(decision.RejectReasons, "; ")))
+		}
 	} else if decision.FinalAction == "review" {
 		slog.Info("[JevModeration] 评论判定存疑，转为待审",
 			slog.Int64("commentId", comment.Id),
 			slog.Any("reasons", decision.ReviewReasons),
 		)
-		_ = repositories.CommentRepository.UpdateColumn(sqls.DB(), comment.Id, "status", constants.StatusReview)
-		if ruleCfg.AutoCreateReport {
+		if _, err := CommentService.TransitionFrom(comment.Id, constants.StatusOk, constants.StatusReview); err != nil {
+			slog.Warn("[JevModeration] 评论转待审流转失败", slog.Int64("commentId", comment.Id), slog.Any("err", err))
+		} else if ruleCfg.AutoCreateReport {
 			s.createReviewReport(constants.EntityComment, comment.Id, decision.ReviewReasons)
 		}
 	}
@@ -606,9 +611,10 @@ func (s *moderationService) resolveTimeoutComments(threshold int64, targetAction
 			s.closeUserReport(constants.EntityComment, comment.Id, 2)
 			s.recordTimeoutAudit(constants.EntityComment, comment.Id, comment.UserId, "timeout_pass")
 		} else {
-			res := sqls.DB().Model(&models.Comment{}).Where("id = ? AND status = ?", comment.Id, constants.StatusReview).
-				Updates(map[string]interface{}{"status": constants.StatusDeleted})
-			if res.RowsAffected > 0 {
+			// Business Rule: Review->Deleted 可见性无变化（Ok->Review 时已 -1），经 Transition CAS 幂等流转，不碰计数。
+			if applied, err := CommentService.TransitionFrom(comment.Id, constants.StatusReview, constants.StatusDeleted); err != nil {
+				slog.Error("[AuditTimeout] 评论超时下架流转失败", slog.Int64("commentId", comment.Id), slog.Any("err", err))
+			} else if applied {
 				slog.Warn("[AuditTimeout] 评论超时未审，执行自动下架", slog.Int64("commentId", comment.Id))
 				s.closeUserReport(constants.EntityComment, comment.Id, 1)
 				s.recordTimeoutAudit(constants.EntityComment, comment.Id, comment.UserId, "timeout_reject")
