@@ -784,6 +784,7 @@ const jaJP = {
       auditStatus: "審査ステータス",
       auditTime: "審査日時",
       auditUserId: "審査者ID",
+      auditUser: "操作者",
       reason: "理由",
       reportTarget: "通報対象",
     },

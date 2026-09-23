@@ -806,6 +806,7 @@ const frFR = {
       auditStatus: "Statut d'audit",
       auditTime: "Date d'audit",
       auditUserId: "ID de l'auditeur",
+      auditUser: "Opérateur",
       reason: "Raison",
       reportTarget: "Objet du signalement",
     },

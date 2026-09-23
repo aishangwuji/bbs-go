@@ -61,7 +61,65 @@ func UserReportList(ctx *gin.Context) {
 	}
 
 	list, paging := services.UserReportService.FindPageByCnd(cnd.Desc("id"))
-	ginx.WriteJSON(ctx, &web.PageResult{Results: list, Page: paging})
+
+	// 批量解析审核人展示信息（昵称/登录名），避免逐行回查用户造成 N+1
+	auditUsers := resolveReportAuditUsers(list)
+	results := make([]userReportVO, 0, len(list))
+	for i := range list {
+		item := userReportVO{UserReport: &list[i]}
+		if info, ok := auditUsers[list[i].AuditUserId]; ok {
+			item.AuditUserNickname = info.nickname
+			item.AuditUsername = info.username
+		}
+		results = append(results, item)
+	}
+
+	ginx.WriteJSON(ctx, &web.PageResult{Results: results, Page: paging})
+}
+
+// userReportVO 举报工单列表项：在原始工单字段基础上补充审核人展示信息，
+// 供后台列表「操作人」列直接渲染，避免前端逐行回查用户。
+type userReportVO struct {
+	*models.UserReport
+	AuditUserNickname string `json:"auditUserNickname"` // 审核人昵称
+	AuditUsername     string `json:"auditUsername"`     // 审核人登录名
+}
+
+// auditUserBrief 审核人展示信息
+type auditUserBrief struct {
+	nickname string
+	username string
+}
+
+// resolveReportAuditUsers 对工单中出现的审核人 ID 去重后批量查询用户，
+// 返回 auditUserId -> 展示信息 的映射；用 IN 查询把 N 次查询收敛为 1 次。
+func resolveReportAuditUsers(reports []models.UserReport) map[int64]auditUserBrief {
+	idSet := make(map[int64]struct{})
+	ids := make([]int64, 0, len(reports))
+	for i := range reports {
+		id := reports[i].AuditUserId
+		if id <= 0 {
+			continue
+		}
+		if _, exists := idSet[id]; exists {
+			continue
+		}
+		idSet[id] = struct{}{}
+		ids = append(ids, id)
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+
+	users := services.UserService.Find(sqls.NewCnd().In("id", ids))
+	result := make(map[int64]auditUserBrief, len(users))
+	for i := range users {
+		result[users[i].Id] = auditUserBrief{
+			nickname: users[i].Nickname,
+			username: users[i].Username.String,
+		}
+	}
+	return result
 }
 
 func UserReportCreate(ctx *gin.Context) {
@@ -178,6 +236,7 @@ func buildUserReportTarget(report *models.UserReport) map[string]interface{} {
 			target["content"] = topic.Content
 			target["contentType"] = topic.ContentType
 			target["userId"] = topic.UserId
+			attachTargetAuthor(target, topic.UserId)
 			target["status"] = topic.Status
 			target["url"] = "/topic/" + idcodec.Encode(topic.Id)
 			return target
@@ -189,6 +248,7 @@ func buildUserReportTarget(report *models.UserReport) map[string]interface{} {
 			target["content"] = article.Content
 			target["contentType"] = article.ContentType
 			target["userId"] = article.UserId
+			attachTargetAuthor(target, article.UserId)
 			target["status"] = article.Status
 			target["url"] = "/article/" + strconv.FormatInt(article.Id, 10)
 			return target
@@ -198,6 +258,7 @@ func buildUserReportTarget(report *models.UserReport) map[string]interface{} {
 			target["content"] = comment.Content
 			target["contentType"] = comment.ContentType
 			target["userId"] = comment.UserId
+			attachTargetAuthor(target, comment.UserId)
 			target["entityType"] = comment.EntityType
 			target["entityId"] = comment.EntityId
 			target["quoteId"] = comment.QuoteId
@@ -228,6 +289,18 @@ func buildUserReportTarget(report *models.UserReport) map[string]interface{} {
 
 	target["missing"] = true
 	return target
+}
+
+// attachTargetAuthor 为被举报内容补充作者昵称与登录名，
+// 供前端以「昵称 @用户名」形式展示内容发布者。
+func attachTargetAuthor(target map[string]interface{}, userId int64) {
+	if userId <= 0 {
+		return
+	}
+	if author := services.UserService.Get(userId); author != nil {
+		target["nickname"] = author.Nickname
+		target["username"] = author.Username.String
+	}
 }
 
 func UserReportUpdate(ctx *gin.Context) {

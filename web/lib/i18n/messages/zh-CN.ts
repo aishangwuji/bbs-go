@@ -771,6 +771,7 @@ const zhCN = {
       auditStatus: "审核状态",
       auditTime: "审核时间",
       auditUserId: "审核人ID",
+      auditUser: "操作人",
       reason: "原因",
       reportTarget: "举报对象",
       isSpamProb: "垃圾概率",

@@ -118,6 +118,42 @@ assert.match(
   "user reports dashboard should hide target detail navigation for comments"
 )
 
+assert.match(
+  routeSource,
+  /key:\s*"auditUser"/,
+  "user reports dashboard should render an audit operator column"
+)
+
+assert.match(
+  routeSource,
+  /record\.auditUserNickname/,
+  "user reports dashboard operator column should read the resolved audit user nickname"
+)
+
+assert.match(
+  routeSource,
+  /"合规放行"/,
+  "user reports dashboard should label the release action"
+)
+
+assert.match(
+  routeSource,
+  /"确认违规"/,
+  "user reports dashboard should label the violation action"
+)
+
+assert.doesNotMatch(
+  routeSource,
+  /合规放行\s*\(/,
+  "user reports dashboard release action label should not contain parenthetical hints"
+)
+
+assert.match(
+  routeSource,
+  /target\.nickname/,
+  "user reports dashboard dialog should display the target author nickname"
+)
+
 for (const source of [zhMessages, enMessages]) {
   assert.match(
     source,

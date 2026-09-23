@@ -145,6 +145,25 @@ export default function DashboardUserReportsRoute() {
         },
       },
       {
+        key: "auditUser",
+        label: dashboardData.label(t, "auditUser"),
+        render: (record) => {
+          const nickname = String(record.auditUserNickname || "")
+          const username = String(record.auditUsername || "")
+          if (!nickname && !username) {
+            return <span className="text-muted-foreground">-</span>
+          }
+          return (
+            <div className="text-xs leading-5">
+              <div>{nickname || `@${username}`}</div>
+              {nickname && username && nickname !== username ? (
+                <div className="text-muted-foreground">@{username}</div>
+              ) : null}
+            </div>
+          )
+        },
+      },
+      {
         key: "reason",
         label: dashboardData.label(t, "reason"),
         className: "min-w-72",
@@ -274,7 +293,7 @@ function ReportProcessDialog({
           >
             {submittingStatus === 2
               ? t("dashboard.actions.save")
-              : "合规放行 (解冻上线)"}
+              : "合规放行"}
           </Button>
           <Button
             type="button"
@@ -284,7 +303,7 @@ function ReportProcessDialog({
           >
             {submittingStatus === 1
               ? t("dashboard.actions.save")
-              : "确认违规 (软删除下架)"}
+              : "确认违规"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -296,8 +315,14 @@ function ReportTargetPreview({ target }: { target: Record<string, unknown> }) {
   const title = target.title || target.nickname || target.username
   const content = target.content || target.description || target.summary
   const contentType = String(target.contentType || "")
+  const nickname = target.nickname ? String(target.nickname) : ""
+  const username = target.username ? String(target.username) : ""
+  const author =
+    nickname && username && nickname !== username
+      ? `${nickname} @${username}`
+      : nickname || (username ? `@${username}` : "")
   const meta = [
-    target.username ? `@${String(target.username)}` : "",
+    author,
     target.userId ? `userId: ${String(target.userId)}` : "",
     target.entityType ? `entityType: ${String(target.entityType)}` : "",
     target.entityId ? `entityId: ${String(target.entityId)}` : "",

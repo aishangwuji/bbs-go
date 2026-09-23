@@ -810,6 +810,7 @@ const deDE = {
       auditStatus: "Prüfstatus",
       auditTime: "Prüfzeit",
       auditUserId: "Prüfer-ID",
+      auditUser: "Bearbeiter",
       reason: "Grund",
       reportTarget: "Meldeobjekt",
     },

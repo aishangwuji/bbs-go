@@ -788,6 +788,7 @@ const enUS = {
       auditStatus: "Audit Status",
       auditTime: "Audit Time",
       auditUserId: "Auditor ID",
+      auditUser: "Operator",
       reason: "Reason",
       reportTarget: "Reported Target",
       isSpamProb: "Spam Probability",

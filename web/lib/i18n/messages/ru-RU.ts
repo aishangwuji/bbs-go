@@ -797,6 +797,7 @@ const ruRU = {
       auditStatus: "Статус проверки",
       auditTime: "Время проверки",
       auditUserId: "ID проверяющего",
+      auditUser: "Оператор",
       reason: "Причина",
       reportTarget: "Объект жалобы",
     },

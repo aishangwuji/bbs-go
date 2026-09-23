@@ -778,6 +778,7 @@ const koKR = {
       auditStatus: "검토 상태",
       auditTime: "검토 시간",
       auditUserId: "검토자 ID",
+      auditUser: "작업자",
       reason: "사유",
       reportTarget: "신고 대상",
     },
