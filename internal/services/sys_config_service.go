@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
+	"time"
 
 	"bbs-go/internal/pkg/params"
 
@@ -756,8 +757,8 @@ func (s *sysConfigService) GetJevRuleConfig() dto.JevRuleConfig {
 	return parseJevRuleConfig(str, defaultCfg)
 }
 
-// SetJevRuleConfig 保存 Jev 细粒度规则引擎编排配置
-func (s *sysConfigService) SetJevRuleConfig(cfg dto.JevRuleConfig) error {
+// SetJevRuleConfig 保存 Jev 细粒度规则引擎编排配置，并在同一事务中原子化归档版本快照
+func (s *sysConfigService) SetJevRuleConfig(cfg dto.JevRuleConfig, operatorId int64, operatorName string, remark string) error {
 	if cfg.MaxContentLength <= 0 {
 		cfg.MaxContentLength = 500
 	}
@@ -787,8 +788,45 @@ func (s *sysConfigService) SetJevRuleConfig(cfg dto.JevRuleConfig) error {
 	if err != nil {
 		return err
 	}
+
+	if strs.IsBlank(operatorName) {
+		operatorName = "system"
+	}
+	if strs.IsBlank(remark) {
+		remark = "保存规则配置"
+	}
+
+	now := dates.NowTimestamp()
+	version := fmt.Sprintf("v_%s%03d", time.Now().Format("20060102150405"), time.Now().Nanosecond()/1e6)
+
 	return sqls.DB().Transaction(func(tx *gorm.DB) error {
-		return s.setSingle(tx, constants.SysConfigJevRuleConfig, val, "Jev 规则引擎编排配置", "Jev 内容风控模型 State/Noul/Score/Choice 细粒度判定与处置规则")
+		// 1. 更新主配置 t_sys_config
+		if err := s.setSingle(tx, constants.SysConfigJevRuleConfig, val, "Jev 规则引擎编排配置", "Jev 内容风控模型 State/Noul/Score/Choice 细粒度判定与处置规则"); err != nil {
+			return err
+		}
+
+		// 2. 将旧历史快照的 is_active 置为 false
+		if err := repositories.JevRuleHistoryRepository.DeactivateAll(tx); err != nil {
+			return err
+		}
+
+		// 3. 写入当前版本的快照
+		history := &models.JevRuleHistory{
+			Version:       version,
+			ConfigContent: val,
+			Remark:        remark,
+			OperatorId:    operatorId,
+			OperatorName:  operatorName,
+			IsActive:      true,
+			CreateTime:    now,
+		}
+		if err := repositories.JevRuleHistoryRepository.Create(tx, history); err != nil {
+			return err
+		}
+
+		// 4. 修剪历史记录，仅保留最近 50 个版本
+		_ = repositories.JevRuleHistoryRepository.PruneOldVersions(tx, 50)
+		return nil
 	})
 }
 

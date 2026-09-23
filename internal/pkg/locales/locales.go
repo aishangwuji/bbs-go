@@ -60,6 +60,9 @@ func getLocaleByFile(file string) string {
 }
 
 func Get(key string) string {
+	if config.Instance == nil {
+		return key
+	}
 	v, ok := viperInstances[string(config.Instance.Language)]
 	if !ok {
 		slog.Error("locale not found", "locale", config.Instance.Language)

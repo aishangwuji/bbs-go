@@ -441,6 +441,10 @@ func registerAdminRoutes(group *gin.RouterGroup) {
 	jevRuleGroup.POST("/get", adminHandlers.JevRuleGet)
 	jevRuleGroup.POST("/save", adminHandlers.JevRuleSave)
 	jevRuleGroup.POST("/simulate", adminHandlers.JevRuleSimulate)
+	jevRuleGroup.GET("/history/list", adminHandlers.JevRuleHistoryList)
+	jevRuleGroup.POST("/history/list", adminHandlers.JevRuleHistoryList)
+	jevRuleGroup.GET("/history/:id", adminHandlers.JevRuleHistoryDetail)
+	jevRuleGroup.POST("/history/rollback", adminHandlers.JevRuleHistoryRollback)
 
 	voteGroup := group.Group("/vote")
 	voteGroup.POST("/list", adminHandlers.VoteList)

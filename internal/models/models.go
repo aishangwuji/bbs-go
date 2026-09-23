@@ -23,6 +23,7 @@ var Models = []interface{}{
 	&AgentToken{}, &AgentTokenApi{},
 	&UserGithubProfile{},
 	&ModerationRecord{},
+	&JevRuleHistory{},
 }
 
 type Model struct {
@@ -668,5 +669,17 @@ type ModerationRecord struct {
 	CreateTime         int64   `gorm:"not null;default:0" json:"createTime" form:"createTime"`                                     // 创建时间戳(毫秒)
 	UpdateTime         int64   `gorm:"not null;default:0" json:"updateTime" form:"updateTime"`                                     // 更新时间戳(毫秒)
 	DeletedAt          *int64  `gorm:"index:idx_moderation_deleted_at" json:"deletedAt,omitempty"`                                // 软删除时间戳(为空未删除)
+}
+
+// JevRuleHistory Jev 规则引擎编排配置历史版本快照
+type JevRuleHistory struct {
+	Model
+	Version       string `gorm:"size:32;not null;uniqueIndex:uk_jev_rule_version" json:"version" form:"version"` // 语义版本标识（如 v20260923.113000）
+	ConfigContent string `gorm:"type:text;not null" json:"configContent" form:"configContent"`                    // 完整规则配置 JSON 快照
+	Remark        string `gorm:"size:255;not null;default:''" json:"remark" form:"remark"`                         // 变更备注说明
+	OperatorId    int64  `gorm:"not null;default:0;index:idx_jev_rule_operator" json:"operatorId" form:"operatorId"` // 操作管理员用户编号
+	OperatorName  string `gorm:"size:64;not null;default:''" json:"operatorName" form:"operatorName"`             // 操作管理员用户名或昵称
+	IsActive      bool   `gorm:"not null;default:false;index:idx_jev_rule_is_active" json:"isActive" form:"isActive"` // 是否为当前生效版本
+	CreateTime    int64  `gorm:"not null;default:0;index:idx_jev_rule_history_create_time" json:"createTime" form:"createTime"` // 存档时间戳(毫秒)
 }
 

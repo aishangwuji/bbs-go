@@ -62,6 +62,8 @@ var (
 		{Method: "POST", Pattern: "/api/admin/jev-rule/get", Permissions: []PermissionDefinition{PermissionJevRuleView}},
 		{Method: "POST", Pattern: "/api/admin/jev-rule/save", Permissions: []PermissionDefinition{PermissionJevRuleUpdate}},
 		{Method: "POST", Pattern: "/api/admin/jev-rule/simulate", Permissions: []PermissionDefinition{PermissionJevRuleView}},
+		{Method: "POST", Pattern: "/api/admin/jev-rule/history/list", Permissions: []PermissionDefinition{PermissionJevRuleView}},
+		{Method: "POST", Pattern: "/api/admin/jev-rule/history/rollback", Permissions: []PermissionDefinition{PermissionJevRuleUpdate}},
 
 		{Method: "GET", Pattern: "/api/admin/user/*", Permissions: []PermissionDefinition{PermissionUserView}},
 		{Method: "GET", Pattern: "/api/admin/user/synccount", Permissions: []PermissionDefinition{PermissionUserUpdate}},

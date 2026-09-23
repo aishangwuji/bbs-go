@@ -11,13 +11,14 @@ import {
   FileCodeIcon,
   FileJsonIcon,
   FlaskConicalIcon,
+  HistoryIcon,
   InfoIcon,
   LayersIcon,
   ListFilterIcon,
   PercentIcon,
   PlayIcon,
   PlusIcon,
-  RefreshCwIcon,
+  RotateCcwIcon,
   SaveIcon,
   ScaleIcon,
   Trash2Icon,
@@ -30,6 +31,8 @@ import { PERMISSIONS } from "@/lib/auth/permissions.generated"
 import { userHasPermission } from "@/lib/auth/roles"
 import { useI18n } from "@/lib/i18n/provider"
 import { msgError, msgSuccess } from "@/lib/toast"
+import { formatDateTime } from "@/lib/format"
+import { cn } from "@/lib/utils"
 import { useCurrentUser } from "@/components/app/app-provider"
 import { ErrorPage } from "@/components/common/error-page"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -52,6 +55,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet"
 import { Input } from "@/components/ui/input"
 import { Progress } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
@@ -642,6 +652,169 @@ function ImportConfigDialog({
   )
 }
 
+type JevRuleHistoryRecord = {
+  id: number
+  version: string
+  configContent: string
+  remark: string
+  operatorId: number
+  operatorName: string
+  isActive: boolean
+  createTime: number
+}
+
+function HistoryDrawer({
+  open,
+  onOpenChange,
+  onLoadDraft,
+  onRollbackSuccess,
+  canUpdate,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onLoadDraft: (cfg: JevRuleConfig, version: string) => void
+  onRollbackSuccess: () => Promise<void>
+  canUpdate: boolean
+}) {
+  const [list, setList] = React.useState<JevRuleHistoryRecord[]>([])
+  const [loading, setLoading] = React.useState(false)
+  const [rollingId, setRollingId] = React.useState<number | null>(null)
+
+  const fetchHistory = React.useCallback(async () => {
+    try {
+      setLoading(true)
+      const res = await adminGet<{ results: JevRuleHistoryRecord[] }>(
+        "/api/admin/jev-rule/history/list?page=1&limit=50"
+      )
+      if (res?.results) {
+        setList(res.results)
+      }
+    } catch {
+      // 忽略读取错误
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  React.useEffect(() => {
+    if (open) {
+      void fetchHistory()
+    }
+  }, [open, fetchHistory])
+
+  const handleRollback = async (record: JevRuleHistoryRecord) => {
+    if (
+      !window.confirm(
+        `确定将规则回滚到历史版本【${record.version}】吗？\n该操作将直接生效于线上风控系统。`
+      )
+    ) {
+      return
+    }
+    try {
+      setRollingId(record.id)
+      await adminPostJson("/api/admin/jev-rule/history/rollback", {
+        historyId: record.id,
+      })
+      msgSuccess(`已成功回滚至版本 ${record.version}`)
+      await onRollbackSuccess()
+      await fetchHistory()
+    } catch (e: any) {
+      msgError(e?.message || "回滚失败")
+    } finally {
+      setRollingId(null)
+    }
+  }
+
+  const handleLoadToDraft = (record: JevRuleHistoryRecord) => {
+    try {
+      const cfg = JSON.parse(record.configContent) as JevRuleConfig
+      onLoadDraft(cfg, record.version)
+      msgSuccess(`已将版本 ${record.version} 载入为草稿，可在沙盒中测试`)
+      onOpenChange(false)
+    } catch {
+      msgError("解析历史配置快照失败")
+    }
+  }
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="w-[420px] sm:max-w-md flex flex-col p-0">
+        <SheetHeader className="p-4 border-b">
+          <SheetTitle className="flex items-center gap-2 text-base">
+            <HistoryIcon className="h-5 w-5 text-primary" />
+            规则配置历史版本
+          </SheetTitle>
+          <SheetDescription className="text-xs">
+            系统自动快照归档每次保存与回滚。支持将历史版本载入草稿仿真，或直接一键回滚。
+          </SheetDescription>
+        </SheetHeader>
+        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          {loading && list.length === 0 ? (
+            <div className="py-12 text-center text-xs text-muted-foreground">加载历史版本中...</div>
+          ) : list.length === 0 ? (
+            <div className="py-12 text-center text-xs text-muted-foreground">暂无历史归档记录</div>
+          ) : (
+            list.map((item) => (
+              <div
+                key={item.id}
+                className={cn(
+                  "rounded-lg border p-3 text-xs space-y-2 transition-colors",
+                  item.isActive ? "border-primary/50 bg-primary/5" : "bg-card"
+                )}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 font-mono font-semibold">
+                    <span>{item.version}</span>
+                    {item.isActive && (
+                      <Badge className="bg-emerald-600 hover:bg-emerald-600 text-white text-[10px] px-1.5 py-0 leading-tight">
+                        当前生效
+                      </Badge>
+                    )}
+                  </div>
+                  <span className="text-[11px] text-muted-foreground">
+                    {formatDateTime(item.createTime)}
+                  </span>
+                </div>
+                <div className="text-muted-foreground flex items-center justify-between">
+                  <span>操作人: <span className="text-foreground">{item.operatorName || "system"}</span></span>
+                  {item.remark && (
+                    <span className="truncate max-w-[180px]" title={item.remark}>
+                      {item.remark}
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center justify-end gap-2 pt-1 border-t">
+                  <Button
+                    variant="ghost"
+                    size="xs"
+                    onClick={() => handleLoadToDraft(item)}
+                    className="h-7 text-xs"
+                  >
+                    <FlaskConicalIcon className="mr-1 h-3.5 w-3.5" />
+                    载入草稿
+                  </Button>
+                  {canUpdate && (
+                    <Button
+                      variant={item.isActive ? "outline" : "default"}
+                      size="xs"
+                      disabled={item.isActive || rollingId === item.id}
+                      onClick={() => handleRollback(item)}
+                      className="h-7 text-xs"
+                    >
+                      <RotateCcwIcon className="mr-1 h-3.5 w-3.5" />
+                      {item.isActive ? "正在使用" : rollingId === item.id ? "回滚中..." : "一键回滚"}
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </SheetContent>
+    </Sheet>
+  )
+}
+
 export default function DashboardJevRulesRoute() {
   const { t } = useI18n()
   const user = useCurrentUser()
@@ -653,12 +826,11 @@ export default function DashboardJevRulesRoute() {
   const [saving, setSaving] = React.useState(false)
   const [exportDialogOpen, setExportDialogOpen] = React.useState(false)
   const [importDialogOpen, setImportDialogOpen] = React.useState(false)
+  const [historyDrawerOpen, setHistoryDrawerOpen] = React.useState(false)
 
   // Playground 状态
   const [simTitle, setSimTitle] = React.useState("")
-  const [simContent, setSimContent] = React.useState(
-    "垃圾，什么玩意，纯垃圾，乐色，纯废物，傻逼"
-  )
+  const [simContent, setSimContent] = React.useState("")
   const [simUseCurrentDraft, setSimUseCurrentDraft] = React.useState(true)
   const [simulating, setSimulating] = React.useState(false)
   const [simResult, setSimResult] = React.useState<SimulationDecision | null>(null)
@@ -706,19 +878,13 @@ export default function DashboardJevRulesRoute() {
     try {
       setSaving(true)
       await adminPostJson("/api/admin/jev-rule/save", config)
-      msgSuccess("Jev 规则引擎配置保存成功")
+      msgSuccess("Jev 规则引擎配置保存成功，已生成版本快照")
+      await loadConfig()
     } catch (err: unknown) {
       const e = err as Error
       msgError(e?.message || "保存配置失败")
     } finally {
       setSaving(false)
-    }
-  }
-
-  const handleReset = () => {
-    if (window.confirm("确定将规则配置重置为系统默认推荐预设吗？")) {
-      setConfig(JSON.parse(JSON.stringify(DEFAULT_CONFIG)))
-      msgSuccess("已恢复为默认推荐配置预设，请点击右上角“保存配置”生效")
     }
   }
 
@@ -870,9 +1036,14 @@ export default function DashboardJevRulesRoute() {
             <UploadIcon className="mr-1.5 h-4 w-4" />
             一键导入配置
           </Button>
-          <Button variant="outline" size="sm" onClick={handleReset} disabled={loading || saving}>
-            <RefreshCwIcon className="mr-1.5 h-4 w-4" />
-            恢复推荐预设
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setHistoryDrawerOpen(true)}
+            disabled={loading}
+          >
+            <HistoryIcon className="mr-1.5 h-4 w-4" />
+            历史版本
           </Button>
           {canUpdate && (
             <Button size="sm" onClick={handleSave} disabled={loading || saving}>
@@ -895,6 +1066,17 @@ export default function DashboardJevRulesRoute() {
         onImport={(imported) => {
           setConfig(imported)
         }}
+      />
+
+      <HistoryDrawer
+        open={historyDrawerOpen}
+        onOpenChange={setHistoryDrawerOpen}
+        onLoadDraft={(imported) => {
+          setConfig(imported)
+          setSimUseCurrentDraft(true)
+        }}
+        onRollbackSuccess={loadConfig}
+        canUpdate={canUpdate}
       />
 
       <Tabs defaultValue="playground" className="space-y-4">
@@ -957,7 +1139,7 @@ export default function DashboardJevRulesRoute() {
                     <Input
                       value={simTitle}
                       onChange={(e) => setSimTitle(e.target.value)}
-                      placeholder="例如：急急急，请问这个怎么解决？"
+                      placeholder=""
                       className="mt-1"
                     />
                   </div>
@@ -1073,7 +1255,7 @@ export default function DashboardJevRulesRoute() {
                       </div>
                     ) : (
                       <div className="py-8 text-center text-xs text-muted-foreground">
-                        在左侧输入测试内容并点击“开始执行 Jev 仿真评测”即可在此查看完整的量化指标分布
+                        {t("common.noData")}
                       </div>
                     )}
                   </div>
