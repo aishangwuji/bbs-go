@@ -19,10 +19,11 @@ const frFR = {
     },
     createBtn: {
       create: "Publier",
-      topic: "Sujet",
-      qa: "Q&R",
-      tweet: "Publication",
-      article: "Article",
+      topic: "Créer un sujet",
+      qa: "Poser une question",
+      tweet: "Partager une actu",
+      article: "Écrire un article",
+      moreOptions: "Plus d'options",
     },
     header: {
       profile: "Centre personnel",

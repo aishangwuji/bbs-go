@@ -19,10 +19,11 @@ const deDE = {
     },
     createBtn: {
       create: "Veröffentlichen",
-      topic: "Thema",
-      qa: "Frage & Antwort",
-      tweet: "Beitrag",
-      article: "Artikel",
+      topic: "Beitrag erstellen",
+      qa: "Frage stellen",
+      tweet: "Update teilen",
+      article: "Artikel schreiben",
+      moreOptions: "Weitere Optionen",
     },
     header: {
       profile: "Persönlicher Bereich",

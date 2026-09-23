@@ -19,10 +19,11 @@ const jaJP = {
     },
     createBtn: {
       create: "投稿",
-      topic: "トピック",
-      qa: "Q&A",
-      tweet: "つぶやき",
-      article: "記事",
+      topic: "トピックを投稿",
+      qa: "質問する",
+      tweet: "つぶやきを投稿",
+      article: "記事を書く",
+      moreOptions: "その他の投稿オプション",
     },
     header: {
       profile: "マイページ",

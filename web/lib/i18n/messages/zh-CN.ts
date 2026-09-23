@@ -19,10 +19,11 @@ const zhCN = {
     },
     createBtn: {
       create: "发表",
-      topic: "话题",
-      qa: "问答",
-      tweet: "动态",
-      article: "文章",
+      topic: "发帖子",
+      qa: "提问题",
+      tweet: "发动态",
+      article: "写文章",
+      moreOptions: "更多发布选项",
     },
     header: {
       profile: "个人中心",

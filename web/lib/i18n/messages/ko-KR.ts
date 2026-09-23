@@ -19,10 +19,11 @@ const koKR = {
     },
     createBtn: {
       create: "게시",
-      topic: "토픽",
-      qa: "Q&A",
-      tweet: "피드",
-      article: "아티클",
+      topic: "토픽 작성",
+      qa: "질문하기",
+      tweet: "피드 올리기",
+      article: "아티클 작성",
+      moreOptions: "기타 게시 옵션",
     },
     header: {
       profile: "개인 센터",

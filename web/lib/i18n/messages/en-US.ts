@@ -18,11 +18,12 @@ const enUS = {
       error: "Couldn't load more items. Try again.",
     },
     createBtn: {
-      create: "Create",
-      topic: "Topic",
-      qa: "Q&A",
-      tweet: "Update",
-      article: "Article",
+      create: "Publish",
+      topic: "Post Topic",
+      qa: "Ask Question",
+      tweet: "Share Update",
+      article: "Write Article",
+      moreOptions: "More options",
     },
     header: {
       profile: "Profile",

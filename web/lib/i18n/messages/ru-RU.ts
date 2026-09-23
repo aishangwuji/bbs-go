@@ -19,10 +19,11 @@ const ruRU = {
     },
     createBtn: {
       create: "Опубликовать",
-      topic: "Тема",
-      qa: "Вопрос",
-      tweet: "Пост",
-      article: "Статья",
+      topic: "Создать тему",
+      qa: "Задать вопрос",
+      tweet: "Опубликовать пост",
+      article: "Написать статью",
+      moreOptions: "Другие варианты",
     },
     header: {
       profile: "Личный кабинет",

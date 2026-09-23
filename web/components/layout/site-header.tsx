@@ -96,20 +96,20 @@ function moduleItems(config: SiteConfig | null, t: TFunction) {
     icon: React.ComponentType<{ className?: string }>
   }> = []
 
-  if (enabledModules?.tweet) {
-    items.push({
-      command: "tweet",
-      name: t("common.createBtn.tweet"),
-      href: "/topic/create?type=1",
-      icon: MessageCircle,
-    })
-  }
   if (enabledModules?.topic) {
     items.push({
       command: "topic",
       name: t("common.createBtn.topic"),
       href: "/topic/create",
       icon: MessageSquare,
+    })
+  }
+  if (enabledModules?.tweet) {
+    items.push({
+      command: "tweet",
+      name: t("common.createBtn.tweet"),
+      href: "/topic/create?type=1",
+      icon: MessageCircle,
     })
   }
   if (enabledModules?.qa) {
@@ -136,36 +136,79 @@ function CreateTopicButton({
   config,
   t,
   className,
+  onNavigate,
 }: {
   config: SiteConfig | null
   t: TFunction
   className?: string
+  onNavigate?: () => void
 }) {
   const items = moduleItems(config, t)
   if (!items.length) return null
 
+  const primaryItem =
+    items.find((item) => item.command === "topic") || items[0]
+  const secondaryItems = items.filter(
+    (item) => item.command !== primaryItem.command
+  )
+
+  if (secondaryItems.length === 0) {
+    return (
+      <Button asChild className={cn("h-8 gap-1.5", className)}>
+        <Link href={primaryItem.href} onClick={onNavigate}>
+          <Plus className="h-4 w-4" />
+          <span>{primaryItem.name}</span>
+        </Link>
+      </Button>
+    )
+  }
+
+  const isFullWidth = className?.includes("w-full")
+
   return (
-    <DropdownMenu modal={false}>
-      <DropdownMenuTrigger asChild>
-        <Button className={cn("h-8", className)}>
-          <Plus />
-          {t("common.createBtn.create")}
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        {items.map((item) => {
-          const Icon = item.icon
-          return (
-            <DropdownMenuItem key={item.command} asChild>
-              <Link href={item.href}>
-                <Icon className="h-4 w-4" />
-                <span>{item.name}</span>
-              </Link>
-            </DropdownMenuItem>
-          )
-        })}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <div className={cn("inline-flex items-center", className)}>
+      <Button
+        asChild
+        className={cn(
+          "h-8 rounded-r-none border-r border-primary-foreground/20 px-3 gap-1.5 focus-visible:z-10",
+          isFullWidth && "flex-1 justify-center"
+        )}
+      >
+        <Link href={primaryItem.href} onClick={onNavigate}>
+          <Plus className="h-4 w-4" />
+          <span>{primaryItem.name}</span>
+        </Link>
+      </Button>
+      <DropdownMenu modal={false}>
+        <DropdownMenuTrigger asChild>
+          <Button
+            size="icon-sm"
+            className="h-8 rounded-l-none px-1.5 focus-visible:z-10"
+            aria-label={t("common.createBtn.moreOptions")}
+            title={t("common.createBtn.moreOptions")}
+          >
+            <ChevronDown className="h-3.5 w-3.5" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-36">
+          {secondaryItems.map((item) => {
+            const Icon = item.icon
+            return (
+              <DropdownMenuItem key={item.command} asChild>
+                <Link
+                  href={item.href}
+                  onClick={onNavigate}
+                  className="flex items-center gap-2 cursor-pointer"
+                >
+                  <Icon className="h-4 w-4 text-muted-foreground" />
+                  <span>{item.name}</span>
+                </Link>
+              </DropdownMenuItem>
+            )
+          })}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
   )
 }
 
@@ -493,7 +536,12 @@ function MobileMenu({
           </div>
 
           <div className="px-3">
-            <CreateTopicButton config={config} t={t} />
+            <CreateTopicButton
+              config={config}
+              t={t}
+              className="w-full flex"
+              onNavigate={closeMobileMenu}
+            />
           </div>
 
           {user ? (
