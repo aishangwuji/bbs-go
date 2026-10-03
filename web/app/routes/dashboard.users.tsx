@@ -24,6 +24,17 @@ export default function DashboardUsersRoute() {
       { name: "username", label: dashboardData.label(t, "username") },
       { name: "nickname", label: dashboardData.label(t, "nickname") },
       {
+        name: "roleId",
+        label: dashboardData.label(t, "roles"),
+        type: "select",
+        // 角色下拉与下方编辑表单的 roleIds 共用同一数据源（/dashboard/roles 同源），
+        // 选项由 use-dashboard-data-page 按 optionsEndpoint 自动拉取；清空即取消筛选。
+        optionsEndpoint: "/api/admin/role/roles",
+        optionLabel: (record) =>
+          String(record.name || record.code || record.id),
+        optionValue: (record) => record.id as number,
+      },
+      {
         name: "forbidden",
         label: dashboardData.label(t, "forbidden"),
         type: "select",

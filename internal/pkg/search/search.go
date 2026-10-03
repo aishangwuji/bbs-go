@@ -37,6 +37,16 @@ func Init() {
 	}
 }
 
+// Close 释放全局索引句柄（主要供单测 Cleanup 在 TempDir 删除前调用）。
+// Reason: bleve 底层 bolt 文件在 Windows 下被进程占用时无法删除，
+// 不关闭会导致 t.TempDir() 清理失败（Linux 无此问题，CI 不受影响）。
+func Close() error {
+	if index != nil {
+		return index.Close()
+	}
+	return nil
+}
+
 func NewTopicDoc(topic *models.Topic) *TopicDocument {
 	if topic == nil {
 		return nil

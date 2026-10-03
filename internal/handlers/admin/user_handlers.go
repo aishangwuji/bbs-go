@@ -111,6 +111,13 @@ func UserList(ctx *gin.Context) {
 			cnd.Where("(forbidden_end_time >= ? AND forbidden_end_time <= ?)", 0, now)
 		}
 	}
+	// 按角色筛选：t_user_role 为用户-角色映射表（表前缀见 install.go NamingStrategy）。
+	// roleId 缺失/非法/<=0 时忽略本条件；子查询参数化传值，防 SQL 注入。
+	// Business Rule: 以映射表为准而非 t_user.roles 冗余列，后者是更新角色时同步的
+	// 展示字段，历史脏数据下仍以映射表为真源。
+	if roleId, ok := params.GetInt64(ctx, "roleId"); ok && roleId > 0 {
+		cnd.Where("id IN (SELECT user_id FROM t_user_role WHERE role_id = ?)", roleId)
+	}
 	list, paging := services.UserService.FindPageByCnd(cnd.Desc("id"))
 	var itemList []map[string]interface{}
 	for _, user := range list {

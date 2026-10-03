@@ -112,6 +112,45 @@ func TestUserListFiltersNonForbiddenUsers(t *testing.T) {
 	}
 }
 
+func TestUserListFiltersByRole(t *testing.T) {
+	db := setupAdminUserTestDB(t)
+	mustCreateUser(t, db, &models.User{Model: models.Model{Id: 1}, Nickname: "alice"})
+	mustCreateUser(t, db, &models.User{Model: models.Model{Id: 2}, Nickname: "bob"})
+	mustCreateUser(t, db, &models.User{Model: models.Model{Id: 3}, Nickname: "carol"})
+	mustCreateUser(t, db, &models.User{Model: models.Model{Id: 4}, Nickname: "dave"})
+	mustCreateRole(t, db, &models.Role{Model: models.Model{Id: 10}, Name: "管理员", Code: "admin"})
+	mustCreateRole(t, db, &models.Role{Model: models.Model{Id: 11}, Name: "版主", Code: "moderator"})
+	mustCreateUserRole(t, db, 1, 10)
+	mustCreateUserRole(t, db, 2, 10)
+	mustCreateUserRole(t, db, 3, 11)
+	// dave 无任何角色
+
+	users := postUserList(t, "roleId=10")
+	gotIDs := make([]int64, 0, len(users))
+	for _, user := range users {
+		gotIDs = append(gotIDs, int64(user["id"].(float64)))
+	}
+	wantIDs := []int64{2, 1}
+	if len(gotIDs) != len(wantIDs) {
+		t.Fatalf("expected ids %v, got %v", wantIDs, gotIDs)
+	}
+	for i := range wantIDs {
+		if gotIDs[i] != wantIDs[i] {
+			t.Fatalf("expected ids %v, got %v", wantIDs, gotIDs)
+		}
+	}
+
+	// 不存在的角色：空结果而非全量（防止超管误以为“该角色无人”实则过滤失效）
+	if users := postUserList(t, "roleId=999"); len(users) != 0 {
+		t.Fatalf("expected empty results for unknown role, got %d", len(users))
+	}
+
+	// 非法 roleId：忽略条件返回全量（与 id/username 等其他过滤器的容错一致）
+	if users := postUserList(t, "roleId=abc"); len(users) != 4 {
+		t.Fatalf("expected all users for invalid roleId, got %d", len(users))
+	}
+}
+
 func TestUserResetPasswordDisablesUserTokens(t *testing.T) {
 	db := setupAdminUserTestDB(t)
 	mustCreateUser(t, db, &models.User{
@@ -189,6 +228,10 @@ func setupAdminUserTestDB(t *testing.T) *gorm.DB {
 		},
 	}
 	search.Init()
+	// 先于 TempDir 清理关闭索引句柄（LIFO），否则 Windows 下 bolt 文件被占用导致清理失败。
+	t.Cleanup(func() {
+		_ = search.Close()
+	})
 
 	dsn := fmt.Sprintf("file:admin_user_test_%d?mode=memory&cache=shared&_fk=1", time.Now().UnixNano())
 	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{
@@ -213,7 +256,7 @@ func setupAdminUserTestDB(t *testing.T) *gorm.DB {
 	})
 
 	sqls.SetDB(db)
-	if err := db.AutoMigrate(&models.User{}, &models.UserToken{}); err != nil {
+	if err := db.AutoMigrate(&models.User{}, &models.UserToken{}, &models.Role{}, &models.UserRole{}); err != nil {
 		t.Fatalf("auto migrate users: %v", err)
 	}
 	return db
@@ -232,6 +275,22 @@ func mustCreateUserToken(t *testing.T, db *gorm.DB, userToken *models.UserToken)
 
 	if err := db.Create(userToken).Error; err != nil {
 		t.Fatalf("create user token: %v", err)
+	}
+}
+
+func mustCreateRole(t *testing.T, db *gorm.DB, role *models.Role) {
+	t.Helper()
+
+	if err := db.Create(role).Error; err != nil {
+		t.Fatalf("create role: %v", err)
+	}
+}
+
+func mustCreateUserRole(t *testing.T, db *gorm.DB, userId, roleId int64) {
+	t.Helper()
+
+	if err := db.Create(&models.UserRole{UserId: userId, RoleId: roleId}).Error; err != nil {
+		t.Fatalf("create user role: %v", err)
 	}
 }
 
