@@ -121,4 +121,5 @@ func init() {
 	register(19, "add space modules config and github pr fields", migrate_space_and_github_pr_config)
 	register(20, "create moderation record table", migrate_moderation_record)
 	register(21, "create jev rule history table", migrate_jev_rule_history)
+	register(22, "add moderation decision snapshot fields", migrate_moderation_decision_snapshot)
 }

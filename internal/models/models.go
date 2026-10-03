@@ -664,7 +664,9 @@ type ModerationRecord struct {
 	ToxicityScore      float64 `gorm:"type:decimal(4,2);not null;default:0" json:"toxicityScore" form:"toxicityScore"`            // Jev Score: 违规攻击性得分(0~2)
 	ToxicityConfidence float64 `gorm:"type:decimal(5,4);not null;default:0" json:"toxicityConfidence" form:"toxicityConfidence"`  // Jev Score: 判定置信度(0~1)
 	SuggestedAction    string  `gorm:"size:32;not null" json:"suggestedAction" form:"suggestedAction"`                            // Jev 建议动作：pass-放行, review-待审, reject-拒绝
-	FinalAction        string  `gorm:"size:32;not null;default:'pending';index:idx_moderation_final_action" json:"finalAction"`    // 最终处置：pass-放行, review-待审, reject-已拒绝
+	FinalAction        string  `gorm:"size:32;not null;default:'pending';index:idx_moderation_final_action" json:"finalAction" form:"finalAction"`    // 最终处置：pass-放行, review-待审, reject-已拒绝
+	HitReasons         string  `gorm:"type:text" json:"hitReasons" form:"hitReasons"`                                             // 命中原因 JSON 数组（触发下架/待审的规则原因，表达当次生效策略）
+	DimensionResults   string  `gorm:"type:text" json:"dimensionResults" form:"dimensionResults"`                                 // 全维度评估快照 JSON 数组（当次配置的各维度 key/label/取值/判定，配置变更后仍可还原）
 	RawResponse        string  `gorm:"type:text" json:"rawResponse" form:"rawResponse"`                                           // Jev 原始完整 JSON 响应
 	CreateTime         int64   `gorm:"not null;default:0" json:"createTime" form:"createTime"`                                     // 创建时间戳(毫秒)
 	UpdateTime         int64   `gorm:"not null;default:0" json:"updateTime" form:"updateTime"`                                     // 更新时间戳(毫秒)

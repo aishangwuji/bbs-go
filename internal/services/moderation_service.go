@@ -31,15 +31,30 @@ type moderationService struct {
 
 // ModerationDecision 表示经过 Jev 规则引擎求值后的决策结果
 type ModerationDecision struct {
-	SuggestedAction    string            `json:"suggestedAction"`    // "pass" | "review" | "reject"
-	FinalAction        string            `json:"finalAction"`        // 最终采取动作
-	RejectReasons      []string          `json:"rejectReasons"`      // 触发下架的原因列表
-	ReviewReasons      []string          `json:"reviewReasons"`      // 触发待审的原因列表
-	IsSpamProb         float64           `json:"isSpamProb"`         // 垃圾营销概率
-	ToxicityScore      float64           `json:"toxicityScore"`      // 攻击辱骂得分
-	ToxicityConfidence float64           `json:"toxicityConfidence"` // 置信度
-	ChoiceResults      map[string]string `json:"choiceResults"`      // Choice 各维度的优胜选项
-	RawResponse        string            `json:"rawResponse"`        // Jev 原始返回 JSON
+	SuggestedAction    string                      `json:"suggestedAction"`    // "pass" | "review" | "reject"
+	FinalAction        string                      `json:"finalAction"`        // 最终采取动作
+	RejectReasons      []string                    `json:"rejectReasons"`      // 触发下架的原因列表
+	ReviewReasons      []string                    `json:"reviewReasons"`      // 触发待审的原因列表
+	IsSpamProb         float64                     `json:"isSpamProb"`         // 垃圾营销概率
+	ToxicityScore      float64                     `json:"toxicityScore"`      // 攻击辱骂得分
+	ToxicityConfidence float64                     `json:"toxicityConfidence"` // 置信度
+	ChoiceResults      map[string]string           `json:"choiceResults"`      // Choice 各维度的优胜选项
+	Dimensions         []ModerationDimensionResult `json:"dimensions"`         // 全维度评估快照（当次配置）
+	RawResponse        string                      `json:"rawResponse"`        // Jev 原始返回 JSON
+}
+
+// ModerationDimensionResult 单个评测维度的结果快照。
+// 由于 Jev 规则策略可在后台动态增删改维度，这里按「当次生效配置」固化维度信息，
+// 使风控记录在配置变更后仍能自洽还原判定依据。
+type ModerationDimensionResult struct {
+	Type        string  `json:"type"`                  // 维度类型：noul | score | choice
+	Key         string  `json:"key"`                   // 维度唯一标识
+	Label       string  `json:"label"`                 // 维度展示名（当次配置）
+	Value       string  `json:"value"`                 // 取值展示（概率/得分/选项）
+	Description string  `json:"description,omitempty"` // 取值含义（如 Choice 选项说明）
+	Confidence  float64 `json:"confidence,omitempty"`  // 判定置信度（score/choice）
+	Verdict     string  `json:"verdict"`               // 判定：pass-放行, review-待审, reject-下架
+	Reason      string  `json:"reason,omitempty"`      // 命中原因（verdict != pass 时）
 }
 
 // getClient 根据当前最新配置构建 Jev 客户端实例
@@ -138,14 +153,24 @@ func (s *moderationService) evaluateContent(ctx context.Context, client *jev.Cli
 		return nil, nil, err
 	}
 
-	rawJSON, _ := json.Marshal(resp)
+	decision := buildDecisionFromResponse(resp, ruleCfg)
+	if rawJSON, err := json.Marshal(resp); err == nil {
+		decision.RawResponse = string(rawJSON)
+	}
+
+	return decision, resp, nil
+}
+
+// buildDecisionFromResponse 依据规则配置对 Jev 原始响应求值，产出裁决结果与全维度快照。
+// 抽离为不依赖网络/DB 的纯函数，便于单测覆盖规则求值逻辑。
+func buildDecisionFromResponse(resp *jev.SystemOneResponse, ruleCfg dto.JevRuleConfig) *ModerationDecision {
 	decision := &ModerationDecision{
 		SuggestedAction: "pass",
 		FinalAction:     "pass",
 		RejectReasons:   make([]string, 0),
 		ReviewReasons:   make([]string, 0),
 		ChoiceResults:   make(map[string]string),
-		RawResponse:     string(rawJSON),
+		Dimensions:      make([]ModerationDimensionResult, 0),
 	}
 
 	// 1. 评估 Noul 概率问题
@@ -160,11 +185,24 @@ func (s *moderationService) evaluateContent(ctx context.Context, client *jev.Cli
 		if n.Key == "is_spam" {
 			decision.IsSpamProb = ans.Noul
 		}
-		if n.RejectThreshold > 0 && ans.Noul >= n.RejectThreshold {
-			decision.RejectReasons = append(decision.RejectReasons, fmt.Sprintf("Noul [%s](%s) 概率 %.2f >= 下架阈值 %.2f", n.Label, n.Key, ans.Noul, n.RejectThreshold))
-		} else if n.ReviewThreshold > 0 && ans.Noul >= n.ReviewThreshold {
-			decision.ReviewReasons = append(decision.ReviewReasons, fmt.Sprintf("Noul [%s](%s) 概率 %.2f >= 待审阈值 %.2f", n.Label, n.Key, ans.Noul, n.ReviewThreshold))
+		dim := ModerationDimensionResult{
+			Type:  "noul",
+			Key:   n.Key,
+			Label: n.Label,
+			Value: fmt.Sprintf("%.2f", ans.Noul),
 		}
+		if n.RejectThreshold > 0 && ans.Noul >= n.RejectThreshold {
+			dim.Verdict = "reject"
+			dim.Reason = fmt.Sprintf("Noul [%s](%s) 概率 %.2f >= 下架阈值 %.2f", n.Label, n.Key, ans.Noul, n.RejectThreshold)
+			decision.RejectReasons = append(decision.RejectReasons, dim.Reason)
+		} else if n.ReviewThreshold > 0 && ans.Noul >= n.ReviewThreshold {
+			dim.Verdict = "review"
+			dim.Reason = fmt.Sprintf("Noul [%s](%s) 概率 %.2f >= 待审阈值 %.2f", n.Label, n.Key, ans.Noul, n.ReviewThreshold)
+			decision.ReviewReasons = append(decision.ReviewReasons, dim.Reason)
+		} else {
+			dim.Verdict = "pass"
+		}
+		decision.Dimensions = append(decision.Dimensions, dim)
 	}
 
 	// 2. 评估 Score 阶梯打分问题
@@ -180,11 +218,25 @@ func (s *moderationService) evaluateContent(ctx context.Context, client *jev.Cli
 			decision.ToxicityScore = ans.Score
 			decision.ToxicityConfidence = ans.Confidence
 		}
-		if sc.RejectThreshold > 0 && ans.Score >= sc.RejectThreshold {
-			decision.RejectReasons = append(decision.RejectReasons, fmt.Sprintf("Score [%s](%s) 得分 %.2f >= 下架阈值 %.2f", sc.Label, sc.Key, ans.Score, sc.RejectThreshold))
-		} else if sc.ReviewThreshold > 0 && ans.Score >= sc.ReviewThreshold {
-			decision.ReviewReasons = append(decision.ReviewReasons, fmt.Sprintf("Score [%s](%s) 得分 %.2f >= 待审阈值 %.2f", sc.Label, sc.Key, ans.Score, sc.ReviewThreshold))
+		dim := ModerationDimensionResult{
+			Type:       "score",
+			Key:        sc.Key,
+			Label:      sc.Label,
+			Value:      fmt.Sprintf("%.2f", ans.Score),
+			Confidence: ans.Confidence,
 		}
+		if sc.RejectThreshold > 0 && ans.Score >= sc.RejectThreshold {
+			dim.Verdict = "reject"
+			dim.Reason = fmt.Sprintf("Score [%s](%s) 得分 %.2f >= 下架阈值 %.2f", sc.Label, sc.Key, ans.Score, sc.RejectThreshold)
+			decision.RejectReasons = append(decision.RejectReasons, dim.Reason)
+		} else if sc.ReviewThreshold > 0 && ans.Score >= sc.ReviewThreshold {
+			dim.Verdict = "review"
+			dim.Reason = fmt.Sprintf("Score [%s](%s) 得分 %.2f >= 待审阈值 %.2f", sc.Label, sc.Key, ans.Score, sc.ReviewThreshold)
+			decision.ReviewReasons = append(decision.ReviewReasons, dim.Reason)
+		} else {
+			dim.Verdict = "pass"
+		}
+		decision.Dimensions = append(decision.Dimensions, dim)
 	}
 
 	// 3. 评估 Choice 离散归因分类问题
@@ -197,20 +249,38 @@ func (s *moderationService) evaluateContent(ctx context.Context, client *jev.Cli
 			continue
 		}
 		decision.ChoiceResults[ch.Key] = ans.Choice
+		dim := ModerationDimensionResult{
+			Type:        "choice",
+			Key:         ch.Key,
+			Label:       ch.Label,
+			Value:       ans.Choice,
+			Description: ch.Criteria[ans.Choice],
+			Confidence:  ans.Confidence,
+		}
 		// 检查自动下架命中
 		for _, opt := range ch.AutoRejectOptions {
 			if ans.Choice == opt {
-				decision.RejectReasons = append(decision.RejectReasons, fmt.Sprintf("Choice [%s](%s) 归因命中高危分类 [%s]", ch.Label, ch.Key, ans.Choice))
+				dim.Verdict = "reject"
+				dim.Reason = fmt.Sprintf("Choice [%s](%s) 归因命中高危分类 [%s]", ch.Label, ch.Key, ans.Choice)
+				decision.RejectReasons = append(decision.RejectReasons, dim.Reason)
 				break
 			}
 		}
 		// 检查人工待审命中
-		for _, opt := range ch.AutoReviewOptions {
-			if ans.Choice == opt {
-				decision.ReviewReasons = append(decision.ReviewReasons, fmt.Sprintf("Choice [%s](%s) 归因命中待审分类 [%s]", ch.Label, ch.Key, ans.Choice))
-				break
+		if dim.Verdict == "" {
+			for _, opt := range ch.AutoReviewOptions {
+				if ans.Choice == opt {
+					dim.Verdict = "review"
+					dim.Reason = fmt.Sprintf("Choice [%s](%s) 归因命中待审分类 [%s]", ch.Label, ch.Key, ans.Choice)
+					decision.ReviewReasons = append(decision.ReviewReasons, dim.Reason)
+					break
+				}
 			}
 		}
+		if dim.Verdict == "" {
+			dim.Verdict = "pass"
+		}
+		decision.Dimensions = append(decision.Dimensions, dim)
 	}
 
 	// 综合裁决优先级：任意维度触发 Reject 则下架；否则若有触发 Review 则待审；否则通过
@@ -222,7 +292,37 @@ func (s *moderationService) evaluateContent(ctx context.Context, client *jev.Cli
 		decision.FinalAction = "review"
 	}
 
-	return decision, resp, nil
+	return decision
+}
+
+// marshalHitReasons 汇总当次触发下架/待审的命中原因，序列化为 JSON 数组文本；无命中返回空串。
+func marshalHitReasons(decision *ModerationDecision) string {
+	if decision == nil {
+		return ""
+	}
+	reasons := make([]string, 0, len(decision.RejectReasons)+len(decision.ReviewReasons))
+	reasons = append(reasons, decision.RejectReasons...)
+	reasons = append(reasons, decision.ReviewReasons...)
+	if len(reasons) == 0 {
+		return ""
+	}
+	b, err := json.Marshal(reasons)
+	if err != nil {
+		return ""
+	}
+	return string(b)
+}
+
+// marshalDimensionResults 将全维度评估快照序列化为 JSON 文本；无维度返回空串。
+func marshalDimensionResults(dimensions []ModerationDimensionResult) string {
+	if len(dimensions) == 0 {
+		return ""
+	}
+	b, err := json.Marshal(dimensions)
+	if err != nil {
+		return ""
+	}
+	return string(b)
 }
 
 // Simulate 提供给管理后台 Playground 的即时仿真评测接口
@@ -302,6 +402,8 @@ func (s *moderationService) AuditTopic(ctx context.Context, topic *models.Topic)
 		ToxicityConfidence: decision.ToxicityConfidence,
 		SuggestedAction:    decision.SuggestedAction,
 		FinalAction:        decision.FinalAction,
+		HitReasons:         marshalHitReasons(decision),
+		DimensionResults:   marshalDimensionResults(decision.Dimensions),
 		RawResponse:        decision.RawResponse,
 		CreateTime:         now,
 		UpdateTime:         now,
@@ -376,6 +478,8 @@ func (s *moderationService) AuditComment(ctx context.Context, comment *models.Co
 		ToxicityConfidence: decision.ToxicityConfidence,
 		SuggestedAction:    decision.SuggestedAction,
 		FinalAction:        decision.FinalAction,
+		HitReasons:         marshalHitReasons(decision),
+		DimensionResults:   marshalDimensionResults(decision.Dimensions),
 		RawResponse:        decision.RawResponse,
 		CreateTime:         now,
 		UpdateTime:         now,
@@ -445,6 +549,8 @@ func (s *moderationService) AuditArticle(ctx context.Context, article *models.Ar
 		ToxicityConfidence: decision.ToxicityConfidence,
 		SuggestedAction:    decision.SuggestedAction,
 		FinalAction:        decision.FinalAction,
+		HitReasons:         marshalHitReasons(decision),
+		DimensionResults:   marshalDimensionResults(decision.Dimensions),
 		RawResponse:        decision.RawResponse,
 		CreateTime:         now,
 		UpdateTime:         now,
