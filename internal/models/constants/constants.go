@@ -1,10 +1,12 @@
 package constants
 
+// UploadMaxBytes 上传单文件上限（10MB）：单位换算只有两级 1024（MB→字节）。
+// 注意：曾误写为三级 1024（实际放行 10GB），已修正。
 const (
 	DefaultTokenExpireDays       = 7   // 用户登录token默认有效期
 	SummaryLen                   = 256 // 摘要长度
 	UploadMaxM                   = 10
-	UploadMaxBytes         int64 = 1024 * 1024 * 1024 * UploadMaxM
+	UploadMaxBytes         int64 = 1024 * 1024 * UploadMaxM
 	CookieTokenKey               = "bbsgo_token"
 	TopicListPageSize            = 30 // 帖子列表分页大小
 )

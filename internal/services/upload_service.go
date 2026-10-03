@@ -2,6 +2,7 @@ package services
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"sync"
@@ -9,8 +10,11 @@ import (
 	"github.com/mlogclub/simple/common/strs"
 	"github.com/mlogclub/simple/common/urls"
 
+	"bbs-go/internal/models/constants"
 	"bbs-go/internal/models/dto"
 	"bbs-go/internal/pkg/bbsurls"
+	"bbs-go/internal/pkg/imageutil"
+	"bbs-go/internal/pkg/locales"
 	"bbs-go/internal/pkg/respath"
 	"bbs-go/internal/pkg/uploader"
 )
@@ -63,19 +67,35 @@ func (s *uploadService) ObjectURL(key string) string {
 }
 
 // PutImage 上传图片（已有完整字节）；key 使用内容 MD5，供 CopyImage 等场景。
+// Business Rule: 入库前先经 imageutil.NormalizeImage 统一尺寸（大图压到长边 1920），
+// 小图/特殊格式原样透传；MD5 key 按处理后字节计算。
 func (s *uploadService) PutImage(data []byte, contentType string) (string, error) {
-	contentType = uploader.NormalizeImageContentType(contentType)
+	if int64(len(data)) > constants.UploadMaxBytes {
+		return "", errors.New(locales.Getf("upload.image_too_large", constants.UploadMaxM))
+	}
+	data, contentType = imageutil.NormalizeImage(data, contentType)
 	key := uploader.GenerateImageKey(data, contentType)
 	opts := &uploader.PutOptions{ContentType: contentType, ContentLength: int64(len(data))}
 	return s.putObject(key, bytes.NewReader(data), opts)
 }
 
-// PutImageStream 流式上传图片；key 使用 UUID，无需先读完整 body。
+// PutImageStream 流式上传图片；全站图片入口的唯一可信收敛点。
+// Reason: header.Size 不可信（chunked 时为 0、客户端可伪造），此处以 LimitReader
+// 为准二次兜底，handler 的 header.Size 校验仅作快速失败。代价是请求期常驻一份
+// 文件字节（上限 UploadMaxBytes=10MB 有界）：内存换确定性，必须解码才知道尺寸。
 func (s *uploadService) PutImageStream(body io.Reader, contentLength int64, contentType string) (string, error) {
-	contentType = uploader.NormalizeImageContentType(contentType)
+	var data []byte
+	data, err := io.ReadAll(io.LimitReader(body, constants.UploadMaxBytes+1))
+	if err != nil {
+		return "", err
+	}
+	if int64(len(data)) > constants.UploadMaxBytes {
+		return "", errors.New(locales.Getf("upload.image_too_large", constants.UploadMaxM))
+	}
+	data, contentType = imageutil.NormalizeImage(data, contentType)
 	key := uploader.GenerateImageKeyByContentType(contentType)
-	opts := &uploader.PutOptions{ContentType: contentType, ContentLength: contentLength}
-	return s.putObject(key, body, opts)
+	opts := &uploader.PutOptions{ContentType: contentType, ContentLength: int64(len(data))}
+	return s.putObject(key, bytes.NewReader(data), opts)
 }
 
 func (s *uploadService) CopyImage(url string) (string, error) {

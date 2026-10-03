@@ -52,9 +52,15 @@ func UploadHandle(ctx *gin.Context) {
 	if header.Size > 0 {
 		body, size = file, header.Size
 	} else {
-		fileBytes, err := io.ReadAll(file)
+		// Reason: chunked 编码时 header.Size 为 0，必须限流读取防 OOM；
+		// 服务层会以 LimitReader 二次兜底，此处先行快速失败以尽早释放连接。
+		fileBytes, err := io.ReadAll(io.LimitReader(file, constants.UploadMaxBytes+1))
 		if err != nil {
 			ginx.WriteJSON(ctx, err)
+			return
+		}
+		if int64(len(fileBytes)) > constants.UploadMaxBytes {
+			ginx.WriteJSON(ctx, ginx.ErrorMessage(locales.Getf("upload.image_too_large", constants.UploadMaxM)))
 			return
 		}
 		body = bytes.NewReader(fileBytes)

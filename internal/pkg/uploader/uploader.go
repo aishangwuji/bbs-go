@@ -1,10 +1,13 @@
 package uploader
 
 import (
+	"fmt"
 	"io"
 
+	"bbs-go/internal/models/constants"
 	"bbs-go/internal/models/dto"
 	"bbs-go/internal/pkg/config"
+	"bbs-go/internal/pkg/imageutil"
 	"mime"
 	"strings"
 	"time"
@@ -126,5 +129,13 @@ func download(url string) ([]byte, string, error) {
 	if err != nil {
 		return nil, "", err
 	}
-	return rsp.Body(), rsp.Header().Get("Content-Type"), nil
+	data := rsp.Body()
+	// 第三方头像拉取同样受统一上限约束：调用方（第三方登录）已忽略本错误，
+	// 超限仅导致本次不缓存头像，不中断登录流程。
+	if int64(len(data)) > constants.UploadMaxBytes {
+		return nil, "", fmt.Errorf("downloaded image exceeds %d MB", constants.UploadMaxM)
+	}
+	// 与 UploadService 一致的尺寸归一化：5 个存储后端的 CopyImage 全走本函数，一处覆盖。
+	data, ct := imageutil.NormalizeImage(data, rsp.Header().Get("Content-Type"))
+	return data, ct, nil
 }
