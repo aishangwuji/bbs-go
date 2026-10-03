@@ -10,6 +10,51 @@ import { Badge } from "@/components/ui/badge"
 import { useI18n } from "@/lib/i18n/provider"
 import { PERMISSIONS } from "@/lib/auth/permissions.generated"
 
+type ModerationDimensionResult = {
+  type?: string
+  key?: string
+  label?: string
+  value?: string
+  description?: string
+  confidence?: number
+  verdict?: string
+  reason?: string
+}
+
+function parseJsonArray<T>(value: unknown): T[] {
+  if (typeof value !== "string" || !value.trim()) return []
+  try {
+    const parsed = JSON.parse(value)
+    return Array.isArray(parsed) ? (parsed as T[]) : []
+  } catch {
+    return []
+  }
+}
+
+function moderationVerdictBadge(verdict: string) {
+  if (verdict === "reject") {
+    return <Badge variant="destructive">下架</Badge>
+  }
+  if (verdict === "review") {
+    return (
+      <Badge
+        variant="outline"
+        className="border-amber-400 text-amber-600 dark:text-amber-400"
+      >
+        待审
+      </Badge>
+    )
+  }
+  return (
+    <Badge
+      variant="outline"
+      className="border-emerald-400 text-emerald-600 dark:text-emerald-400"
+    >
+      放行
+    </Badge>
+  )
+}
+
 export default function DashboardModerationRecordsRoute() {
   const { t } = useI18n()
 
@@ -145,40 +190,19 @@ export default function DashboardModerationRecordsRoute() {
         },
       },
       {
-        key: "isSpamProb",
-        label: dashboardData.label(t, "isSpamProb"),
-        className: "w-24 text-center",
+        key: "hitReasons",
+        label: dashboardData.label(t, "hitReasons"),
+        className: "max-w-sm",
         render: (record) => {
-          const prob = Number(record.isSpamProb || 0)
-          const pct = (prob * 100).toFixed(1) + "%"
-          if (prob >= 0.7) {
-            return <span className="font-semibold text-destructive">{pct}</span>
+          const reasons = parseJsonArray<string>(record.hitReasons)
+          if (reasons.length === 0) {
+            return <span className="text-xs text-muted-foreground">-</span>
           }
-          if (prob >= 0.3) {
-            return <span className="font-medium text-amber-500">{pct}</span>
-          }
-          return <span className="text-muted-foreground">{pct}</span>
-        },
-      },
-      {
-        key: "toxicityScore",
-        label: dashboardData.label(t, "toxicityScore"),
-        className: "w-24 text-center",
-        render: (record) => {
-          const score = Number(record.toxicityScore || 0)
-          const conf = Number(record.toxicityConfidence || 0)
-          const scoreText = score.toFixed(2)
           return (
-            <div className="text-xs">
-              <span className={score >= 0.7 ? "font-semibold text-destructive" : score >= 0.3 ? "text-amber-500" : "text-muted-foreground"}>
-                {scoreText}
-              </span>
-              {conf > 0 && (
-                <span className="ml-1 text-[10px] text-muted-foreground">
-                  ({Math.round(conf * 100)}%)
-                </span>
-              )}
-            </div>
+            <span className="block truncate text-xs" title={reasons.join("\n")}>
+              {reasons[0]}
+              {reasons.length > 1 ? ` (+${reasons.length - 1})` : ""}
+            </span>
           )
         },
       },
@@ -229,6 +253,64 @@ export default function DashboardModerationRecordsRoute() {
       {
         key: "finalAction",
         label: dashboardData.label(t, "finalAction"),
+      },
+      {
+        key: "hitReasons",
+        label: dashboardData.label(t, "hitReasons"),
+        render: (record) => {
+          const reasons = parseJsonArray<string>(record.hitReasons)
+          if (reasons.length === 0) {
+            return <span className="text-xs text-muted-foreground">-</span>
+          }
+          return (
+            <ul className="list-disc space-y-0.5 pl-4 text-xs">
+              {reasons.map((reason, index) => (
+                <li key={index}>{reason}</li>
+              ))}
+            </ul>
+          )
+        },
+      },
+      {
+        key: "dimensionResults",
+        label: dashboardData.label(t, "dimensionResults"),
+        render: (record) => {
+          const dimensions = parseJsonArray<ModerationDimensionResult>(
+            record.dimensionResults
+          )
+          if (dimensions.length === 0) {
+            return <span className="text-xs text-muted-foreground">-</span>
+          }
+          return (
+            <div className="space-y-1.5 text-xs">
+              {dimensions.map((dimension, index) => (
+                <div
+                  key={`${dimension.type || ""}:${dimension.key || index}`}
+                  className="flex flex-wrap items-center gap-2"
+                >
+                  <Badge variant="outline" className="text-[10px] uppercase">
+                    {dimension.type || "-"}
+                  </Badge>
+                  <span className="font-medium">
+                    {dimension.label || dimension.key || "-"}
+                  </span>
+                  <span className="font-mono">
+                    {dimension.value || "-"}
+                    {dimension.confidence
+                      ? ` (${Math.round(dimension.confidence * 100)}%)`
+                      : ""}
+                  </span>
+                  {dimension.description ? (
+                    <span className="text-muted-foreground">
+                      {dimension.description}
+                    </span>
+                  ) : null}
+                  {moderationVerdictBadge(String(dimension.verdict || ""))}
+                </div>
+              ))}
+            </div>
+          )
+        },
       },
       {
         key: "isSpamProb",

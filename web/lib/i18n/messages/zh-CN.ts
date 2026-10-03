@@ -781,6 +781,8 @@ const zhCN = {
       finalAction: "最终动作",
       contentSnapshot: "内容快照",
       rawResponse: "原始诊断",
+      hitReasons: "命中原因",
+      dimensionResults: "维度评估",
     },
     pages: {
       moderationRecords: {

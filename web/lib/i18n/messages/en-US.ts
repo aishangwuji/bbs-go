@@ -798,6 +798,8 @@ const enUS = {
       finalAction: "Final Action",
       contentSnapshot: "Content Snapshot",
       rawResponse: "Diagnosis Payload",
+      hitReasons: "Hit Reasons",
+      dimensionResults: "Dimension Results",
     },
     pages: {
       moderationRecords: {
