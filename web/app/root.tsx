@@ -86,6 +86,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const scriptInjections = getRenderableScriptInjections(
     rootData?.config?.scriptInjections
   )
+  // 页签图标跟随后台「站点设置 → 站点 Logo」，管理员换 Logo 后页签同步更新，零额外配置；
+  // 未配置时回退到内置品牌图标。apple-touch-icon 用现成的 364px Logo（iOS 会自动缩放）。
+  const faviconHref = rootData?.config?.siteLogo || "/favicon.svg"
 
   return (
     <html lang={rootData?.locale || "en-US"}>
@@ -94,6 +97,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <Meta />
         <Links />
+        <link rel="icon" href={faviconHref} />
+        <link rel="apple-touch-icon" href="/logo364x364.png" />
         {scriptInjections.map((script) =>
           script.type === "external" ? (
             <script
