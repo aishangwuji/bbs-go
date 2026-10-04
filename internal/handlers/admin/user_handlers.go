@@ -118,6 +118,12 @@ func UserList(ctx *gin.Context) {
 	if roleId, ok := params.GetInt64(ctx, "roleId"); ok && roleId > 0 {
 		cnd.Where("id IN (SELECT user_id FROM t_user_role WHERE role_id = ?)", roleId)
 	}
+	// 最小违规次数筛选：minViolationCount>0 时按 violation_count>=N 过滤（前端数字输入“违规次数≥”）。
+	// 缺失/非法/<=0 时忽略本条件，与其他筛选器的容错保持一致，避免误筛。
+	// Business Rule: 0 等价于不过滤（violation_count>=0 恒成立），故直接跳过不拼条件。
+	if minViolation, ok := params.GetInt64(ctx, "minViolationCount"); ok && minViolation > 0 {
+		cnd.Where("violation_count >= ?", minViolation)
+	}
 	list, paging := services.UserService.FindPageByCnd(cnd.Desc("id"))
 	var itemList []map[string]interface{}
 	for _, user := range list {

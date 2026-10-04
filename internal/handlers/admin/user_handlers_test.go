@@ -151,6 +151,44 @@ func TestUserListFiltersByRole(t *testing.T) {
 	}
 }
 
+func TestUserListFiltersByMinViolationCount(t *testing.T) {
+	db := setupAdminUserTestDB(t)
+	mustCreateUser(t, db, &models.User{Model: models.Model{Id: 1}, Nickname: "clean", ViolationCount: 0})
+	mustCreateUser(t, db, &models.User{Model: models.Model{Id: 2}, Nickname: "once", ViolationCount: 1})
+	mustCreateUser(t, db, &models.User{Model: models.Model{Id: 3}, Nickname: "risky", ViolationCount: 3})
+	mustCreateUser(t, db, &models.User{Model: models.Model{Id: 4}, Nickname: "repeat", ViolationCount: 5})
+
+	assertUserListIDs := func(body string, wantIDs []int64) {
+		t.Helper()
+		users := postUserList(t, body)
+		gotIDs := make([]int64, 0, len(users))
+		for _, user := range users {
+			gotIDs = append(gotIDs, int64(user["id"].(float64)))
+		}
+		if len(gotIDs) != len(wantIDs) {
+			t.Fatalf("body %q: expected ids %v, got %v", body, wantIDs, gotIDs)
+		}
+		for i := range wantIDs {
+			if gotIDs[i] != wantIDs[i] {
+				t.Fatalf("body %q: expected ids %v, got %v", body, wantIDs, gotIDs)
+			}
+		}
+	}
+
+	// >=1 命中 2/3/4（默认按 id 倒序）
+	assertUserListIDs("minViolationCount=1", []int64{4, 3, 2})
+	// >=3 命中 3/4
+	assertUserListIDs("minViolationCount=3", []int64{4, 3})
+	// >=6 无人命中
+	assertUserListIDs("minViolationCount=6", []int64{})
+
+	// 0/缺失/非法/负数：一律忽略条件返回全量（与其他筛选器的容错一致）
+	assertUserListIDs("minViolationCount=0", []int64{4, 3, 2, 1})
+	assertUserListIDs("", []int64{4, 3, 2, 1})
+	assertUserListIDs("minViolationCount=abc", []int64{4, 3, 2, 1})
+	assertUserListIDs("minViolationCount=-1", []int64{4, 3, 2, 1})
+}
+
 func TestUserResetPasswordDisablesUserTokens(t *testing.T) {
 	db := setupAdminUserTestDB(t)
 	mustCreateUser(t, db, &models.User{
