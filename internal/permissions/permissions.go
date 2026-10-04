@@ -98,6 +98,11 @@ var (
 	PermissionTaskUpdate = PermissionDefinition{Type: TypeDashboard, Code: "dashboard.task.update", GroupName: GroupGrowth, SortNo: 1020, NameEn: "Update Tasks", NameZh: "编辑任务"}
 	PermissionTaskDelete = PermissionDefinition{Type: TypeDashboard, Code: "dashboard.task.delete", GroupName: GroupGrowth, SortNo: 1030, NameEn: "Delete Tasks", NameZh: "删除任务"}
 
+	PermissionTaskEventView   = PermissionDefinition{Type: TypeDashboard, Code: "dashboard.taskEvent.view", GroupName: GroupGrowth, SortNo: 1040, NameEn: "View Task Events", NameZh: "查看任务事件"}
+	PermissionTaskEventCreate = PermissionDefinition{Type: TypeDashboard, Code: "dashboard.taskEvent.create", GroupName: GroupGrowth, SortNo: 1050, NameEn: "Create Task Events", NameZh: "创建任务事件"}
+	PermissionTaskEventUpdate = PermissionDefinition{Type: TypeDashboard, Code: "dashboard.taskEvent.update", GroupName: GroupGrowth, SortNo: 1060, NameEn: "Update Task Events", NameZh: "编辑任务事件"}
+	PermissionTaskEventDelete = PermissionDefinition{Type: TypeDashboard, Code: "dashboard.taskEvent.delete", GroupName: GroupGrowth, SortNo: 1070, NameEn: "Delete Task Events", NameZh: "删除任务事件"}
+
 	PermissionSettingView     = PermissionDefinition{Type: TypeDashboard, Code: "dashboard.setting.view", GroupName: GroupSystem, SortNo: 1100, NameEn: "View Settings", NameZh: "查看设置"}
 	PermissionSettingUpdate   = PermissionDefinition{Type: TypeDashboard, Code: "dashboard.setting.update", GroupName: GroupSystem, SortNo: 1110, NameEn: "Update Settings", NameZh: "编辑设置"}
 	PermissionSearchReindex   = PermissionDefinition{Type: TypeDashboard, Code: "dashboard.search.reindex", GroupName: GroupSystem, SortNo: 1120, NameEn: "Rebuild Search Index", NameZh: "重建搜索索引"}
@@ -172,6 +177,10 @@ var Permissions = []PermissionDefinition{
 	PermissionTaskCreate,
 	PermissionTaskUpdate,
 	PermissionTaskDelete,
+	PermissionTaskEventView,
+	PermissionTaskEventCreate,
+	PermissionTaskEventUpdate,
+	PermissionTaskEventDelete,
 	PermissionRoleView,
 	PermissionRoleCreate,
 	PermissionRoleUpdate,

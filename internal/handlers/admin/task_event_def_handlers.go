@@ -1,7 +1,6 @@
 package admin
 
 import (
-	"bbs-go/internal/handlers/render"
 	"bbs-go/internal/models"
 	"bbs-go/internal/models/constants"
 	"bbs-go/internal/services"
@@ -16,14 +15,14 @@ import (
 	"github.com/mlogclub/simple/web"
 )
 
-func TaskConfigDetail(ctx *gin.Context) {
+func TaskEventDefDetail(ctx *gin.Context) {
 	id, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
 	if err != nil {
 		ginx.WriteJSON(ctx, err)
 		return
 	}
 
-	t := services.TaskConfigService.Get(id)
+	t := services.TaskEventDefService.Get(id)
 	if t == nil {
 		ginx.WriteJSON(ctx, ginx.ErrorMessage("Not found, id="+strconv.FormatInt(id, 10)))
 		return
@@ -32,32 +31,14 @@ func TaskConfigDetail(ctx *gin.Context) {
 
 }
 
-func TaskConfigGroups(ctx *gin.Context) {
-
-	ginx.WriteJSON(ctx, render.BuildTaskGroups())
-
-}
-
-func TaskConfigList(ctx *gin.Context) {
-	list, paging := services.TaskConfigService.FindPageByCnd(params.NewPagedSqlCnd(ctx,
+func TaskEventDefList(ctx *gin.Context) {
+	list, paging := services.TaskEventDefService.FindPageByCnd(params.NewPagedSqlCnd(ctx,
 		params.QueryFilter{
 			ParamName: "id",
 		},
 		params.QueryFilter{
-			ParamName: "title",
+			ParamName: "code",
 			Op:        params.Like,
-		},
-		params.QueryFilter{
-			ParamName: "groupName",
-			Op:        params.Eq,
-		},
-		params.QueryFilter{
-			ParamName: "eventType",
-			Op:        params.Eq,
-		},
-		params.QueryFilter{
-			ParamName: "period",
-			Op:        params.Eq,
 		},
 		params.QueryFilter{
 			ParamName: "status",
@@ -68,24 +49,27 @@ func TaskConfigList(ctx *gin.Context) {
 
 }
 
-func TaskConfigCreate(ctx *gin.Context) {
-	t := &models.TaskConfig{}
+func TaskEventDefCreate(ctx *gin.Context) {
+	t := &models.TaskEventDef{}
 	if err := ginx.Bind(ctx, t); err != nil {
 		ginx.WriteJSON(ctx, ginx.ErrorMessage(err.Error()))
 		return
 	}
-	// Business Rule: eventType 必须在任务事件定义表中启用，防止配出孤儿任务。
-	if !services.TaskEventDefService.IsEnabled(t.EventType) {
-		ginx.WriteJSON(ctx, ginx.ErrorMessage("eventType not defined or disabled: "+t.EventType))
+	if t.Code == "" {
+		ginx.WriteJSON(ctx, ginx.ErrorMessage("code is required"))
+		return
+	}
+	if services.TaskEventDefService.Take("code = ?", t.Code) != nil {
+		ginx.WriteJSON(ctx, ginx.ErrorMessage("code already exists"))
 		return
 	}
 
 	now := dates.NowTimestamp()
-	t.SortNo = services.TaskConfigService.GetNextSortNo()
+	t.SortNo = services.TaskEventDefService.GetNextSortNo()
 	t.Status = constants.StatusOk
 	t.CreateTime = now
 	t.UpdateTime = now
-	if err := services.TaskConfigService.Create(t); err != nil {
+	if err := services.TaskEventDefService.Create(t); err != nil {
 		ginx.WriteJSON(ctx, ginx.ErrorMessage(err.Error()))
 		return
 	}
@@ -93,9 +77,9 @@ func TaskConfigCreate(ctx *gin.Context) {
 
 }
 
-func TaskConfigUpdate(ctx *gin.Context) {
+func TaskEventDefUpdate(ctx *gin.Context) {
 	id, _ := params.GetInt64(ctx, "id")
-	t := services.TaskConfigService.Get(id)
+	t := services.TaskEventDefService.Get(id)
 	if t == nil {
 		ginx.WriteJSON(ctx, ginx.ErrorMessage("entity not found"))
 		return
@@ -105,14 +89,9 @@ func TaskConfigUpdate(ctx *gin.Context) {
 		ginx.WriteJSON(ctx, ginx.ErrorMessage(err.Error()))
 		return
 	}
-	// Business Rule: 同创建，更新时同样校验事件编码有效性。
-	if !services.TaskEventDefService.IsEnabled(t.EventType) {
-		ginx.WriteJSON(ctx, ginx.ErrorMessage("eventType not defined or disabled: "+t.EventType))
-		return
-	}
 
 	t.UpdateTime = dates.NowTimestamp()
-	if err := services.TaskConfigService.Update(t); err != nil {
+	if err := services.TaskEventDefService.Update(t); err != nil {
 		ginx.WriteJSON(ctx, ginx.ErrorMessage(err.Error()))
 		return
 	}
@@ -120,13 +99,13 @@ func TaskConfigUpdate(ctx *gin.Context) {
 
 }
 
-func TaskConfigUpdateSort(ctx *gin.Context) {
+func TaskEventDefUpdateSort(ctx *gin.Context) {
 	var ids []int64
 	if err := ginx.BindJSON(ctx, &ids); err != nil {
 		ginx.WriteJSON(ctx, err)
 		return
 	}
-	if err := services.TaskConfigService.UpdateSort(ids); err != nil {
+	if err := services.TaskEventDefService.UpdateSort(ids); err != nil {
 		ginx.WriteJSON(ctx, err)
 		return
 	}
@@ -134,7 +113,7 @@ func TaskConfigUpdateSort(ctx *gin.Context) {
 
 }
 
-func TaskConfigRemove(ctx *gin.Context) {
+func TaskEventDefRemove(ctx *gin.Context) {
 	ids := params.GetInt64Arr(ctx, "ids")
 	if len(ids) == 0 {
 		ginx.WriteJSON(ctx, ginx.ErrorMessage("delete ids is empty"))
@@ -142,7 +121,7 @@ func TaskConfigRemove(ctx *gin.Context) {
 	}
 	now := dates.NowTimestamp()
 	for _, id := range ids {
-		services.TaskConfigService.Updates(id, map[string]interface{}{
+		services.TaskEventDefService.Updates(id, map[string]interface{}{
 			"status":      constants.StatusDeleted,
 			"update_time": now,
 		})

@@ -386,6 +386,14 @@ func registerAdminRoutes(group *gin.RouterGroup) {
 	taskConfigGroup.POST("/update_sort", adminHandlers.TaskConfigUpdateSort)
 	taskConfigGroup.GET("/:id", adminHandlers.TaskConfigDetail)
 
+	taskEventDefGroup := group.Group("/task-event-def")
+	taskEventDefGroup.POST("/list", adminHandlers.TaskEventDefList)
+	taskEventDefGroup.POST("/create", adminHandlers.TaskEventDefCreate)
+	taskEventDefGroup.POST("/update", adminHandlers.TaskEventDefUpdate)
+	taskEventDefGroup.POST("/delete", adminHandlers.TaskEventDefRemove)
+	taskEventDefGroup.POST("/update_sort", adminHandlers.TaskEventDefUpdateSort)
+	taskEventDefGroup.GET("/:id", adminHandlers.TaskEventDefDetail)
+
 	badgeGroup := group.Group("/badge")
 	badgeGroup.GET("/list", adminHandlers.BadgeList)
 	badgeGroup.POST("/list", adminHandlers.BadgeList)

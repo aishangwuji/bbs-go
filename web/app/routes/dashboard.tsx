@@ -108,6 +108,10 @@ function dashboardBreadcrumbs(
         badges: { title: t("dashboard.nav.badges"), url: "/dashboard/badges" },
         levels: { title: t("dashboard.nav.levels"), url: "/dashboard/levels" },
         tasks: { title: t("dashboard.nav.tasks"), url: "/dashboard/tasks" },
+        "task-event-defs": {
+          title: t("dashboard.nav.taskEventDefs"),
+          url: "/dashboard/task-event-defs",
+        },
       },
     },
     {

@@ -122,4 +122,5 @@ func init() {
 	register(20, "create moderation record table", migrate_moderation_record)
 	register(21, "create jev rule history table", migrate_jev_rule_history)
 	register(22, "add moderation decision snapshot fields", migrate_moderation_decision_snapshot)
+	register(23, "create task event def table and seeds", migrate_task_event_def)
 }

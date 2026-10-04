@@ -98,6 +98,7 @@ const jaJP = {
       badges: "バッジ",
       levels: "レベル",
       tasks: "タスク",
+      taskEventDefs: "タスクイベント",
       system: "システム",
       settings: "設定",
       siteSettings: "設定",
@@ -773,6 +774,9 @@ const jaJP = {
       path: "パス",
       component: "コンポーネント",
       code: "コード",
+      nameZh: "中国語名",
+      nameEn: "英語名",
+      producer: "発行元",
       eventCount: "イベント回数",
       maxFinishCount: "最大完了数",
       btnName: "ボタン",
@@ -826,6 +830,10 @@ const jaJP = {
       tasks: {
         title: "タスク設定",
         description: "タスク報酬とイベントルールを管理します。",
+      },
+      taskEventDefs: {
+        title: "タスクイベント",
+        description: "タスクイベント定義と有効化を管理します。",
       },
       userBadges: {
         title: "ユーザーバッジ",

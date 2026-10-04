@@ -101,6 +101,7 @@ const enUS = {
       badges: "Badges",
       levels: "Levels",
       tasks: "Tasks",
+      taskEventDefs: "Task Events",
       system: "System",
       settings: "Settings",
       siteSettings: "Settings",
@@ -797,6 +798,9 @@ const enUS = {
       path: "Path",
       component: "Component",
       code: "Code",
+      nameZh: "Chinese Name",
+      nameEn: "English Name",
+      producer: "Producer",
       eventCount: "Event count",
       maxFinishCount: "Max completions",
       btnName: "Action label",
@@ -861,6 +865,10 @@ const enUS = {
       tasks: {
         title: "Tasks",
         description: "Manage task rewards and event rules.",
+      },
+      taskEventDefs: {
+        title: "Task Events",
+        description: "Manage task event definitions and enable switches.",
       },
       userBadges: {
         title: "User Badges",

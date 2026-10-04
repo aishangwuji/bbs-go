@@ -5,6 +5,7 @@ import (
 	"bbs-go/internal/models/constants"
 	"bbs-go/internal/pkg/config"
 	"bbs-go/internal/repositories"
+	"bbs-go/internal/services"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -95,7 +96,23 @@ func CommonTaskEventTypes(ctx *gin.Context) {
 		lang = config.DefaultLanguage
 	}
 
-	items := []TaskEventTypeItem{
+	// 优先读库（超管可配），库空时回退到代码常量，保证迁移前/空库时后台可用。
+	// Business Rule: 下拉只展示 status=0 的启用事件，禁用事件不可再被新任务引用。
+	defs := services.TaskEventDefService.Find(sqls.NewCnd().Eq("status", constants.StatusOk).Asc("sort_no").Asc("id"))
+	items := make([]TaskEventTypeItem, 0, len(defs))
+	if len(defs) > 0 {
+		for _, def := range defs {
+			title := def.NameZh
+			if lang == config.LanguageEnUS {
+				title = def.NameEn
+			}
+			items = append(items, TaskEventTypeItem{Value: def.Code, Title: title})
+		}
+		ginx.WriteJSON(ctx, items)
+		return
+	}
+
+	items = []TaskEventTypeItem{
 		{Value: constants.TaskEventTypeUserLogin},
 		{Value: constants.TaskEventTypeCheckIn},
 		{Value: constants.TaskEventTypeTopicCreate},

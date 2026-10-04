@@ -23,8 +23,9 @@ import (
 
 func TestTaskConfigCreateDefaultsStatusToOk(t *testing.T) {
 	db := setupAdminTaskConfigTestDB(t)
+	mustCreateTaskEventDef(t, db, "checkin")
 
-	task := postTaskConfigCreate(t, "title=Daily&description=Daily&status=1")
+	task := postTaskConfigCreate(t, "title=Daily&description=Daily&status=1&eventType=checkin")
 
 	if task.Status != constants.StatusOk {
 		t.Fatalf("expected response status %d, got %d", constants.StatusOk, task.Status)
@@ -36,6 +37,30 @@ func TestTaskConfigCreateDefaultsStatusToOk(t *testing.T) {
 	}
 	if saved.Status != constants.StatusOk {
 		t.Fatalf("expected saved status %d, got %d", constants.StatusOk, saved.Status)
+	}
+}
+
+func TestTaskConfigCreateRejectsUnknownEventType(t *testing.T) {
+	setupAdminTaskConfigTestDB(t)
+
+	gin.SetMode(gin.TestMode)
+	recorder := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(recorder)
+	req := httptest.NewRequest(http.MethodPost, "/api/admin/task-config/create", strings.NewReader("title=Bad&description=Bad&eventType=no.such.event"))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	ctx.Request = req
+
+	TaskConfigCreate(ctx)
+
+	var result struct {
+		Success bool   `json:"success"`
+		Message string `json:"message"`
+	}
+	if err := json.Unmarshal(recorder.Body.Bytes(), &result); err != nil {
+		t.Fatalf("decode response %q: %v", recorder.Body.String(), err)
+	}
+	if result.Success {
+		t.Fatalf("expected rejection for unknown eventType, got %s", recorder.Body.String())
 	}
 }
 
@@ -111,10 +136,26 @@ func setupAdminTaskConfigTestDB(t *testing.T) *gorm.DB {
 	})
 
 	sqls.SetDB(db)
-	if err := db.AutoMigrate(&models.TaskConfig{}); err != nil {
+	if err := db.AutoMigrate(&models.TaskConfig{}, &models.TaskEventDef{}); err != nil {
 		t.Fatalf("auto migrate task configs: %v", err)
 	}
 	return db
+}
+
+func mustCreateTaskEventDef(t *testing.T, db *gorm.DB, code string) {
+	t.Helper()
+
+	now := time.Now().UnixMilli()
+	if err := db.Create(&models.TaskEventDef{
+		Code:       code,
+		NameZh:     code,
+		NameEn:     code,
+		Status:     constants.StatusOk,
+		CreateTime: now,
+		UpdateTime: now,
+	}).Error; err != nil {
+		t.Fatalf("create task event def: %v", err)
+	}
 }
 
 func mustCreateTaskConfig(t *testing.T, db *gorm.DB, task *models.TaskConfig) {

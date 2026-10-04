@@ -111,6 +111,13 @@ var (
 		{Method: "POST", Pattern: "/api/admin/task-config/delete", Permissions: []PermissionDefinition{PermissionTaskDelete}},
 		{Method: "POST", Pattern: "/api/admin/task-config/update_sort", Permissions: []PermissionDefinition{PermissionTaskUpdate}},
 
+		{Method: "GET", Pattern: "/api/admin/task-event-def/*", Permissions: []PermissionDefinition{PermissionTaskEventView}},
+		{Method: "POST", Pattern: "/api/admin/task-event-def/list", Permissions: []PermissionDefinition{PermissionTaskEventView}},
+		{Method: "POST", Pattern: "/api/admin/task-event-def/create", Permissions: []PermissionDefinition{PermissionTaskEventCreate}},
+		{Method: "POST", Pattern: "/api/admin/task-event-def/update", Permissions: []PermissionDefinition{PermissionTaskEventUpdate}},
+		{Method: "POST", Pattern: "/api/admin/task-event-def/delete", Permissions: []PermissionDefinition{PermissionTaskEventDelete}},
+		{Method: "POST", Pattern: "/api/admin/task-event-def/update_sort", Permissions: []PermissionDefinition{PermissionTaskEventUpdate}},
+
 		{Method: "GET", Pattern: "/api/admin/email-log/*", Permissions: []PermissionDefinition{PermissionEmailLogView}},
 		{Method: "POST", Pattern: "/api/admin/email-log/list", Permissions: []PermissionDefinition{PermissionEmailLogView}},
 		{Method: "GET", Pattern: "/api/admin/user-task-log/*", Permissions: []PermissionDefinition{PermissionUserTaskLogView}},

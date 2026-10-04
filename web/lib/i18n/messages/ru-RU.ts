@@ -98,6 +98,7 @@ const ruRU = {
       badges: "Бейджи",
       levels: "Уровни",
       tasks: "Задачи",
+      taskEventDefs: "События задач",
       system: "Система",
       settings: "Настройки",
       siteSettings: "Настройки",
@@ -786,6 +787,9 @@ const ruRU = {
       path: "Путь",
       component: "Компонент",
       code: "Код",
+      nameZh: "Название (ZH)",
+      nameEn: "Название (EN)",
+      producer: "Источник",
       eventCount: "Количество событий",
       maxFinishCount: "Максимум завершений",
       btnName: "Кнопка",
@@ -841,6 +845,10 @@ const ruRU = {
       tasks: {
         title: "Настройки задач",
         description: "Управление наградами задач и правилами событий.",
+      },
+      taskEventDefs: {
+        title: "События задач",
+        description: "Управление определениями событий и их включением.",
       },
       userBadges: {
         title: "Бейджи пользователей",

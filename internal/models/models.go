@@ -12,7 +12,7 @@ var Models = []interface{}{
 
 	&User{}, &UserToken{}, &ThirdUser{}, &Tag{}, &Article{}, &ArticleTag{}, &Comment{}, &Favorite{}, &Topic{}, &Category{},
 	&TopicTag{}, &UserLike{}, &Message{}, &SysConfig{}, &Link{},
-	&TaskConfig{}, &UserTaskEvent{}, &UserTaskLog{},
+	&TaskConfig{}, &UserTaskEvent{}, &UserTaskLog{}, &TaskEventDef{},
 	&Badge{}, &UserBadge{},
 	&LevelConfig{},
 	&Vote{}, &VoteOption{}, &VoteRecord{},
@@ -403,9 +403,22 @@ type TaskConfig struct {
 	StartTime int64 `gorm:"type:bigint;not null;default:0;index:idx_task_config_time" json:"startTime" form:"startTime"` // 生效时间（0 表示立即）
 	EndTime   int64 `gorm:"type:bigint;not null;default:0;index:idx_task_config_time" json:"endTime" form:"endTime"`     // 结束时间（0 表示不结束）
 
-	Status     int   `gorm:"type:int; not null;default:0;index:idx_task_config_status" json:"status" form:"status"` // 状态
+	Status     int   `gorm:"type:int; not null;default:0;index:idx_task_config_status" json:"status" form:"status"` // 状态：0正常、1删除（软删除）
 	CreateTime int64 `gorm:"type:bigint;not null" json:"createTime" form:"createTime"`                              // 创建时间
 	UpdateTime int64 `gorm:"type:bigint;not null" json:"updateTime" form:"updateTime"`                              // 更新时间
+}
+
+// TaskEventDef 任务事件定义（超管可配，发射点仍在代码）
+type TaskEventDef struct {
+	Model
+	Code      string `gorm:"size:64;not null;uniqueIndex:uk_task_event_def_code" json:"code" form:"code"` // 事件编码：如topic.create，与TaskConfig.eventType语义对应
+	NameZh    string `gorm:"size:64;not null" json:"nameZh" form:"nameZh"`                                 // 中文名：如发帖
+	NameEn    string `gorm:"size:64;not null" json:"nameEn" form:"nameEn"`                                 // 英文名：如Create topic
+	Producer  string `gorm:"size:128;not null;default:''" json:"producer" form:"producer"`                 // 发射点：如TopicService.Publish，便于定位无事件问题
+	Status    int    `gorm:"type:int;not null;default:0;index:idx_task_event_def_status" json:"status" form:"status"` // 状态：0启用、1禁用/删除（软删除）
+	SortNo    int    `gorm:"type:int;index:idx_task_event_def_sort_no" json:"sortNo" form:"sortNo"`         // 排序
+	CreateTime int64 `gorm:"type:bigint;not null" json:"createTime" form:"createTime"`                     // 创建时间
+	UpdateTime int64 `gorm:"type:bigint;not null" json:"updateTime" form:"updateTime"`                     // 更新时间
 }
 
 // UserTaskEvent 用户任务事件累计（UserId + PeriodKey + TaskId 唯一）

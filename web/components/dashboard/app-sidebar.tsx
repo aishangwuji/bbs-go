@@ -146,6 +146,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             url: "/dashboard/tasks",
             permission: PERMISSIONS.DASHBOARD_TASK_VIEW,
           },
+          {
+            title: t("dashboard.nav.taskEventDefs"),
+            url: "/dashboard/task-event-defs",
+            permission: PERMISSIONS.DASHBOARD_TASK_EVENT_VIEW,
+          },
         ],
       },
       {

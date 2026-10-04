@@ -101,6 +101,7 @@ const zhCN = {
       badges: "徽章",
       levels: "等级",
       tasks: "任务",
+      taskEventDefs: "任务事件",
       system: "系统",
       settings: "设置",
       siteSettings: "设置",
@@ -779,6 +780,9 @@ const zhCN = {
       path: "路径",
       component: "组件",
       code: "编码",
+      nameZh: "中文名",
+      nameEn: "英文名",
+      producer: "发射点",
       eventCount: "事件次数",
       maxFinishCount: "最多完成",
       btnName: "按钮",
@@ -843,6 +847,10 @@ const zhCN = {
       tasks: {
         title: "任务配置",
         description: "管理任务奖励和事件规则。",
+      },
+      taskEventDefs: {
+        title: "任务事件",
+        description: "管理任务事件定义与启用开关。",
       },
       userBadges: {
         title: "用户徽章",

@@ -98,6 +98,7 @@ const deDE = {
       badges: "Abzeichen",
       levels: "Stufen",
       tasks: "Aufgaben",
+      taskEventDefs: "Aufgabenereignisse",
       system: "System",
       settings: "Einstellungen",
       siteSettings: "Einstellungen",
@@ -799,6 +800,9 @@ const deDE = {
       path: "Pfad",
       component: "Komponente",
       code: "Code",
+      nameZh: "Chinesischer Name",
+      nameEn: "Englischer Name",
+      producer: "Produzent",
       eventCount: "Ereignisanzahl",
       maxFinishCount: "Maximale Abschlüsse",
       btnName: "Schaltfläche",
@@ -855,6 +859,10 @@ const deDE = {
       tasks: {
         title: "Aufgabenkonfiguration",
         description: "Aufgabenbelohnungen und Ereignisregeln verwalten.",
+      },
+      taskEventDefs: {
+        title: "Aufgabenereignisse",
+        description: "Ereignisdefinitionen und Schalter verwalten.",
       },
       userBadges: {
         title: "Benutzerabzeichen",

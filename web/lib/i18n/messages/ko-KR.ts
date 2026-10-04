@@ -98,6 +98,7 @@ const koKR = {
       badges: "배지",
       levels: "레벨",
       tasks: "퀘스트",
+      taskEventDefs: "퀘스트 이벤트",
       system: "시스템",
       settings: "설정",
       siteSettings: "설정",
@@ -767,6 +768,9 @@ const koKR = {
       path: "경로",
       component: "컴포넌트",
       code: "코드",
+      nameZh: "중국어 이름",
+      nameEn: "영어 이름",
+      producer: "발생 지점",
       eventCount: "이벤트 횟수",
       maxFinishCount: "최대 완료",
       btnName: "버튼",
@@ -819,6 +823,10 @@ const koKR = {
       tasks: {
         title: "퀘스트 설정",
         description: "퀘스트 보상 및 이벤트 규칙을 관리합니다.",
+      },
+      taskEventDefs: {
+        title: "퀘스트 이벤트",
+        description: "퀘스트 이벤트 정의 및 활성화를 관리합니다.",
       },
       userBadges: {
         title: "사용자 배지",

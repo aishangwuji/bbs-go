@@ -98,6 +98,7 @@ const frFR = {
       badges: "Badges",
       levels: "Niveaux",
       tasks: "Tâches",
+      taskEventDefs: "Événements de tâche",
       system: "Système",
       settings: "Paramètres",
       siteSettings: "Paramètres",
@@ -795,6 +796,9 @@ const frFR = {
       path: "Chemin",
       component: "Composant",
       code: "Code",
+      nameZh: "Nom chinois",
+      nameEn: "Nom anglais",
+      producer: "Producteur",
       eventCount: "Nombre d'événements",
       maxFinishCount: "Achèvements max.",
       btnName: "Bouton",
@@ -849,6 +853,11 @@ const frFR = {
         title: "Configuration des tâches",
         description:
           "Gérer les récompenses de tâches et les règles d'événements.",
+      },
+      taskEventDefs: {
+        title: "Événements de tâche",
+        description:
+          "Gérer les définitions d'événements et leur activation.",
       },
       userBadges: {
         title: "Badges utilisateur",
