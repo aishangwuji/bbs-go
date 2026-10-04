@@ -43,6 +43,11 @@ export default function DashboardUsersRoute() {
           { label: t("dashboard.boolean.no"), value: "false" },
         ],
       },
+      {
+        name: "minViolationCount",
+        label: dashboardData.label(t, "minViolationCount"),
+        type: "number",
+      },
     ],
     columns: [
       {
@@ -79,7 +84,7 @@ export default function DashboardUsersRoute() {
       { key: "level", label: dashboardData.label(t, "level") },
       {
         key: "violationCount",
-        label: "违规次数",
+        label: dashboardData.label(t, "violationCount"),
         render: (record) => {
           const count = Number(record.violationCount || 0)
           if (count === 0) {
@@ -170,6 +175,60 @@ export default function DashboardUsersRoute() {
         permission: PERMISSIONS.DASHBOARD_USER_RESET_PASSWORD,
         payload: (record) => ({ userId: record.id as number }),
         confirm: t("dashboard.confirmResetPassword"),
+      },
+    ],
+    // 批量操作复用单条接口逐条执行：禁言（单条会同步 +1 违规次数）、解禁、重置密码（新密码汇总展示）。
+    // 通用框架负责多选态/前置表单/确认/结果汇总，本页只需声明 endpoint 与参数映射。
+    batchActions: [
+      {
+        label: t("dashboard.actions.batchForbidden"),
+        endpoint: "/api/admin/user/forbidden",
+        permission: PERMISSIONS.DASHBOARD_USER_FORBIDDEN,
+        payload: (record, extra) => ({
+          userId: record.id as number,
+          days: extra.days,
+          reason: extra.reason,
+        }),
+        extraFields: [
+          {
+            name: "days",
+            label: t("dashboard.batch.days"),
+            type: "number",
+            required: true,
+            min: 1,
+          },
+          {
+            name: "reason",
+            label: dashboardData.label(t, "reason"),
+            type: "textarea",
+          },
+        ],
+        extraInitialValues: { days: 7 },
+        confirm: (count) =>
+          t("dashboard.batch.confirmForbidden", { count }),
+      },
+      {
+        label: t("dashboard.actions.batchUnforbidden"),
+        endpoint: "/api/admin/user/forbidden",
+        permission: PERMISSIONS.DASHBOARD_USER_FORBIDDEN,
+        payload: (record) => ({ userId: record.id as number, days: 0 }),
+        confirm: (count) =>
+          t("dashboard.batch.confirmUnforbidden", { count }),
+      },
+      {
+        label: t("dashboard.actions.batchResetPassword"),
+        endpoint: "/api/admin/user/reset_password",
+        permission: PERMISSIONS.DASHBOARD_USER_RESET_PASSWORD,
+        payload: (record) => ({ userId: record.id as number }),
+        confirm: (count) =>
+          t("dashboard.batch.confirmResetPasswords", { count }),
+        describeResult: (_record, result) =>
+          result &&
+          typeof result === "object" &&
+          "password" in result &&
+          typeof result.password === "string"
+            ? result.password
+            : undefined,
       },
     ],
   }
