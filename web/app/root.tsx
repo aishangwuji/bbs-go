@@ -32,7 +32,12 @@ import { siteMeta } from "@/lib/seo"
 
 import type { Route } from "./+types/root"
 import { rootDataContext } from "./route-helpers/context"
-import { getBrowserLocale, normalizeLocale } from "./route-helpers/locale"
+import {
+  buildLocaleCookie,
+  getBrowserLocale,
+  normalizeLocale,
+  resolveRequestLocale,
+} from "./route-helpers/locale"
 import type { RootLoaderData } from "./route-helpers/types"
 
 import "@/styles/globals.css"
@@ -62,7 +67,14 @@ async function loadRootData(request: Request): Promise<RootLoaderData> {
   return {
     config,
     currentUser,
-    locale: normalizeLocale(config?.language),
+    // 首屏语言按“手动选择 > 浏览器 > 站点默认”裁决：loader 读不到 localStorage，
+    // 用 cookie 还原手动选择、用 Accept-Language 还原浏览器语言，
+    // 只有两者都缺席才用管理员配置的站点默认语言兜底。
+    locale: resolveRequestLocale({
+      cookieHeader: request.headers.get("cookie"),
+      acceptLanguageHeader: request.headers.get("accept-language"),
+      siteLanguage: config?.language,
+    }),
     unreadMessageCount: 0,
   }
 }
@@ -208,6 +220,8 @@ export default function Root() {
   const updateLocale = React.useCallback((nextLocale: typeof locale) => {
     window.localStorage.setItem(LOCALE_STORAGE_KEY, nextLocale)
     window.localStorage.setItem(LEGACY_LOCALE_STORAGE_KEY, nextLocale)
+    // 同步写 cookie：下次 SSR（刷新/直连/分享链接）首屏即用手动选择，不回闪。
+    document.cookie = buildLocaleCookie(nextLocale)
     setLocale(nextLocale)
   }, [])
 
