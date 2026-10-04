@@ -1,5 +1,8 @@
 export { DashboardDataPage } from "./dashboard-data-page"
 export type {
+  DashboardDataBatchAction,
+  DashboardDataBatchItemResult,
+  DashboardDataBatchResult,
   DashboardDataColumn,
   DashboardDataDetailField,
   DashboardDataFilter,

@@ -32,6 +32,22 @@ export function DashboardDataFilterControl({
           placeholder={filter.label}
           onValueChange={(nextValue) => onChange(nextValue)}
         />
+      ) : filter.type === "number" ? (
+        <Input
+          type="number"
+          min={0}
+          value={value === undefined || value === null ? "" : String(value)}
+          placeholder={filter.label}
+          onChange={(event) => {
+            const text = event.target.value
+            if (text === "") {
+              onChange("")
+              return
+            }
+            const next = Number(text)
+            onChange(Number.isFinite(next) ? next : "")
+          }}
+        />
       ) : (
         <Input
           value={value === undefined || value === null ? "" : String(value)}

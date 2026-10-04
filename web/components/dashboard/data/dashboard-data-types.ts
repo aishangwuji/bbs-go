@@ -19,7 +19,7 @@ export type DashboardDataOptionSource = {
 export type DashboardDataFilter = DashboardDataOptionSource & {
   name: string
   label: string
-  type?: "text" | "select"
+  type?: "text" | "number" | "select"
   options?: DashboardDataOption[]
 }
 
@@ -64,6 +64,37 @@ export type DashboardDataRowAction = {
   successMessage?: string
 }
 
+// 批量操作：对表格多选命中的记录逐个调用同一 endpoint（复用单条接口，无需后端新增批量接口）。
+// 需要统一前置输入（如禁言天数/原因）时配 extraFields，执行前弹表单收集一次，
+// 再与每条记录的 payload 合并后逐条发送；逐条失败互不影响，结果统一汇总展示。
+export type DashboardDataBatchAction = {
+  label: string
+  endpoint: string
+  permission?: PermissionCode
+  method?: "POST" | "DELETE"
+  payload?: (
+    record: AdminRecord,
+    extra: Record<string, AdminFormValue>
+  ) => Record<string, AdminFormValue>
+  extraFields?: DashboardDataFormField[]
+  extraInitialValues?: Record<string, AdminFormValue>
+  confirm?: string | ((count: number) => string)
+  // 从单条响应中提取面向管理员的结果明细（如重置后的新密码），返回 undefined 则只展示成功/失败态
+  describeResult?: (record: AdminRecord, result: unknown) => string | undefined
+}
+
+export type DashboardDataBatchItemResult = {
+  record: AdminRecord
+  ok: boolean
+  // 成功时为 describeResult 的返回值，失败时为错误信息
+  message?: string
+}
+
+export type DashboardDataBatchResult = {
+  title: string
+  items: DashboardDataBatchItemResult[]
+}
+
 export type DashboardDataDetailField = {
   key: string
   label: string
@@ -98,6 +129,8 @@ export type DashboardDataPageConfig = {
   detailFields?: DashboardDataDetailField[]
   formFields?: DashboardDataFormField[]
   rowActions?: DashboardDataRowAction[]
+  // 配置即启用表格多选（首列复选框 + 批量操作栏）；不配置则表格行为与之前完全一致
+  batchActions?: DashboardDataBatchAction[]
   pageSize?: number
   listResult?: "page" | "array"
   refreshKey?: string | number

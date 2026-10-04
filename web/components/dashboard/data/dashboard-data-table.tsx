@@ -16,12 +16,15 @@ import {
 import type { AdminRecord } from "@/lib/api/admin"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import { DashboardPagination } from "@/components/dashboard/pagination-controls"
 
 import type { DashboardDataPageConfig } from "./dashboard-data-types"
 import {
   DASHBOARD_DATA_DEPTH_KEY,
   DASHBOARD_DATA_HAS_CHILDREN_KEY,
+  dashboardDataRecordLabel,
+  dashboardDataRowKey,
   getDashboardDataValue,
   textValue,
 } from "./dashboard-data-utils"
@@ -49,6 +52,13 @@ export function DashboardDataTable({
   onDelete,
   isTreeRecordCollapsed,
   onToggleTreeRecord,
+  selectable,
+  selectedKeys,
+  selectAllState,
+  selectAllLabel,
+  selectRowLabel,
+  onToggleSelect,
+  onToggleSelectAll,
 }: {
   config: DashboardDataPageConfig
   records: AdminRecord[]
@@ -86,6 +96,14 @@ export function DashboardDataTable({
   onDelete: (record: AdminRecord) => void
   isTreeRecordCollapsed?: (record: AdminRecord) => boolean
   onToggleTreeRecord?: (record: AdminRecord) => void
+  // 多选（config.batchActions 非空时启用）：受控勾选态由 use-dashboard-data-page 持有
+  selectable?: boolean
+  selectedKeys?: Set<string>
+  selectAllState?: "all" | "some" | "none"
+  selectAllLabel?: string
+  selectRowLabel?: (label: string) => string
+  onToggleSelect?: (record: AdminRecord, index: number) => void
+  onToggleSelectAll?: () => void
 }) {
   const [draggingIndex, setDraggingIndex] = React.useState<number | null>(null)
   const [dragOverIndex, setDragOverIndex] = React.useState<number | null>(null)
@@ -99,7 +117,8 @@ export function DashboardDataTable({
     Boolean(config.sortEndpoint && canSort) ||
     Boolean(config.rowActions?.length) ||
     Boolean(config.renderRowActions)
-  const colSpan = config.columns.length + (hasActions ? 1 : 0)
+  const colSpan =
+    config.columns.length + (hasActions ? 1 : 0) + (selectable ? 1 : 0)
 
   return (
     <div className="overflow-hidden rounded-lg border bg-[var(--dashboard-panel)] shadow-xs">
@@ -107,6 +126,21 @@ export function DashboardDataTable({
         <table className="w-full min-w-[980px] text-sm">
           <thead className="bg-[var(--dashboard-panel-muted)] text-muted-foreground">
             <tr>
+              {selectable ? (
+                <th className="h-10 w-10 px-3 text-left">
+                  <Checkbox
+                    checked={
+                      selectAllState === "all"
+                        ? true
+                        : selectAllState === "some"
+                          ? "indeterminate"
+                          : false
+                    }
+                    aria-label={selectAllLabel}
+                    onCheckedChange={() => onToggleSelectAll?.()}
+                  />
+                </th>
+              ) : null}
               {config.columns.map((column) => (
                 <th
                   key={column.key}
@@ -162,6 +196,21 @@ export function DashboardDataTable({
                       "bg-[var(--dashboard-accent-soft)]/70 outline-2 -outline-offset-2 outline-primary/45"
                   )}
                 >
+                  {selectable ? (
+                    <td className="h-11 px-3 align-middle">
+                      <Checkbox
+                        checked={selectedKeys?.has(
+                          dashboardDataRowKey(record, index)
+                        )}
+                        aria-label={selectRowLabel?.(
+                          dashboardDataRecordLabel(record)
+                        )}
+                        onCheckedChange={() =>
+                          onToggleSelect?.(record, index)
+                        }
+                      />
+                    </td>
+                  ) : null}
                   {config.columns.map((column) => {
                     const isTreeIndentColumn =
                       config.treeIndentKey === column.key

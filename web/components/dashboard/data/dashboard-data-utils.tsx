@@ -204,6 +204,26 @@ export function textValue(value: unknown) {
   return String(value)
 }
 
+// 多选行键：树形扁平化记录优先用 __dashboardKey（全局唯一），
+// 普通列表用 id 兜底、无 id 用行索引（仅用于勾选态，批量 payload 仍取 record.id）。
+export function dashboardDataRowKey(record: AdminRecord, index: number) {
+  const treeKey = record[DASHBOARD_DATA_KEY]
+  if (treeKey !== undefined && treeKey !== null && treeKey !== "") {
+    return String(treeKey)
+  }
+  return String(record.id ?? index)
+}
+
+// 批量结果行展示名：昵称/用户名/标题优先，兜底 id
+export function dashboardDataRecordLabel(record: AdminRecord) {
+  const candidate =
+    record.nickname ?? record.username ?? record.name ?? record.title
+  if (candidate !== undefined && candidate !== null && candidate !== "") {
+    return String(candidate)
+  }
+  return `#${String(record.id ?? "-")}`
+}
+
 export function dateCell(value: unknown) {
   const text = formatDateTime(value as string | number | null)
   return text || "-"

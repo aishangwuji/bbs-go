@@ -16,6 +16,9 @@ import { createAdminInitialFilters } from "@/lib/dashboard/default-filters"
 import { msgSuccess } from "@/lib/toast"
 
 import type {
+  DashboardDataBatchAction,
+  DashboardDataBatchItemResult,
+  DashboardDataBatchResult,
   DashboardDataOption,
   DashboardDataPageConfig,
   DashboardDataRowAction,
@@ -26,6 +29,7 @@ import {
   DASHBOARD_DATA_KEY,
   DASHBOARD_DATA_PARENT_KEY,
   dashboardDataRecordToFormValues,
+  dashboardDataRowKey,
   filterVisibleDashboardDataTree,
   flattenDashboardDataTree,
   isValidDashboardDataHttpUrl,
@@ -82,6 +86,22 @@ export function useDashboardDataPage({
   const [collapsedTreeKeys, setCollapsedTreeKeys] = React.useState<Set<string>>(
     () => new Set()
   )
+  // 多选态：值为 dashboardDataRowKey(record, index)；翻页/筛选/执行后 reload 会清空
+  const [selectedKeys, setSelectedKeys] = React.useState<Set<string>>(
+    () => new Set()
+  )
+  // 批量操作进行到“收集中间表单”阶段的 action（extraFields 非空时）；提交后进确认/直接执行
+  const [pendingBatch, setPendingBatch] =
+    React.useState<DashboardDataBatchAction | null>(null)
+  const [batchValues, setBatchValues] = React.useState<
+    Record<string, AdminFormValue>
+  >({})
+  const [batchErrors, setBatchErrors] = React.useState<Record<string, string>>(
+    {}
+  )
+  const [batchRunning, setBatchRunning] = React.useState(false)
+  const [batchResult, setBatchResult] =
+    React.useState<DashboardDataBatchResult | null>(null)
   const treeCollapseModeRef = React.useRef<string | null>(null)
   const knownTreeKeysRef = React.useRef<Set<string>>(new Set())
 
@@ -99,6 +119,19 @@ export function useDashboardDataPage({
         : records,
     [collapsedTreeKeys, config.tree, records, treeRecords]
   )
+  const selectedRecords = React.useMemo(
+    () =>
+      displayRecords.filter((record, index) =>
+        selectedKeys.has(dashboardDataRowKey(record, index))
+      ),
+    [displayRecords, selectedKeys]
+  )
+  const selectAllState: "all" | "some" | "none" =
+    displayRecords.length === 0 || selectedRecords.length === 0
+      ? "none"
+      : selectedRecords.length >= displayRecords.length
+        ? "all"
+        : "some"
 
   React.useEffect(() => {
     if (!config.tree) {
@@ -168,12 +201,14 @@ export function useDashboardDataPage({
         )
         setRecords(Array.isArray(data) ? data : [])
         setTotal(Array.isArray(data) ? data.length : 0)
+        setSelectedKeys(new Set())
         return
       }
 
       const data = await adminList(config.listEndpoint, filters)
       setRecords(data.results || [])
       setTotal(data.page?.total ?? data.results?.length ?? 0)
+      setSelectedKeys(new Set())
     } catch (err) {
       setError(err instanceof Error ? err.message : messages.loadFailed)
     } finally {
@@ -287,10 +322,14 @@ export function useDashboardDataPage({
     setEditing({})
   }
 
-  function validateForm() {
+  // 表单校验抽为纯函数：主编辑表单与批量前置表单共用同一套 required/number/url 规则
+  function validateFieldValues(
+    fields: NonNullable<DashboardDataPageConfig["formFields"]>,
+    values: Record<string, AdminFormValue>
+  ) {
     const errors: Record<string, string> = {}
-    for (const field of visibleFormFields) {
-      const value = formValues[field.name]
+    for (const field of fields) {
+      const value = values[field.name]
       const text = value === undefined || value === null ? "" : String(value)
       if (field.required && text.trim() === "") {
         errors[field.name] = messages.required
@@ -319,8 +358,135 @@ export function useDashboardDataPage({
         }
       }
     }
+    return errors
+  }
+
+  function validateForm() {
+    const errors = validateFieldValues(visibleFormFields, formValues)
     setFormErrors(errors)
     return Object.keys(errors).length === 0
+  }
+
+  function toggleSelectRecord(record: AdminRecord, index: number) {
+    const key = dashboardDataRowKey(record, index)
+    setSelectedKeys((current) => {
+      const next = new Set(current)
+      if (next.has(key)) {
+        next.delete(key)
+      } else {
+        next.add(key)
+      }
+      return next
+    })
+  }
+
+  function toggleSelectPage() {
+    const pageKeys = displayRecords.map((record, index) =>
+      dashboardDataRowKey(record, index)
+    )
+    setSelectedKeys((current) => {
+      const allSelected = pageKeys.every((key) => current.has(key))
+      const next = new Set(current)
+      if (allSelected) {
+        pageKeys.forEach((key) => next.delete(key))
+      } else {
+        pageKeys.forEach((key) => next.add(key))
+      }
+      return next
+    })
+  }
+
+  function clearSelection() {
+    setSelectedKeys(new Set())
+  }
+
+  // 批量入口：有前置表单先弹窗收集，否则直接进确认/执行
+  function startBatchAction(action: DashboardDataBatchAction) {
+    if (selectedRecords.length === 0) return
+    if (action.extraFields?.length) {
+      setBatchValues(action.extraInitialValues ?? {})
+      setBatchErrors({})
+      setPendingBatch(action)
+      return
+    }
+    requestBatchConfirm(action, {})
+  }
+
+  function submitBatchForm(event: React.FormEvent) {
+    event.preventDefault()
+    if (!pendingBatch) return
+    const errors = validateFieldValues(
+      pendingBatch.extraFields ?? [],
+      batchValues
+    )
+    setBatchErrors(errors)
+    if (Object.keys(errors).length > 0) return
+    const action = pendingBatch
+    setPendingBatch(null)
+    requestBatchConfirm(action, batchValues)
+  }
+
+  function requestBatchConfirm(
+    action: DashboardDataBatchAction,
+    extra: Record<string, AdminFormValue>
+  ) {
+    const count = selectedRecords.length
+    if (count === 0) return
+    const confirmText =
+      typeof action.confirm === "function"
+        ? action.confirm(count)
+        : action.confirm
+    if (confirmText) {
+      setConfirmState({
+        description: confirmText,
+        confirmText: action.label,
+        onConfirm: () => {
+          void runBatchAction(action, extra)
+        },
+      })
+      return
+    }
+    void runBatchAction(action, extra)
+  }
+
+  // 逐条顺序执行：复用单条接口，单条失败不阻断后续，结果汇总后统一 reload
+  async function runBatchAction(
+    action: DashboardDataBatchAction,
+    extra: Record<string, AdminFormValue>
+  ) {
+    const targets = selectedRecords
+    if (targets.length === 0) return
+    setBatchRunning(true)
+    setError(null)
+    const items: DashboardDataBatchItemResult[] = []
+    try {
+      for (const record of targets) {
+        try {
+          const payload = action.payload?.(record, extra) ?? {
+            id: record.id as AdminFormValue,
+          }
+          const result =
+            action.method === "DELETE"
+              ? await adminDelete(action.endpoint, payload)
+              : await adminPostForm(action.endpoint, payload)
+          items.push({
+            record,
+            ok: true,
+            message: action.describeResult?.(record, result),
+          })
+        } catch (err) {
+          items.push({
+            record,
+            ok: false,
+            message: err instanceof Error ? err.message : messages.actionFailed,
+          })
+        }
+      }
+      setBatchResult({ title: action.label, items })
+      await load()
+    } finally {
+      setBatchRunning(false)
+    }
   }
 
   async function submitForm(event: React.FormEvent) {
@@ -626,6 +792,14 @@ export function useDashboardDataPage({
     limit,
     pageCount,
     visibleFormFields,
+    selectedKeys,
+    selectedRecords,
+    selectAllState,
+    pendingBatch,
+    batchValues,
+    batchErrors,
+    batchRunning,
+    batchResult,
     load,
     updateFilter,
     setFilters,
@@ -640,6 +814,14 @@ export function useDashboardDataPage({
     submitForm,
     requestDelete,
     runAction,
+    toggleSelectRecord,
+    toggleSelectPage,
+    clearSelection,
+    startBatchAction,
+    submitBatchForm,
+    setPendingBatch,
+    setBatchValues,
+    setBatchResult,
     moveRecord,
     reorderRecord,
     canMoveRecord,

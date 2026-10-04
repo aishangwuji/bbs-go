@@ -11,6 +11,8 @@ import { userHasPermission } from "@/lib/auth/roles"
 import { useI18n } from "@/lib/i18n/provider"
 
 import { DashboardDataDetailDialog } from "./dashboard-data-detail-dialog"
+import { DashboardDataBatchBar } from "./dashboard-data-batch-bar"
+import { DashboardDataBatchResultDialog } from "./dashboard-data-batch-result-dialog"
 import { DashboardDataFormDialog } from "./dashboard-data-form-dialog"
 import { DashboardDataPasswordDialog } from "./dashboard-data-password-dialog"
 import { DashboardDataTable } from "./dashboard-data-table"
@@ -32,6 +34,9 @@ export function DashboardDataPage({
     () => ({
       ...config,
       rowActions: config.rowActions?.filter((action) =>
+        canUse(action.permission)
+      ),
+      batchActions: config.batchActions?.filter((action) =>
         canUse(action.permission)
       ),
     }),
@@ -84,6 +89,18 @@ export function DashboardDataPage({
         onCreate={state.openCreate}
       />
 
+      <DashboardDataBatchBar
+        count={state.selectedRecords.length}
+        selectedLabel={t("dashboard.batch.selected", {
+          count: state.selectedRecords.length,
+        })}
+        clearLabel={t("dashboard.batch.clear")}
+        actions={visibleConfig.batchActions ?? []}
+        running={state.batchRunning}
+        onRun={(action) => state.startBatchAction(action)}
+        onClear={() => state.clearSelection()}
+      />
+
       <DashboardDataTable
         config={visibleConfig}
         records={state.displayRecords}
@@ -104,6 +121,17 @@ export function DashboardDataPage({
           edit: t("dashboard.actions.edit"),
           delete: t("dashboard.actions.delete"),
         }}
+        selectable={Boolean(visibleConfig.batchActions?.length)}
+        selectedKeys={state.selectedKeys}
+        selectAllState={state.selectAllState}
+        selectAllLabel={t("dashboard.batch.selectAll")}
+        selectRowLabel={(label) =>
+          t("dashboard.batch.selectRow", { label })
+        }
+        onToggleSelect={(record, index) =>
+          state.toggleSelectRecord(record, index)
+        }
+        onToggleSelectAll={() => state.toggleSelectPage()}
         onPageChange={(nextPage) => state.updateFilter("page", nextPage)}
         onLimitChange={(nextLimit) =>
           state.setFilters((current) => ({
@@ -161,6 +189,41 @@ export function DashboardDataPage({
         title={t("dashboard.actions.view")}
         cancelLabel={t("common.cancel")}
         onClose={() => state.setViewing(null)}
+      />
+
+      <DashboardDataFormDialog
+        open={Boolean(state.pendingBatch)}
+        formId="dashboard-data-batch-form"
+        title={state.pendingBatch?.label ?? ""}
+        fields={state.pendingBatch?.extraFields ?? []}
+        values={state.batchValues}
+        errors={state.batchErrors}
+        asyncOptions={state.asyncOptions}
+        submitting={state.batchRunning}
+        cancelLabel={t("common.cancel")}
+        confirmLabel={t("common.confirm")}
+        onOpenChange={(open) => {
+          if (!open) state.setPendingBatch(null)
+        }}
+        onSubmit={(event) => void state.submitBatchForm(event)}
+        onValueChange={(name, value: AdminFormValue) =>
+          state.setBatchValues((current) => ({
+            ...current,
+            [name]: value,
+          }))
+        }
+      />
+
+      <DashboardDataBatchResultDialog
+        result={state.batchResult}
+        summary={(ok, fail) =>
+          t("dashboard.batch.summary", { ok, fail })
+        }
+        successText={t("dashboard.batch.itemSuccess")}
+        copyLabel={t("dashboard.resetPassword.copy")}
+        copiedMessage={t("dashboard.resetPassword.copied")}
+        closeLabel={t("common.confirm")}
+        onClose={() => state.setBatchResult(null)}
       />
 
       <DashboardDataPasswordDialog
