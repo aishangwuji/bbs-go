@@ -9,6 +9,9 @@ import type { AppLocale } from "./types"
 // cookie 值是外部输入，消费时必须经 matchLocale 白名单校验，非法值直接丢弃。
 export const LOCALE_COOKIE_NAME = "bbsgo-locale"
 const LOCALE_COOKIE_MAX_AGE = 31536000 // 1 年，与“手动选择长期有效”的语义一致
+// localStorage 双 key：新 key 与历史遗留 key 并存，读时任一命中即有效，写时双写兼容旧版本。
+export const LOCALE_STORAGE_KEY = "bbsgo-dashboard-locale"
+export const LEGACY_LOCALE_STORAGE_KEY = "bbsgo-web-locale"
 
 export function normalizeLocale(value: unknown): AppLocale {
   return normalizeI18nLocale(typeof value === "string" ? value : undefined)
@@ -94,4 +97,22 @@ export function resolveRequestLocale(options: {
 
 export function buildLocaleCookie(value: AppLocale): string {
   return `${LOCALE_COOKIE_NAME}=${encodeURIComponent(value)}; Path=/; Max-Age=${LOCALE_COOKIE_MAX_AGE}; SameSite=Lax`
+}
+
+// 读手动选择：任一存储 key 有白名单内的值即视为手动模式，否则为“跟随浏览器”模式。
+// 注意仅在客户端调用（含 typeof window 守卫，SSR 误调直接返回 null）。
+export function readStoredLocale(): AppLocale | null {
+  if (typeof window === "undefined") return null
+  const stored =
+    window.localStorage.getItem(LOCALE_STORAGE_KEY) ||
+    window.localStorage.getItem(LEGACY_LOCALE_STORAGE_KEY)
+  return stored ? matchLocale(stored) : null
+}
+
+// 清除手动选择回到跟随模式：localStorage 与 cookie 必须双清，
+// 否则 SSR 仍会读到旧 cookie 造成“清掉了还闪回旧语言”。
+export function clearStoredLocale() {
+  window.localStorage.removeItem(LOCALE_STORAGE_KEY)
+  window.localStorage.removeItem(LEGACY_LOCALE_STORAGE_KEY)
+  document.cookie = `${LOCALE_COOKIE_NAME}=; Path=/; Max-Age=0; SameSite=Lax`
 }

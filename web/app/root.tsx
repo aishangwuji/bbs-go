@@ -35,15 +35,14 @@ import { rootDataContext } from "./route-helpers/context"
 import {
   buildLocaleCookie,
   getBrowserLocale,
+  LEGACY_LOCALE_STORAGE_KEY,
+  LOCALE_STORAGE_KEY,
   normalizeLocale,
   resolveRequestLocale,
 } from "./route-helpers/locale"
 import type { RootLoaderData } from "./route-helpers/types"
 
 import "@/styles/globals.css"
-
-const LOCALE_STORAGE_KEY = "bbsgo-dashboard-locale"
-const LEGACY_LOCALE_STORAGE_KEY = "bbsgo-web-locale"
 
 const GoogleOneTap = React.lazy(() =>
   import("@/components/auth/google-one-tap").then((module) => ({

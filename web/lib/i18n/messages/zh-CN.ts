@@ -69,6 +69,7 @@ const zhCN = {
     header: {
       theme: "主题",
       language: "语言",
+      followSystem: "跟随浏览器",
       siteHome: "打开前台首页",
     },
     theme: {
