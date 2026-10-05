@@ -30,7 +30,16 @@ export function DashboardDataFilterControl({
           value={value}
           options={options}
           placeholder={filter.label}
-          onValueChange={(nextValue) => onChange(nextValue)}
+          onValueChange={(nextValue) => {
+            if (nextValue === undefined) {
+              onChange(undefined)
+              return
+            }
+            const matched = options.find(
+              (option) => String(option.value) === nextValue
+            )
+            onChange(matched ? (matched.value as AdminFormValue) : nextValue)
+          }}
         />
       ) : filter.type === "number" ? (
         <Input

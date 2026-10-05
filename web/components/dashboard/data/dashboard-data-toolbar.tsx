@@ -21,6 +21,7 @@ export function DashboardDataToolbar({
   searchLabel,
   refreshLabel,
   createLabel,
+  extraActions,
   onFilterChange,
   onRefresh,
   onCreate,
@@ -34,6 +35,7 @@ export function DashboardDataToolbar({
   searchLabel: string
   refreshLabel: string
   createLabel: string
+  extraActions?: React.ReactNode
   onFilterChange: (name: string, value: AdminFormValue) => void
   onRefresh: () => void
   onCreate: () => void
@@ -61,6 +63,7 @@ export function DashboardDataToolbar({
           <RefreshCwIcon />
           <span className="sr-only">{refreshLabel}</span>
         </Button>
+        {extraActions}
         {canCreate ? (
           <Button className="ml-auto" onClick={onCreate}>
             <PlusIcon />

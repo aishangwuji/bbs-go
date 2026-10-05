@@ -117,14 +117,58 @@ export function DashboardDataTable({
     Boolean(config.sortEndpoint && canSort) ||
     Boolean(config.rowActions?.length) ||
     Boolean(config.renderRowActions)
+  const columns = config.columns ?? []
+  const [columnWidths, setColumnWidths] = React.useState<Record<string, number>>({})
+  const resizingRef = React.useRef<{
+    columnKey: string
+    startX: number
+    startWidth: number
+  } | null>(null)
+
+  const handleResizeStart = React.useCallback(
+    (e: React.MouseEvent, columnKey: string, currentWidth: number) => {
+      e.preventDefault()
+      e.stopPropagation()
+      resizingRef.current = {
+        columnKey,
+        startX: e.clientX,
+        startWidth: currentWidth,
+      }
+
+      const onMouseMove = (moveEvent: MouseEvent) => {
+        if (!resizingRef.current) return
+        const diff = moveEvent.clientX - resizingRef.current.startX
+        const newWidth = Math.max(60, resizingRef.current.startWidth + diff)
+        setColumnWidths((prev) => ({
+          ...prev,
+          [resizingRef.current!.columnKey]: newWidth,
+        }))
+      }
+
+      const onMouseUp = () => {
+        resizingRef.current = null
+        document.removeEventListener("mousemove", onMouseMove)
+        document.removeEventListener("mouseup", onMouseUp)
+        document.body.style.removeProperty("cursor")
+        document.body.style.removeProperty("user-select")
+      }
+
+      document.body.style.cursor = "col-resize"
+      document.body.style.userSelect = "none"
+      document.addEventListener("mousemove", onMouseMove)
+      document.addEventListener("mouseup", onMouseUp)
+    },
+    []
+  )
+
   const colSpan =
-    config.columns.length + (hasActions ? 1 : 0) + (selectable ? 1 : 0)
+    columns.length + (hasActions ? 1 : 0) + (selectable ? 1 : 0)
 
   return (
     <div className="overflow-hidden rounded-lg border bg-[var(--dashboard-panel)] shadow-xs">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[980px] text-sm">
-          <thead className="bg-[var(--dashboard-panel-muted)] text-muted-foreground">
+        <table className="w-full min-w-[980px] text-sm table-fixed">
+          <thead className="bg-[var(--dashboard-panel-muted)] text-muted-foreground select-none">
             <tr>
               {selectable ? (
                 <th className="h-10 w-10 px-3 text-left">
@@ -141,17 +185,38 @@ export function DashboardDataTable({
                   />
                 </th>
               ) : null}
-              {config.columns.map((column) => (
-                <th
-                  key={column.key}
-                  className={cn(
-                    "h-10 px-3 text-left text-xs font-semibold tracking-wide uppercase",
-                    column.className
-                  )}
-                >
-                  {column.label}
-                </th>
-              ))}
+              {columns.map((column) => {
+                const width = columnWidths[column.key] ?? column.width
+                return (
+                  <th
+                    key={column.key}
+                    style={
+                      width !== undefined
+                        ? {
+                            width: typeof width === "number" ? `${width}px` : width,
+                            minWidth: column.minWidth ? `${column.minWidth}px` : undefined,
+                          }
+                        : undefined
+                    }
+                    className={cn(
+                      "relative h-10 px-3 text-left text-xs font-semibold tracking-wide uppercase group/th",
+                      column.className
+                    )}
+                  >
+                    <div className="truncate">{column.label}</div>
+                    <div
+                      role="separator"
+                      aria-orientation="vertical"
+                      className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize opacity-0 group-hover/th:opacity-100 hover:opacity-100 flex items-center justify-center after:h-4 after:w-[2px] after:bg-primary/50 transition-opacity"
+                      onMouseDown={(e) => {
+                        const th = (e.currentTarget.parentElement as HTMLElement | null)
+                        const currentW = th ? th.getBoundingClientRect().width : 120
+                        handleResizeStart(e, column.key, currentW)
+                      }}
+                    />
+                  </th>
+                )
+              })}
               {hasActions ? (
                 <th className="h-10 w-48 px-3 text-right text-xs font-semibold tracking-wide uppercase">
                   {labels.actions}
@@ -211,7 +276,7 @@ export function DashboardDataTable({
                       />
                     </td>
                   ) : null}
-                  {config.columns.map((column) => {
+                  {columns.map((column) => {
                     const isTreeIndentColumn =
                       config.treeIndentKey === column.key
                     const content = column.render

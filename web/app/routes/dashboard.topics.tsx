@@ -10,38 +10,25 @@ import {
   MessageCircleIcon,
   HeartIcon,
   RotateCcwIcon,
-  RefreshCwIcon,
-  SearchIcon,
   StarIcon,
   StarOffIcon,
   Trash2Icon,
   Undo2Icon,
 } from "lucide-react"
 
-import { DashboardSelect } from "@/components/dashboard/dashboard-select"
 import {
-  ConfirmDialog,
-  type ConfirmDialogState,
-} from "@/components/dashboard/confirm-dialog"
+  DashboardDataFeedList,
+  DashboardDataPage,
+  type DashboardDataPageConfig,
+} from "@/components/dashboard/data"
+import * as dashboardData from "@/components/dashboard/data/dashboard-data-route-utils"
 import { useCurrentUser } from "@/components/app/app-provider"
-import { ErrorPage } from "@/components/common/error-page"
 import { PreviewableImage } from "@/components/common/image-preview"
-import { DashboardPagination } from "@/components/dashboard/pagination-controls"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import {
-  adminDelete,
-  adminList,
-  adminPostForm,
-  type AdminFormValue,
-  type AdminRecord,
-} from "@/lib/api/admin"
+import type { AdminRecord } from "@/lib/api/admin"
 import { formatDateTime } from "@/lib/format"
 import { userHasPermission } from "@/lib/auth/roles"
-import { createAdminInitialFilters } from "@/lib/dashboard/default-filters"
 import { useI18n } from "@/lib/i18n/provider"
-import { msgSuccess } from "@/lib/toast"
 import { cn } from "@/lib/utils"
 import { PERMISSIONS } from "@/lib/auth/permissions.generated"
 
@@ -114,22 +101,6 @@ function topicStatusLabel(t: ReturnType<typeof useI18n>["t"], status?: number) {
   return t("dashboard.topicFeed.statusNormal")
 }
 
-function topicActionSuccessMessage(
-  t: ReturnType<typeof useI18n>["t"],
-  action: TopicAction
-) {
-  const messageKeys: Record<TopicAction, string> = {
-    recommend: "dashboard.messages.recommended",
-    unrecommend: "dashboard.messages.unrecommended",
-    audit: "dashboard.messages.audited",
-    undelete: "dashboard.messages.restored",
-    delete: "dashboard.messages.deleted",
-    solved: "dashboard.messages.markedSolved",
-    unsolved: "dashboard.messages.markedUnsolved",
-  }
-
-  return t(messageKeys[action])
-}
 
 function compactText(value: unknown) {
   if (typeof value !== "string") return ""
@@ -153,20 +124,6 @@ function voteOptionPercent(
 export default function DashboardTopicsRoute() {
   const { t } = useI18n()
   const currentUser = useCurrentUser()
-  const [filters, setFilters] = React.useState<Record<string, AdminFormValue>>(
-    () => createAdminInitialFilters({}, 20)
-  )
-  const [records, setRecords] = React.useState<TopicRecord[]>([])
-  const [total, setTotal] = React.useState(0)
-  const [loading, setLoading] = React.useState(false)
-  const [error, setError] = React.useState<string | null>(null)
-  const [confirmState, setConfirmState] =
-    React.useState<ConfirmDialogState>(null)
-
-  const page = Number(filters.page || 1)
-  const limit = Number(filters.limit || 20)
-  const pageCount = Math.max(1, Math.ceil(total / limit))
-  const canView = userHasPermission(currentUser, PERMISSIONS.DASHBOARD_TOPIC_VIEW)
   const canRecommend = userHasPermission(
     currentUser,
     PERMISSIONS.DASHBOARD_TOPIC_RECOMMEND
@@ -175,244 +132,159 @@ export default function DashboardTopicsRoute() {
   const canDelete = userHasPermission(currentUser, PERMISSIONS.DASHBOARD_TOPIC_DELETE)
   const canSolve = userHasPermission(currentUser, PERMISSIONS.DASHBOARD_TOPIC_SOLVE)
 
-  const load = React.useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const data = await adminList<TopicRecord>(
-        "/api/admin/topic/list",
-        filters
-      )
-      setRecords(data.results || [])
-      setTotal(data.page?.total ?? data.results?.length ?? 0)
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : t("dashboard.errors.loadFailed")
-      )
-    } finally {
-      setLoading(false)
-    }
-  }, [filters, t])
-
-  React.useEffect(() => {
-    void load()
-  }, [load])
-
-  function updateFilter(name: string, value: AdminFormValue) {
-    setFilters((current) => ({
-      ...current,
-      [name]: value,
-      page: name === "page" ? value : name === "limit" ? current.page : 1,
-    }))
-  }
-
-  function runAction(topic: TopicRecord, action: TopicAction) {
-    const allowed = {
-      recommend: canRecommend,
-      unrecommend: canRecommend,
-      audit: canAudit,
-      undelete: canDelete,
-      delete: canDelete,
-      solved: canSolve,
-      unsolved: canSolve,
-    }
-    if (!allowed[action]) return
-
-    if (action === "delete") {
-      setConfirmState({
-        description: t("dashboard.confirmDelete"),
-        confirmText: t("dashboard.actions.delete"),
-        onConfirm: () => {
-          void performAction(topic, action)
-        },
-      })
-      return
-    }
-
-    void performAction(topic, action)
-  }
-
-  async function performAction(topic: TopicRecord, action: TopicAction) {
-    const id = topic.id
-    if (!id) return
-
-    const endpoints = {
-      recommend: "/api/admin/topic/recommend",
-      unrecommend: "/api/admin/topic/recommend",
-      audit: "/api/admin/topic/audit",
-      undelete: "/api/admin/topic/undelete",
-      delete: "/api/admin/topic/delete",
-      solved: "/api/admin/topic/mark_solved",
-      unsolved: "/api/admin/topic/mark_unsolved",
-    }
-
-    setError(null)
-    try {
-      if (action === "unrecommend") {
-        await adminDelete(endpoints[action], { id })
-      } else {
-        await adminPostForm(endpoints[action], { id })
-      }
-      msgSuccess(topicActionSuccessMessage(t, action))
-      await load()
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : t("dashboard.errors.actionFailed")
-      )
-    }
-  }
-
-  if (!canView) {
-    return <ErrorPage statusCode={403} />
-  }
-
-  return (
-    <div className="flex flex-1 flex-col gap-4 p-4 pt-4 md:p-6">
-      <section className="flex flex-col gap-3 rounded-lg border bg-[var(--dashboard-panel)] p-3 text-card-foreground shadow-xs">
-        <div className="flex flex-wrap items-end gap-2">
-          <FilterInput
-            label={t("dashboard.fields.id")}
-            value={filters.id}
-            onChange={(value) => updateFilter("id", value)}
-          />
-          <FilterInput
-            label={t("dashboard.fields.userId")}
-            value={filters.userId}
-            onChange={(value) => updateFilter("userId", value)}
-          />
-          <FilterInput
-            label={t("dashboard.fields.title")}
-            value={filters.title}
-            onChange={(value) => updateFilter("title", value)}
-          />
-          <FilterSelect
-            label={t("dashboard.fields.status")}
-            value={filters.status}
-            options={[
-              { label: t("dashboard.topicFeed.statusNormal"), value: 0 },
-              { label: t("dashboard.topicFeed.statusDeleted"), value: 1 },
-              { label: t("dashboard.topicFeed.statusReview"), value: 2 },
-            ]}
-            onChange={(value) => updateFilter("status", value)}
-          />
-          <FilterSelect
-            label={t("dashboard.fields.type")}
-            value={filters.type}
-            options={[
-              { label: t("dashboard.topicFeed.typeTopic"), value: 0 },
-              { label: t("dashboard.topicFeed.typeTweet"), value: 1 },
-              { label: t("dashboard.topicFeed.typeQa"), value: 2 },
-            ]}
-            onChange={(value) => updateFilter("type", value)}
-          />
-          <FilterSelect
-            label={t("dashboard.fields.recommend")}
-            value={filters.recommend}
-            options={[
-              { label: t("dashboard.boolean.yes"), value: "true" },
-              { label: t("dashboard.boolean.no"), value: "false" },
-            ]}
-            onChange={(value) => updateFilter("recommend", value)}
-          />
-          <FilterSelect
-            label={t("dashboard.fields.qaStatus")}
-            value={filters.qaStatus}
-            options={[
-              { label: t("dashboard.topicFeed.qaSolved"), value: "solved" },
-              { label: t("dashboard.topicFeed.qaUnsolved"), value: "unsolved" },
-            ]}
-            onChange={(value) => updateFilter("qaStatus", value)}
-          />
-          <Button onClick={() => void load()} disabled={loading}>
-            <SearchIcon />
-            {t("dashboard.actions.search")}
-          </Button>
-          <Button
-            variant={filters.status === 2 ? "default" : "outline"}
-            size="sm"
-            onClick={() =>
-              updateFilter(
-                "status",
-                filters.status === 2 ? undefined : 2
-              )
-            }
-            title={t("dashboard.actions.pendingReviewTooltip")}
-          >
-            <ClipboardCheckIcon />
-            {t("dashboard.actions.pendingReview")}
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => void load()}
-            disabled={loading}
-          >
-            <RefreshCwIcon />
-            <span className="sr-only">{t("dashboard.actions.refresh")}</span>
-          </Button>
-        </div>
-
-        {error ? (
-          <div className="rounded-md border border-destructive/25 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            {error}
-          </div>
-        ) : null}
-      </section>
-
-      <section
-        className="rounded-lg border bg-[var(--dashboard-panel)] shadow-xs"
-        aria-busy={loading}
+  const config: DashboardDataPageConfig = {
+    title: dashboardData.title(t, "topics"),
+    description: dashboardData.desc(t, "topics"),
+    listEndpoint: "/api/admin/topic/list",
+    viewPermission: PERMISSIONS.DASHBOARD_TOPIC_VIEW,
+    pageSize: 20,
+    filters: [
+      { name: "id", label: dashboardData.label(t, "id") },
+      { name: "userId", label: dashboardData.label(t, "userId") },
+      { name: "title", label: dashboardData.label(t, "title") },
+      {
+        name: "status",
+        label: dashboardData.label(t, "status"),
+        type: "select",
+        options: dashboardData.topicStatusOptionsFor(t),
+      },
+      {
+        name: "type",
+        label: dashboardData.label(t, "type"),
+        type: "select",
+        options: dashboardData.topicTypeOptionsFor(t),
+      },
+      {
+        name: "recommend",
+        label: dashboardData.label(t, "recommend"),
+        type: "select",
+        options: dashboardData.booleanOptionsFor(t),
+      },
+      {
+        name: "qaStatus",
+        label: dashboardData.label(t, "qaStatus"),
+        type: "select",
+        options: [
+          { label: t("dashboard.topicFeed.qaSolved"), value: "solved" },
+          { label: t("dashboard.topicFeed.qaUnsolved"), value: "unsolved" },
+        ],
+      },
+    ],
+    toolbarExtraActions: ({ filters, updateFilter }) => (
+      <Button
+        variant={filters.status === 2 ? "default" : "outline"}
+        size="sm"
+        onClick={() =>
+          updateFilter("status", filters.status === 2 ? undefined : 2)
+        }
+        title={t("dashboard.actions.pendingReviewTooltip")}
       >
-        <div className="divide-y">
-          {loading && records.length === 0 ? (
-            <div className="px-4 py-16 text-center text-sm text-muted-foreground">
-              {t("dashboard.loading")}
-            </div>
-          ) : records.length ? (
-            records.map((topic) => (
-              <TopicFeedItem
-                key={topic.id}
-                topic={topic}
-                permissions={{
-                  recommend: canRecommend,
-                  audit: canAudit,
-                  delete: canDelete,
-                  solve: canSolve,
-                }}
-                onAction={(action) => runAction(topic, action)}
-              />
-            ))
-          ) : (
-            <div className="px-4 py-16 text-center text-sm text-muted-foreground">
-              {t("common.noData")}
-            </div>
-          )}
-        </div>
-
-        <DashboardPagination
-          page={page}
-          pageCount={pageCount}
-          total={total}
-          limit={limit}
-          loading={loading}
-          onPageChange={(nextPage) => updateFilter("page", nextPage)}
-          onLimitChange={(nextLimit) =>
-            setFilters((current) => ({
-              ...current,
-              page: 1,
-              limit: nextLimit,
-            }))
-          }
-        />
-      </section>
-      <ConfirmDialog
-        state={confirmState}
-        onOpenChange={(open) => {
-          if (!open) setConfirmState(null)
-        }}
+        <ClipboardCheckIcon />
+        {t("dashboard.actions.pendingReview")}
+      </Button>
+    ),
+    rowActions: [
+      {
+        label: t("dashboard.actions.recommend"),
+        endpoint: "/api/admin/topic/recommend",
+        permission: PERMISSIONS.DASHBOARD_TOPIC_RECOMMEND,
+        visible: (record) => record.status === 0 && !record.recommend,
+        successMessage: t("dashboard.messages.recommended"),
+      },
+      {
+        label: t("dashboard.actions.unrecommend"),
+        endpoint: "/api/admin/topic/recommend",
+        method: "DELETE",
+        permission: PERMISSIONS.DASHBOARD_TOPIC_RECOMMEND,
+        visible: (record) => record.status === 0 && Boolean(record.recommend),
+        successMessage: t("dashboard.messages.unrecommended"),
+      },
+      {
+        label: t("dashboard.actions.audit"),
+        endpoint: "/api/admin/topic/audit",
+        permission: PERMISSIONS.DASHBOARD_TOPIC_AUDIT,
+        visible: (record) => record.status === 2,
+        successMessage: t("dashboard.messages.audited"),
+      },
+      {
+        label: t("dashboard.actions.undelete"),
+        endpoint: "/api/admin/topic/undelete",
+        permission: PERMISSIONS.DASHBOARD_TOPIC_DELETE,
+        visible: (record) => record.status === 1,
+        successMessage: t("dashboard.messages.restored"),
+      },
+      {
+        label: t("dashboard.actions.markSolved"),
+        endpoint: "/api/admin/topic/mark_solved",
+        permission: PERMISSIONS.DASHBOARD_TOPIC_SOLVE,
+        visible: (record) =>
+          record.status === 0 && record.type === 2 && record.qaStatus !== "solved",
+        successMessage: t("dashboard.messages.markedSolved"),
+      },
+      {
+        label: t("dashboard.actions.markUnsolved"),
+        endpoint: "/api/admin/topic/mark_unsolved",
+        permission: PERMISSIONS.DASHBOARD_TOPIC_SOLVE,
+        visible: (record) =>
+          record.status === 0 && record.type === 2 && record.qaStatus === "solved",
+        successMessage: t("dashboard.messages.markedUnsolved"),
+      },
+      {
+        label: t("dashboard.actions.delete"),
+        endpoint: "/api/admin/topic/delete",
+        permission: PERMISSIONS.DASHBOARD_TOPIC_DELETE,
+        visible: (record) => record.status === 0 || record.status === 2,
+        confirm: t("dashboard.confirmDelete"),
+        successMessage: t("dashboard.messages.deleted"),
+      },
+    ],
+    renderFeed: ({ records, loading, state }) => (
+      <DashboardDataFeedList
+        records={records as TopicRecord[]}
+        loading={loading}
+        page={state.page}
+        pageCount={state.pageCount}
+        total={state.total}
+        limit={state.limit}
+        onPageChange={(nextPage) => state.updateFilter("page", nextPage)}
+        onLimitChange={(nextLimit) =>
+          state.setFilters((current) => ({
+            ...current,
+            page: 1,
+            limit: nextLimit,
+          }))
+        }
+        renderItem={(topic) => (
+          <TopicFeedItem
+            topic={topic}
+            permissions={{
+              recommend: canRecommend,
+              audit: canAudit,
+              delete: canDelete,
+              solve: canSolve,
+            }}
+            onAction={(action) => {
+              const matchedAction = config.rowActions?.find((item) => {
+                if (action === "recommend") return item.label === t("dashboard.actions.recommend")
+                if (action === "unrecommend") return item.label === t("dashboard.actions.unrecommend")
+                if (action === "audit") return item.label === t("dashboard.actions.audit")
+                if (action === "undelete") return item.label === t("dashboard.actions.undelete")
+                if (action === "solved") return item.label === t("dashboard.actions.markSolved")
+                if (action === "unsolved") return item.label === t("dashboard.actions.markUnsolved")
+                if (action === "delete") return item.label === t("dashboard.actions.delete")
+                return false
+              })
+              if (matchedAction) {
+                void state.runAction(matchedAction, topic)
+              }
+            }}
+          />
+        )}
       />
-    </div>
-  )
+    ),
+  }
+
+  return <DashboardDataPage config={config} />
 }
 
 function TopicFeedItem({
@@ -735,47 +607,3 @@ function TopicTag({
   )
 }
 
-function FilterInput({
-  label,
-  value,
-  onChange,
-}: {
-  label: string
-  value: AdminFormValue
-  onChange: (value: AdminFormValue) => void
-}) {
-  return (
-    <div className="grid min-w-44 gap-1.5">
-      <Label className="text-xs text-muted-foreground">{label}</Label>
-      <Input
-        value={value === undefined || value === null ? "" : String(value)}
-        placeholder={label}
-        onChange={(event) => onChange(event.target.value)}
-      />
-    </div>
-  )
-}
-
-function FilterSelect({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string
-  value: AdminFormValue
-  options: Array<{ label: string; value: string | number }>
-  onChange: (value: AdminFormValue) => void
-}) {
-  return (
-    <div className="grid min-w-44 gap-1.5">
-      <Label className="text-xs text-muted-foreground">{label}</Label>
-      <DashboardSelect
-        value={value}
-        options={options}
-        placeholder={label}
-        onValueChange={(nextValue) => onChange(nextValue)}
-      />
-    </div>
-  )
-}

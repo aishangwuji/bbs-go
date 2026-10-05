@@ -50,6 +50,8 @@ export type DashboardDataColumn = {
   key: string
   label: string
   className?: string
+  width?: number | string
+  minWidth?: number
   render?: (record: AdminRecord) => React.ReactNode
 }
 
@@ -125,7 +127,19 @@ export type DashboardDataPageConfig = {
   renderRowActions?: (record: AdminRecord) => React.ReactNode
   filters?: DashboardDataFilter[]
   defaultFilters?: Record<string, AdminFormValue>
-  columns: DashboardDataColumn[]
+  columns?: DashboardDataColumn[]
+  // 自定义卡片/Feed流视图：若提供则替代标准表格 DashboardDataTable 进行列表项渲染
+  renderFeed?: (props: {
+    records: AdminRecord[]
+    loading: boolean
+    state: ReturnType<typeof import("./use-dashboard-data-page").useDashboardDataPage>
+  }) => React.ReactNode
+  // 顶部工具栏额外操作按钮（如快速筛选特定状态开关）
+  toolbarExtraActions?: (props: {
+    filters: Record<string, AdminFormValue>
+    updateFilter: (name: string, value: AdminFormValue) => void
+    loading: boolean
+  }) => React.ReactNode
   detailFields?: DashboardDataDetailField[]
   formFields?: DashboardDataFormField[]
   rowActions?: DashboardDataRowAction[]

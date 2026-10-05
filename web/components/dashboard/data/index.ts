@@ -1,4 +1,8 @@
 export { DashboardDataPage } from "./dashboard-data-page"
+export {
+  DashboardDataFeedList,
+  type DashboardDataFeedListProps,
+} from "./dashboard-data-feed-list"
 export type {
   DashboardDataBatchAction,
   DashboardDataBatchItemResult,

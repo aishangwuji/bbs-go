@@ -84,6 +84,11 @@ export function DashboardDataPage({
         searchLabel={t("dashboard.actions.search")}
         refreshLabel={t("dashboard.actions.refresh")}
         createLabel={t("dashboard.actions.create")}
+        extraActions={visibleConfig.toolbarExtraActions?.({
+          filters: state.filters,
+          updateFilter: state.updateFilter,
+          loading: state.loading,
+        })}
         onFilterChange={state.updateFilter}
         onRefresh={() => void state.load()}
         onCreate={state.openCreate}
@@ -101,60 +106,68 @@ export function DashboardDataPage({
         onClear={() => state.clearSelection()}
       />
 
-      <DashboardDataTable
-        config={visibleConfig}
-        records={state.displayRecords}
-        loading={state.loading}
-        page={state.page}
-        pageCount={state.pageCount}
-        total={state.total}
-        limit={state.limit}
-        labels={{
-          actions: t("dashboard.actions.title"),
-          loading: t("dashboard.loading"),
-          noData: t("common.noData"),
-          moveUp: t("dashboard.actions.moveUp"),
-          moveDown: t("dashboard.actions.moveDown"),
-          expand: t("dashboard.actions.expand"),
-          collapse: t("dashboard.actions.collapse"),
-          view: t("dashboard.actions.view"),
-          edit: t("dashboard.actions.edit"),
-          delete: t("dashboard.actions.delete"),
-        }}
-        selectable={Boolean(visibleConfig.batchActions?.length)}
-        selectedKeys={state.selectedKeys}
-        selectAllState={state.selectAllState}
-        selectAllLabel={t("dashboard.batch.selectAll")}
-        selectRowLabel={(label) =>
-          t("dashboard.batch.selectRow", { label })
-        }
-        onToggleSelect={(record, index) =>
-          state.toggleSelectRecord(record, index)
-        }
-        onToggleSelectAll={() => state.toggleSelectPage()}
-        onPageChange={(nextPage) => state.updateFilter("page", nextPage)}
-        onLimitChange={(nextLimit) =>
-          state.setFilters((current) => ({
-            ...current,
-            page: 1,
-            limit: nextLimit,
-          }))
-        }
-        onMove={(index, direction) => void state.moveRecord(index, direction)}
-        onReorder={(fromIndex, toIndex) =>
-          void state.reorderRecord(fromIndex, toIndex)
-        }
-        canMove={state.canMoveRecord}
-        canSort={canUse(visibleConfig.sortPermission)}
-        canUpdate={canUse(visibleConfig.updatePermission)}
-        canDelete={canUse(visibleConfig.deletePermission)}
-        onRunAction={(action, record) => void state.runAction(action, record)}
-        onView={(record) => void state.openView(record)}
-        onEdit={(record) => void state.openEdit(record)}
-        onDelete={state.requestDelete}
-        isTreeRecordCollapsed={state.isTreeRecordCollapsed}
-        onToggleTreeRecord={state.toggleTreeRecord}
-      />
+      {visibleConfig.renderFeed ? (
+        visibleConfig.renderFeed({
+          records: state.displayRecords,
+          loading: state.loading,
+          state,
+        })
+      ) : (
+        <DashboardDataTable
+          config={visibleConfig}
+          records={state.displayRecords}
+          loading={state.loading}
+          page={state.page}
+          pageCount={state.pageCount}
+          total={state.total}
+          limit={state.limit}
+          labels={{
+            actions: t("dashboard.actions.title"),
+            loading: t("dashboard.loading"),
+            noData: t("common.noData"),
+            moveUp: t("dashboard.actions.moveUp"),
+            moveDown: t("dashboard.actions.moveDown"),
+            expand: t("dashboard.actions.expand"),
+            collapse: t("dashboard.actions.collapse"),
+            view: t("dashboard.actions.view"),
+            edit: t("dashboard.actions.edit"),
+            delete: t("dashboard.actions.delete"),
+          }}
+          selectable={Boolean(visibleConfig.batchActions?.length)}
+          selectedKeys={state.selectedKeys}
+          selectAllState={state.selectAllState}
+          selectAllLabel={t("dashboard.batch.selectAll")}
+          selectRowLabel={(label) =>
+            t("dashboard.batch.selectRow", { label })
+          }
+          onToggleSelect={(record, index) =>
+            state.toggleSelectRecord(record, index)
+          }
+          onToggleSelectAll={() => state.toggleSelectPage()}
+          onPageChange={(nextPage) => state.updateFilter("page", nextPage)}
+          onLimitChange={(nextLimit) =>
+            state.setFilters((current) => ({
+              ...current,
+              page: 1,
+              limit: nextLimit,
+            }))
+          }
+          onMove={(index, direction) => void state.moveRecord(index, direction)}
+          onReorder={(fromIndex, toIndex) =>
+            void state.reorderRecord(fromIndex, toIndex)
+          }
+          canMove={state.canMoveRecord}
+          canSort={canUse(visibleConfig.sortPermission)}
+          canUpdate={canUse(visibleConfig.updatePermission)}
+          canDelete={canUse(visibleConfig.deletePermission)}
+          onRunAction={(action, record) => void state.runAction(action, record)}
+          onView={(record) => void state.openView(record)}
+          onEdit={(record) => void state.openEdit(record)}
+          onDelete={state.requestDelete}
+          isTreeRecordCollapsed={state.isTreeRecordCollapsed}
+          onToggleTreeRecord={state.toggleTreeRecord}
+        />
+      )}
 
       <DashboardDataFormDialog
         open={Boolean(state.editing)}
