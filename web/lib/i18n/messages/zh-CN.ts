@@ -102,6 +102,8 @@ const zhCN = {
       levels: "等级",
       tasks: "任务",
       taskEventDefs: "任务事件",
+      rewardTypes: "奖励类型",
+      taskRewards: "任务奖励",
       system: "系统",
       settings: "设置",
       siteSettings: "设置",
@@ -780,6 +782,10 @@ const zhCN = {
       path: "路径",
       component: "组件",
       code: "编码",
+      rewardCode: "奖励编码",
+      amount: "数量",
+      executor: "执行器",
+      enabled: "启用",
       nameZh: "中文名",
       nameEn: "英文名",
       producer: "发射点",
@@ -851,6 +857,14 @@ const zhCN = {
       taskEventDefs: {
         title: "任务事件",
         description: "管理任务事件定义与启用开关。",
+      },
+      rewardTypes: {
+        title: "奖励类型",
+        description: "管理奖励类型定义与执行器映射。",
+      },
+      taskRewards: {
+        title: "任务奖励",
+        description: "管理任务的奖励明细（多奖励）。",
       },
       userBadges: {
         title: "用户徽章",

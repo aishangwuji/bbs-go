@@ -103,6 +103,11 @@ var (
 	PermissionTaskEventUpdate = PermissionDefinition{Type: TypeDashboard, Code: "dashboard.taskEvent.update", GroupName: GroupGrowth, SortNo: 1060, NameEn: "Update Task Events", NameZh: "编辑任务事件"}
 	PermissionTaskEventDelete = PermissionDefinition{Type: TypeDashboard, Code: "dashboard.taskEvent.delete", GroupName: GroupGrowth, SortNo: 1070, NameEn: "Delete Task Events", NameZh: "删除任务事件"}
 
+	PermissionRewardView   = PermissionDefinition{Type: TypeDashboard, Code: "dashboard.reward.view", GroupName: GroupGrowth, SortNo: 1080, NameEn: "View Reward Types", NameZh: "查看奖励类型"}
+	PermissionRewardCreate = PermissionDefinition{Type: TypeDashboard, Code: "dashboard.reward.create", GroupName: GroupGrowth, SortNo: 1085, NameEn: "Create Reward Types", NameZh: "创建奖励类型"}
+	PermissionRewardUpdate = PermissionDefinition{Type: TypeDashboard, Code: "dashboard.reward.update", GroupName: GroupGrowth, SortNo: 1090, NameEn: "Update Reward Types", NameZh: "编辑奖励类型"}
+	PermissionRewardDelete = PermissionDefinition{Type: TypeDashboard, Code: "dashboard.reward.delete", GroupName: GroupGrowth, SortNo: 1095, NameEn: "Delete Reward Types", NameZh: "删除奖励类型"}
+
 	PermissionSettingView     = PermissionDefinition{Type: TypeDashboard, Code: "dashboard.setting.view", GroupName: GroupSystem, SortNo: 1100, NameEn: "View Settings", NameZh: "查看设置"}
 	PermissionSettingUpdate   = PermissionDefinition{Type: TypeDashboard, Code: "dashboard.setting.update", GroupName: GroupSystem, SortNo: 1110, NameEn: "Update Settings", NameZh: "编辑设置"}
 	PermissionSearchReindex   = PermissionDefinition{Type: TypeDashboard, Code: "dashboard.search.reindex", GroupName: GroupSystem, SortNo: 1120, NameEn: "Rebuild Search Index", NameZh: "重建搜索索引"}
@@ -181,6 +186,10 @@ var Permissions = []PermissionDefinition{
 	PermissionTaskEventCreate,
 	PermissionTaskEventUpdate,
 	PermissionTaskEventDelete,
+	PermissionRewardView,
+	PermissionRewardCreate,
+	PermissionRewardUpdate,
+	PermissionRewardDelete,
 	PermissionRoleView,
 	PermissionRoleCreate,
 	PermissionRoleUpdate,

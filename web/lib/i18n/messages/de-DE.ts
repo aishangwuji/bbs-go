@@ -99,6 +99,8 @@ const deDE = {
       levels: "Stufen",
       tasks: "Aufgaben",
       taskEventDefs: "Aufgabenereignisse",
+      rewardTypes: "Belohnungsarten",
+      taskRewards: "Aufgabenbelohnungen",
       system: "System",
       settings: "Einstellungen",
       siteSettings: "Einstellungen",
@@ -800,6 +802,10 @@ const deDE = {
       path: "Pfad",
       component: "Komponente",
       code: "Code",
+      rewardCode: "Belohnungscode",
+      amount: "Menge",
+      executor: "Executor",
+      enabled: "Aktiviert",
       nameZh: "Chinesischer Name",
       nameEn: "Englischer Name",
       producer: "Produzent",
@@ -863,6 +869,14 @@ const deDE = {
       taskEventDefs: {
         title: "Aufgabenereignisse",
         description: "Ereignisdefinitionen und Schalter verwalten.",
+      },
+      rewardTypes: {
+        title: "Belohnungsarten",
+        description: "Belohnungsartdefinitionen und Executor-Zuordnung verwalten.",
+      },
+      taskRewards: {
+        title: "Aufgabenbelohnungen",
+        description: "Belohnungsdetails von Aufgaben verwalten (Mehrfachbelohnungen).",
       },
       userBadges: {
         title: "Benutzerabzeichen",

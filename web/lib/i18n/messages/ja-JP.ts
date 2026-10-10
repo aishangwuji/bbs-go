@@ -99,6 +99,8 @@ const jaJP = {
       levels: "レベル",
       tasks: "タスク",
       taskEventDefs: "タスクイベント",
+      rewardTypes: "報酬タイプ",
+      taskRewards: "タスク報酬",
       system: "システム",
       settings: "設定",
       siteSettings: "設定",
@@ -774,6 +776,10 @@ const jaJP = {
       path: "パス",
       component: "コンポーネント",
       code: "コード",
+      rewardCode: "報酬コード",
+      amount: "数量",
+      executor: "エグゼキュータ",
+      enabled: "有効",
       nameZh: "中国語名",
       nameEn: "英語名",
       producer: "発行元",
@@ -834,6 +840,14 @@ const jaJP = {
       taskEventDefs: {
         title: "タスクイベント",
         description: "タスクイベント定義と有効化を管理します。",
+      },
+      rewardTypes: {
+        title: "報酬タイプ",
+        description: "報酬タイプ定義とエグゼキュータを管理します。",
+      },
+      taskRewards: {
+        title: "タスク報酬",
+        description: "タスクの報酬明細を管理します（複数可）。",
       },
       userBadges: {
         title: "ユーザーバッジ",

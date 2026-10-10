@@ -99,6 +99,8 @@ const frFR = {
       levels: "Niveaux",
       tasks: "Tâches",
       taskEventDefs: "Événements de tâche",
+      rewardTypes: "Types de récompense",
+      taskRewards: "Récompenses de tâche",
       system: "Système",
       settings: "Paramètres",
       siteSettings: "Paramètres",
@@ -796,6 +798,10 @@ const frFR = {
       path: "Chemin",
       component: "Composant",
       code: "Code",
+      rewardCode: "Code de récompense",
+      amount: "Montant",
+      executor: "Exécuteur",
+      enabled: "Activé",
       nameZh: "Nom chinois",
       nameEn: "Nom anglais",
       producer: "Producteur",
@@ -858,6 +864,16 @@ const frFR = {
         title: "Événements de tâche",
         description:
           "Gérer les définitions d'événements et leur activation.",
+      },
+      rewardTypes: {
+        title: "Types de récompense",
+        description:
+          "Gérer les définitions de récompenses et leur exécuteur.",
+      },
+      taskRewards: {
+        title: "Récompenses de tâche",
+        description:
+          "Gérer le détail des récompenses des tâches (multiples).",
       },
       userBadges: {
         title: "Badges utilisateur",

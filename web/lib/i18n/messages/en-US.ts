@@ -102,6 +102,8 @@ const enUS = {
       levels: "Levels",
       tasks: "Tasks",
       taskEventDefs: "Task Events",
+      rewardTypes: "Reward Types",
+      taskRewards: "Task Rewards",
       system: "System",
       settings: "Settings",
       siteSettings: "Settings",
@@ -798,6 +800,10 @@ const enUS = {
       path: "Path",
       component: "Component",
       code: "Code",
+      rewardCode: "Reward Code",
+      amount: "Amount",
+      executor: "Executor",
+      enabled: "Enabled",
       nameZh: "Chinese Name",
       nameEn: "English Name",
       producer: "Producer",
@@ -869,6 +875,14 @@ const enUS = {
       taskEventDefs: {
         title: "Task Events",
         description: "Manage task event definitions and enable switches.",
+      },
+      rewardTypes: {
+        title: "Reward Types",
+        description: "Manage reward type definitions and executor mapping.",
+      },
+      taskRewards: {
+        title: "Task Rewards",
+        description: "Manage reward details of tasks (multiple rewards).",
       },
       userBadges: {
         title: "User Badges",

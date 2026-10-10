@@ -118,6 +118,20 @@ var (
 		{Method: "POST", Pattern: "/api/admin/task-event-def/delete", Permissions: []PermissionDefinition{PermissionTaskEventDelete}},
 		{Method: "POST", Pattern: "/api/admin/task-event-def/update_sort", Permissions: []PermissionDefinition{PermissionTaskEventUpdate}},
 
+		{Method: "GET", Pattern: "/api/admin/reward-type-def/*", Permissions: []PermissionDefinition{PermissionRewardView}},
+		{Method: "POST", Pattern: "/api/admin/reward-type-def/list", Permissions: []PermissionDefinition{PermissionRewardView}},
+		{Method: "POST", Pattern: "/api/admin/reward-type-def/create", Permissions: []PermissionDefinition{PermissionRewardCreate}},
+		{Method: "POST", Pattern: "/api/admin/reward-type-def/update", Permissions: []PermissionDefinition{PermissionRewardUpdate}},
+		{Method: "POST", Pattern: "/api/admin/reward-type-def/delete", Permissions: []PermissionDefinition{PermissionRewardDelete}},
+		{Method: "POST", Pattern: "/api/admin/reward-type-def/update_sort", Permissions: []PermissionDefinition{PermissionRewardUpdate}},
+
+		{Method: "GET", Pattern: "/api/admin/task-reward/*", Permissions: []PermissionDefinition{PermissionTaskView}},
+		{Method: "POST", Pattern: "/api/admin/task-reward/list", Permissions: []PermissionDefinition{PermissionTaskView}},
+		{Method: "POST", Pattern: "/api/admin/task-reward/create", Permissions: []PermissionDefinition{PermissionTaskUpdate}},
+		{Method: "POST", Pattern: "/api/admin/task-reward/update", Permissions: []PermissionDefinition{PermissionTaskUpdate}},
+		{Method: "POST", Pattern: "/api/admin/task-reward/delete", Permissions: []PermissionDefinition{PermissionTaskUpdate}},
+		{Method: "POST", Pattern: "/api/admin/task-reward/update_sort", Permissions: []PermissionDefinition{PermissionTaskUpdate}},
+
 		{Method: "GET", Pattern: "/api/admin/email-log/*", Permissions: []PermissionDefinition{PermissionEmailLogView}},
 		{Method: "POST", Pattern: "/api/admin/email-log/list", Permissions: []PermissionDefinition{PermissionEmailLogView}},
 		{Method: "GET", Pattern: "/api/admin/user-task-log/*", Permissions: []PermissionDefinition{PermissionUserTaskLogView}},

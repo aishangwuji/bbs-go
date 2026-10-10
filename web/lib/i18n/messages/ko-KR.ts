@@ -99,6 +99,8 @@ const koKR = {
       levels: "레벨",
       tasks: "퀘스트",
       taskEventDefs: "퀘스트 이벤트",
+      rewardTypes: "보상 유형",
+      taskRewards: "퀘스트 보상",
       system: "시스템",
       settings: "설정",
       siteSettings: "설정",
@@ -768,6 +770,10 @@ const koKR = {
       path: "경로",
       component: "컴포넌트",
       code: "코드",
+      rewardCode: "보상 코드",
+      amount: "수량",
+      executor: "실행기",
+      enabled: "활성화",
       nameZh: "중국어 이름",
       nameEn: "영어 이름",
       producer: "발생 지점",
@@ -827,6 +833,14 @@ const koKR = {
       taskEventDefs: {
         title: "퀘스트 이벤트",
         description: "퀘스트 이벤트 정의 및 활성화를 관리합니다.",
+      },
+      rewardTypes: {
+        title: "보상 유형",
+        description: "보상 유형 정의 및 실행기 매핑을 관리합니다.",
+      },
+      taskRewards: {
+        title: "퀘스트 보상",
+        description: "퀘스트의 보상 상세를 관리합니다(복수 가능).",
       },
       userBadges: {
         title: "사용자 배지",
