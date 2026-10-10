@@ -434,6 +434,7 @@ type BadgeResponse struct {
 	Icon        string `json:"icon"`
 	SortNo      int    `json:"sortNo"`
 	Status      int    `json:"status"`
+	BadgeType   int    `json:"badgeType"`
 	Owned       bool   `json:"owned"`      // 当前登录用户是否已获得
 	Worn        bool   `json:"worn"`       // 是否已佩戴
 	ObtainTime  int64  `json:"obtainTime"` // 获得时间（未获得为0）

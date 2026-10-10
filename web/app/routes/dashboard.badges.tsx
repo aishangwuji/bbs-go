@@ -53,6 +53,39 @@ export default function DashboardBadgesRoute() {
           dashboardData.imageCell(record.icon, String(record.title || "")),
       },
       {
+        key: "badgeType",
+        label: "分级",
+        render: (record) => {
+          const type = Number(record.badgeType || 0)
+          const map: Record<number, { text: string; cls: string }> = {
+            0: {
+              text: "未分级",
+              cls: "bg-slate-100 text-slate-600 ring-slate-500/20 dark:bg-slate-800 dark:text-slate-300",
+            },
+            1: {
+              text: "铜级",
+              cls: "bg-orange-50 text-orange-700 ring-orange-600/20 dark:bg-orange-900/30 dark:text-orange-300",
+            },
+            2: {
+              text: "银级",
+              cls: "bg-slate-100 text-slate-700 ring-slate-500/30 dark:bg-slate-700/40 dark:text-slate-200",
+            },
+            3: {
+              text: "金级",
+              cls: "bg-amber-50 text-amber-700 ring-amber-600/30 dark:bg-amber-900/30 dark:text-amber-300",
+            },
+          }
+          const item = map[type] || map[0]
+          return (
+            <span
+              className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${item.cls}`}
+            >
+              {item.text}
+            </span>
+          )
+        },
+      },
+      {
         key: "grantType",
         label: "获取方式",
         render: (record) => {
@@ -108,6 +141,18 @@ export default function DashboardBadgesRoute() {
         label: dashboardData.label(t, "title"),
         required: true,
         colSpan: 2,
+      },
+      {
+        name: "badgeType",
+        label: "勋章分级 (视觉权重)",
+        type: "select",
+        options: [
+          { label: "未分级", value: 0 },
+          { label: "铜级", value: 1 },
+          { label: "银级", value: 2 },
+          { label: "金级", value: 3 },
+        ],
+        required: true,
       },
       {
         name: "grantType",

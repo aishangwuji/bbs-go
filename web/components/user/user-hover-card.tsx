@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/hover-card"
 import type { UserCard as UserCardData, UserSummary } from "@/lib/api/types"
 import { getUserCard } from "@/lib/api/users"
+import { badgeTierFrame, badgeTierRing } from "@/lib/badge-tier"
 import { useI18n } from "@/lib/i18n/provider"
 
 // ---------------------------------------------------------------------------
@@ -198,6 +199,10 @@ export function UserHoverCard({
   // 复用已归一化的 viewerId/userId 比较，避免 id 类型不一致时把自己误判为他人
   const isSelf = Boolean(currentUser?.id) && viewerId === userId
   const badges = shown?.badges || []
+  // 佩戴拆分：佩戴中的勋章是用户主动展示的成就，单独置顶放大；
+  // 其余已获得勋章紧凑排列，避免「佩戴」与「全部」混在一起看不出主次。
+  const wornBadges = badges.filter((badge) => badge.worn)
+  const otherBadges = badges.filter((badge) => !badge.worn)
 
   return (
     <HoverCard openDelay={200} closeDelay={120} onOpenChange={setOpen}>
@@ -290,25 +295,55 @@ export function UserHoverCard({
                 ) : null}
               </div>
               {badges.length ? (
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {badges.slice(0, 6).map((badge) => (
-                    <Link
-                      key={badge.id}
-                      href={`/user/${shown.id}/badges`}
-                      title={badge.title || badge.description || ""}
-                      className="inline-flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-muted"
-                    >
-                      {badge.icon ? (
-                        <img
-                          src={badge.icon}
-                          alt={badge.title || ""}
-                          className="h-full w-full object-contain"
-                        />
-                      ) : (
-                        <Medal className="h-4 w-4 text-muted-foreground" />
-                      )}
-                    </Link>
-                  ))}
+                <div className="mt-2 space-y-2">
+                  {wornBadges.length ? (
+                    <div className="flex flex-wrap gap-2">
+                      {wornBadges.slice(0, 6).map((badge) => (
+                        <Link
+                          key={badge.id}
+                          href={`/user/${shown.id}/badges`}
+                          title={badge.title || badge.description || ""}
+                          className={`inline-flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border ring-2 ${badgeTierFrame(
+                            badge.badgeType
+                          )} ${badgeTierRing(badge.badgeType)}`}
+                        >
+                          {badge.icon ? (
+                            <img
+                              src={badge.icon}
+                              alt={badge.title || ""}
+                              className="h-full w-full object-contain"
+                            />
+                          ) : (
+                            <Medal className="h-4 w-4 text-muted-foreground" />
+                          )}
+                        </Link>
+                      ))}
+                    </div>
+                  ) : null}
+                  {otherBadges.length ? (
+                    <div className="flex flex-wrap gap-1.5">
+                      {otherBadges.slice(0, 8).map((badge) => (
+                        <Link
+                          key={badge.id}
+                          href={`/user/${shown.id}/badges`}
+                          title={badge.title || badge.description || ""}
+                          className={`inline-flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border ${badgeTierFrame(
+                            badge.badgeType
+                          )}`}
+                        >
+                          {badge.icon ? (
+                            <img
+                              src={badge.icon}
+                              alt={badge.title || ""}
+                              className="h-full w-full object-contain"
+                            />
+                          ) : (
+                            <Medal className="h-4 w-4 text-muted-foreground" />
+                          )}
+                        </Link>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
               ) : (
                 <p className="mt-2 text-xs text-muted-foreground">

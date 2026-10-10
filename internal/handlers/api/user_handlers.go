@@ -1,7 +1,6 @@
 package api
 
 import (
-	"encoding/json"
 	"bbs-go/internal/models/constants"
 	"bbs-go/internal/models/req"
 	"bbs-go/internal/models/resp"
@@ -13,6 +12,7 @@ import (
 	"bbs-go/internal/pkg/markdown"
 	"bbs-go/internal/pkg/msg"
 	"bbs-go/internal/pkg/validate"
+	"encoding/json"
 	"sort"
 	"strconv"
 	"strings"
@@ -126,6 +126,7 @@ func buildUserCardBadges(userId int64) []resp.BadgeResponse {
 			Icon:        b.Icon,
 			SortNo:      b.SortNo,
 			Status:      b.Status,
+			BadgeType:   b.BadgeType,
 			Owned:       true,
 			Worn:        ub.IsWorn,
 			ObtainTime:  ub.CreateTime,
@@ -684,4 +685,3 @@ func UserUpdateSpaceModulesConfig(ctx *gin.Context) {
 		Followed: cfg.Followed,
 	})
 }
-

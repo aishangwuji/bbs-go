@@ -6,6 +6,7 @@ import { WidgetCard } from "@/components/common/widget-card"
 import { UserCenterOperations } from "@/components/user/user-center-operations"
 import { UserFollowList } from "@/components/user/user-follow-list"
 import type { Badge, UserSummary } from "@/lib/api/types"
+import { badgeTierFrame } from "@/lib/badge-tier"
 import type { TFunction } from "@/lib/i18n"
 
 export function UserCountsCard({
@@ -85,9 +86,10 @@ export function UserBadgesWidget({
               <Link
                 key={badge.id}
                 href={badgesLink}
-                className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-amber-200/80 bg-amber-50/50 dark:border-amber-800/60 dark:bg-amber-900/20"
-                title={badge.title}
-              >
+                className={`flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border ${badgeTierFrame(
+                  badge.badgeType
+                )}`}
+                title={badge.title}              >
                 {badge.icon ? (
                   <img
                     src={badge.icon}

@@ -298,3 +298,11 @@ const (
 	BadgeNameStreak30     BadgeName = "badge_streak_30"     // 月度打卡王/30-day Streak
 	BadgeNameVeteran      BadgeName = "badge_veteran"       // 资深玩家/Veteran
 )
+
+// 勋章分级（纯视觉权重：0 未分级 / 1 铜 / 2 银 / 3 金）
+const (
+	BadgeTypeNone   = 0
+	BadgeTypeBronze = 1
+	BadgeTypeSilver = 2
+	BadgeTypeGold   = 3
+)

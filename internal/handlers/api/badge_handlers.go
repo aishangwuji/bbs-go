@@ -39,6 +39,7 @@ func BadgeBadges(ctx *gin.Context) {
 			Icon:        b.Icon,
 			SortNo:      b.SortNo,
 			Status:      b.Status,
+			BadgeType:   b.BadgeType,
 		}
 		if ub, ok := userBadges[b.Id]; ok {
 			item.Owned = true

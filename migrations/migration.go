@@ -124,4 +124,5 @@ func init() {
 	register(22, "add moderation decision snapshot fields", migrate_moderation_decision_snapshot)
 	register(23, "create task event def table and seeds", migrate_task_event_def)
 	register(24, "create reward type def and task reward tables", migrate_reward_type_def)
+	register(25, "add badge tier and preset initial badges", migrate_badge_type)
 }

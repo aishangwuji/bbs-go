@@ -449,6 +449,7 @@ export interface Badge {
   icon?: string
   sortNo?: number
   status?: number
+  badgeType?: number
   owned?: boolean
   worn?: boolean
   obtainTime?: number

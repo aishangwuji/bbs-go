@@ -11,6 +11,7 @@ import { UserFollowList } from "@/components/user/user-follow-list"
 import { WidgetCard } from "@/components/common/widget-card"
 import type { UserCenterData } from "@/app/route-helpers/user-profile"
 import { apiFetch } from "@/lib/api/client"
+import { badgeTierFrame } from "@/lib/badge-tier"
 import type {
   Article,
   Badge,
@@ -110,7 +111,7 @@ export function UserBadgesView({ badges }: { badges: Badge[] }) {
             key={badge.id}
             className={
               badge.owned
-                ? "flex flex-col items-center gap-2 rounded-xl border border-amber-200/80 bg-amber-50/50 p-4 transition dark:border-amber-800/60 dark:bg-amber-900/20"
+                ? `flex flex-col items-center gap-2 rounded-xl border p-4 transition ${badgeTierFrame(badge.badgeType)}`
                 : "flex flex-col items-center gap-2 rounded-xl border border-slate-200 bg-slate-50/50 p-4 opacity-70 transition dark:border-slate-700 dark:bg-slate-900/40"
             }
           >
