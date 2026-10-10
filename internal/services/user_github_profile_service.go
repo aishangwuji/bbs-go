@@ -157,7 +157,7 @@ func (s *userGithubProfileService) grantBadgesIfEligible(userId int64, eval *git
 	_ = sqls.WithTransaction(func(txCtx *sqls.TxContext) error {
 		// 1. GitHub 开发者勋章（账号满 180 天 或 准入通过）
 		if eval.PassedAdmission || eval.AccountAgeDays >= github.MinAccountAgeDays {
-			badge := s.ensureBadge(txCtx, "github_developer", "GitHub 开发者", "通过 GitHub 准入认证并关联社区账号", "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/github/github-original.svg")
+			badge := s.ensureBadge(txCtx, "github_developer", "GitHub 开发者", "通过 GitHub 准入认证并关联社区账号", "/res/images/badges/badge_github_developer.svg")
 			if badge != nil {
 				_ = UserBadgeService.Give(txCtx, userId, badge.Id, "github_admission", eval.Login)
 			}
@@ -165,7 +165,7 @@ func (s *userGithubProfileService) grantBadgesIfEligible(userId int64, eval *git
 
 		// 2. 1k+ Star 仓库作者勋章
 		if eval.TopRepo.Stars >= github.MinRepoStars {
-			badge := s.ensureBadge(txCtx, "github_star_owner", "1k+ Star 开源作者", "在 GitHub 拥有 1,000+ Stars 开源代表作", "")
+			badge := s.ensureBadge(txCtx, "github_star_owner", "1k+ Star 开源作者", "在 GitHub 拥有 1,000+ Stars 开源代表作", "/res/images/badges/badge_github_star_owner.svg")
 			if badge != nil {
 				_ = UserBadgeService.Give(txCtx, userId, badge.Id, "github_star_owner", eval.TopRepo.FullName)
 			}
@@ -173,7 +173,7 @@ func (s *userGithubProfileService) grantBadgesIfEligible(userId int64, eval *git
 
 		// 3. 顶级开源贡献者勋章
 		if eval.ContributedPR.Stars >= github.MinRepoStars {
-			badge := s.ensureBadge(txCtx, "github_contributor", "顶级开源贡献者", "向 1,000+ Stars 知名开源项目贡献合并 PR", "")
+			badge := s.ensureBadge(txCtx, "github_contributor", "顶级开源贡献者", "向 1,000+ Stars 知名开源项目贡献合并 PR", "/res/images/badges/badge_github_contributor.svg")
 			if badge != nil {
 				_ = UserBadgeService.Give(txCtx, userId, badge.Id, "github_contributor", eval.ContributedPR.RepoFullName)
 			}

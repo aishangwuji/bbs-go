@@ -125,4 +125,5 @@ func init() {
 	register(23, "create task event def table and seeds", migrate_task_event_def)
 	register(24, "create reward type def and task reward tables", migrate_reward_type_def)
 	register(25, "add badge tier and preset initial badges", migrate_badge_type)
+	register(26, "backfill github badge local icons", migrate_github_badge_icons)
 }
