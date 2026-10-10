@@ -8,6 +8,7 @@ import {
 import { ExternalLinkIcon, HouseIcon } from "lucide-react"
 
 import { RequireDashboardAdmin } from "@/components/auth/require-dashboard-admin"
+import { useAppConfig } from "@/components/app/app-provider"
 import Link from "@/components/common/link"
 import { ErrorPage } from "@/components/common/error-page"
 import { AppSidebar } from "@/components/dashboard/app-sidebar"
@@ -185,11 +186,17 @@ export function ErrorBoundary() {
 
 export default function DashboardLayout() {
   const { t } = useI18n()
+  const config = useAppConfig()
   const location = useLocation()
   const breadcrumbs = dashboardBreadcrumbs(location.pathname, t)
-  useDocumentTitle(t("dashboard.brand.name"), t("dashboard.brand.plan"), {
-    appendSiteTitle: false,
-  })
+  // 管理台标题同样跟随站点名称配置，未配置时回退内置品牌名。
+  useDocumentTitle(
+    config?.siteTitle || t("dashboard.brand.name"),
+    t("dashboard.brand.plan"),
+    {
+      appendSiteTitle: false,
+    }
+  )
   const [sidebarOpen, setSidebarOpen] = React.useState(true)
 
   React.useEffect(() => {

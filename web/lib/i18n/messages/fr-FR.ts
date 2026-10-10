@@ -966,7 +966,7 @@ const frFR = {
         eyebrow: "Espace de travail d'exploitation communautaire",
         title: "Bon retour, {name}",
         description:
-          "Ceci est l'administration de BBS-GO. Vous pouvez y consulter les données de la communauté, traiter les contenus en attente d'audit et accéder rapidement aux pages de gestion courantes.",
+          "Ceci est l'administration. Vous pouvez y consulter les données de la communauté, traiter les contenus en attente d'audit et accéder rapidement aux pages de gestion courantes.",
         openSite: "Voir la page d'accueil",
         manageContent: "Gérer le contenu",
       },

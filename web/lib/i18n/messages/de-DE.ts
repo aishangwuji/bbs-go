@@ -968,7 +968,7 @@ const deDE = {
         eyebrow: "Community-Betriebsarbeitsbereich",
         title: "Willkommen zurück, {name}",
         description:
-          "Dies ist der BBS-GO-Verwaltungsbereich. Hier können Sie Community-Daten einsehen, ausstehende Inhalte bearbeiten und schnell zu häufig verwendeten Verwaltungsseiten gelangen.",
+          "Dies ist der Verwaltungsbereich. Hier können Sie Community-Daten einsehen, ausstehende Inhalte bearbeiten und schnell zu häufig verwendeten Verwaltungsseiten gelangen.",
         openSite: "Startseite anzeigen",
         manageContent: "Inhalte verwalten",
       },

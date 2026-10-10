@@ -19,13 +19,14 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar"
-import { useCurrentUser } from "@/components/app/app-provider"
+import { useAppConfig, useCurrentUser } from "@/components/app/app-provider"
 import { userHasPermission } from "@/lib/auth/roles"
 import { useI18n } from "@/lib/i18n/provider"
 import { PERMISSIONS } from "@/lib/auth/permissions.generated"
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const currentUser = useCurrentUser()
+  const config = useAppConfig()
   const { t } = useI18n()
 
   const data = {
@@ -38,8 +39,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       avatar: currentUser?.smallAvatar || currentUser?.avatar || "",
     },
     brand: {
-      name: t("dashboard.brand.name"),
-      logoSrc: "/logo.png",
+      // 品牌名/图标统一跟随后台「站点设置」配置，未配置时回退内置默认，
+      // 避免管理台长期显示硬编码的 "BBS-GO" 与旧 logo。
+      name: config?.siteTitle || t("dashboard.brand.name"),
+      logoSrc: config?.siteLogo || "/logo.png",
       description: t("dashboard.brand.plan"),
     },
     navMain: [
