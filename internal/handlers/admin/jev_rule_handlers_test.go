@@ -21,7 +21,7 @@ import (
 )
 
 func setupTestDBForJevRule(t *testing.T) *gorm.DB {
-	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared", t.Name())
+	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared&_fk=1", t.Name())
 	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Silent),
 		NamingStrategy: schema.NamingStrategy{
@@ -32,6 +32,12 @@ func setupTestDBForJevRule(t *testing.T) *gorm.DB {
 	if err != nil {
 		t.Fatalf("failed to open in-memory sqlite: %v", err)
 	}
+	sqlDB, err := db.DB()
+	if err != nil {
+		t.Fatalf("get sql db: %v", err)
+	}
+	sqlDB.SetMaxOpenConns(1)
+	sqlDB.SetMaxIdleConns(1)
 	sqls.SetDB(db)
 
 	if err := db.AutoMigrate(&models.SysConfig{}, &models.JevRuleHistory{}); err != nil {
@@ -42,9 +48,7 @@ func setupTestDBForJevRule(t *testing.T) *gorm.DB {
 
 func TestJevRuleHistoryFlow(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	db := setupTestDBForJevRule(t)
-	sqlDB, _ := db.DB()
-	defer sqlDB.Close()
+	_ = setupTestDBForJevRule(t)
 
 	mockAdmin := &models.User{
 		Model:    models.Model{Id: 100},

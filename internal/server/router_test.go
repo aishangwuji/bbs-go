@@ -1,6 +1,7 @@
 package server
 
 import (
+	"io/fs"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -8,6 +9,7 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+	"testing/fstest"
 
 	"bbs-go/internal/pkg/ginx"
 	webspa "bbs-go/web"
@@ -15,7 +17,24 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+func setupTestSPAFS(t *testing.T) {
+	t.Helper()
+	if _, err := fs.Stat(webspa.SPA, "build/spa/index.html"); err == nil {
+		return
+	}
+	oldSPA := webspa.SPA
+	t.Cleanup(func() {
+		webspa.SPA = oldSPA
+	})
+	webspa.SPA = fstest.MapFS{
+		"build/spa/index.html": &fstest.MapFile{
+			Data: []byte("<!doctype html><html><body><div id=\"root\">__reactRouterContext</div></body></html>"),
+		},
+	}
+}
+
 func TestLegacyAdminRouteFallsBackToSPAWithoutDashboardRedirect(t *testing.T) {
+	setupTestSPAFS(t)
 	app := newRouter()
 
 	for _, path := range []string{"/admin", "/admin/users"} {
@@ -33,6 +52,7 @@ func TestLegacyAdminRouteFallsBackToSPAWithoutDashboardRedirect(t *testing.T) {
 }
 
 func TestRouterNoRouteSeparatesAPIStaticAndSPA(t *testing.T) {
+	setupTestSPAFS(t)
 	app := newRouter()
 
 	tests := []struct {
@@ -62,6 +82,7 @@ func TestRouterNoRouteSeparatesAPIStaticAndSPA(t *testing.T) {
 }
 
 func TestSPAHandlerFallsBackToEmbeddedFiles(t *testing.T) {
+	setupTestSPAFS(t)
 	handler := ginx.NewSPAHandler(filepath.Join(t.TempDir(), "missing"), webspa.SPA, "build/spa", ginx.DirOptions{
 		ShowList:  false,
 		SPA:       true,

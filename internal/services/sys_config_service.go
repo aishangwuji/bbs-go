@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"bbs-go/internal/pkg/params"
@@ -27,7 +28,10 @@ import (
 	"bbs-go/internal/repositories"
 )
 
-var SysConfigService = newSysConfigService()
+var (
+	SysConfigService = newSysConfigService()
+	jevVersionSeq    uint32
+)
 
 const (
 	maxScriptInjectionCount   = 20
@@ -797,7 +801,8 @@ func (s *sysConfigService) SetJevRuleConfig(cfg dto.JevRuleConfig, operatorId in
 	}
 
 	now := dates.NowTimestamp()
-	version := fmt.Sprintf("v_%s%03d", time.Now().Format("20060102150405"), time.Now().Nanosecond()/1e6)
+	seq := atomic.AddUint32(&jevVersionSeq, 1) % 1000
+	version := fmt.Sprintf("v_%s%06d%03d", time.Now().Format("20060102150405"), (time.Now().Nanosecond()/1000)%1000000, seq)
 
 	return sqls.DB().Transaction(func(tx *gorm.DB) error {
 		// 1. 更新主配置 t_sys_config

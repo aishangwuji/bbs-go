@@ -17,8 +17,8 @@ import (
 	"github.com/spf13/cast"
 )
 
-// JevRuleGet 获取 Jev 细粒度规则引擎配置
-func JevRuleGet(ctx *gin.Context) {
+// JevRuleConfig 获取 Jev 细粒度规则引擎配置
+func JevRuleConfig(ctx *gin.Context) {
 	cfg := services.SysConfigService.GetJevRuleConfig()
 	ginx.WriteJSON(ctx, cfg)
 }

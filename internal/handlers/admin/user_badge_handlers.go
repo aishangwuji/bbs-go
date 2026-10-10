@@ -93,8 +93,8 @@ func UserBadgeGrant(ctx *gin.Context) {
 	ginx.WriteJSON(ctx, nil)
 }
 
-// UserBadgeDelete 管理员撤回/删除用户的勋章
-func UserBadgeDelete(ctx *gin.Context) {
+// UserBadgeRemove 管理员撤回/删除用户的勋章
+func UserBadgeRemove(ctx *gin.Context) {
 	id, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
 	if err != nil || id <= 0 {
 		if val, ok := params.GetInt64(ctx, "id"); ok {

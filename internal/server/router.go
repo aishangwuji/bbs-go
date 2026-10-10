@@ -419,7 +419,7 @@ func registerAdminRoutes(group *gin.RouterGroup) {
 	userBadgeGroup := group.Group("/user-badge")
 	userBadgeGroup.POST("/list", adminHandlers.UserBadgeList)
 	userBadgeGroup.POST("/grant", adminHandlers.UserBadgeGrant)
-	userBadgeGroup.POST("/delete", adminHandlers.UserBadgeDelete)
+	userBadgeGroup.POST("/delete", adminHandlers.UserBadgeRemove)
 	userBadgeGroup.GET("/:id", adminHandlers.UserBadgeDetail)
 
 	operateLogGroup := group.Group("/operate-log")
@@ -445,8 +445,8 @@ func registerAdminRoutes(group *gin.RouterGroup) {
 	moderationRecordGroup.GET("/:id", adminHandlers.ModerationRecordDetail)
 
 	jevRuleGroup := group.Group("/jev-rule")
-	jevRuleGroup.GET("/get", adminHandlers.JevRuleGet)
-	jevRuleGroup.POST("/get", adminHandlers.JevRuleGet)
+	jevRuleGroup.GET("/get", adminHandlers.JevRuleConfig)
+	jevRuleGroup.POST("/get", adminHandlers.JevRuleConfig)
 	jevRuleGroup.POST("/save", adminHandlers.JevRuleSave)
 	jevRuleGroup.POST("/simulate", adminHandlers.JevRuleSimulate)
 	jevRuleGroup.GET("/history/list", adminHandlers.JevRuleHistoryList)
