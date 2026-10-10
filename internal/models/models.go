@@ -12,7 +12,7 @@ var Models = []interface{}{
 
 	&User{}, &UserToken{}, &ThirdUser{}, &Tag{}, &Article{}, &ArticleTag{}, &Comment{}, &Favorite{}, &Topic{}, &Category{},
 	&TopicTag{}, &UserLike{}, &Message{}, &SysConfig{}, &Link{},
-	&TaskConfig{}, &UserTaskEvent{}, &UserTaskLog{}, &TaskEventDef{},
+	&TaskConfig{}, &UserTaskEvent{}, &UserTaskLog{}, &TaskEventDef{}, &RewardTypeDef{}, &TaskReward{},
 	&Badge{}, &UserBadge{},
 	&LevelConfig{},
 	&Vote{}, &VoteOption{}, &VoteRecord{},
@@ -105,34 +105,34 @@ type Dict struct {
 
 type User struct {
 	Model
-	Phone            sql.NullString   `gorm:"size:16;unique;" json:"phone" form:"phone"`                           // 电话
-	Username         sql.NullString   `gorm:"size:32;unique;" json:"username" form:"username"`                     // 用户名
-	Email            sql.NullString   `gorm:"size:128;unique;" json:"email" form:"email"`                          // 邮箱
-	EmailVerified    bool             `gorm:"not null;default:false" json:"emailVerified" form:"emailVerified"`    // 邮箱是否验证
-	Nickname         string           `gorm:"size:16;" json:"nickname" form:"nickname"`                            // 昵称
-	Avatar           string           `gorm:"type:text" json:"avatar" form:"avatar"`                               // 头像
-	SmallAvatar      string           `gorm:"type:text" json:"smallAvatar" form:"smallAvatar"`                      // 小头像（73x73 WebP，用于列表和评论区）
-	Gender           constants.Gender `gorm:"size:16;default:''" json:"gender" form:"gender"`                      // 性别
-	Birthday         *time.Time       `json:"birthday" form:"birthday"`                                            // 生日
-	BackgroundImage  string           `gorm:"type:text" json:"backgroundImage" form:"backgroundImage"`             // 个人中心背景图片
-	Password         string           `gorm:"size:512" json:"password" form:"password"`                            // 密码
-	HomePage         string           `gorm:"size:1024" json:"homePage" form:"homePage"`                           // 个人主页
-	Description      string           `gorm:"type:text" json:"description" form:"description"`                     // 个人描述
-	Signature        string           `gorm:"type:text" json:"signature" form:"signature"`                         // 个性签名（Markdown 原文，展示时转 HTML 并严格消毒）
-	Score            int              `gorm:"type:int;not null;index:idx_user_score" json:"score" form:"score"`    // 积分
-	Exp              int              `gorm:"type:int;not null;default:0" json:"exp" form:"exp"`                   // 经验
-	Level            int              `gorm:"type:int;not null;default:1" json:"level" form:"level"`               // 等级（从 1 开始）
-	Status           int              `gorm:"type:int;index:idx_user_status;not null" json:"status" form:"status"` // 状态
-	TopicCount       int              `gorm:"type:int;not null" json:"topicCount" form:"topicCount"`               // 帖子数量
-	CommentCount     int              `gorm:"type:int;not null" json:"commentCount" form:"commentCount"`           // 跟帖数量
-	FollowCount      int              `gorm:"type:int;not null" json:"followCount" form:"followCount"`             // 关注数量
-	FansCount        int              `gorm:"type:int;not null" json:"fansCount" form:"fansCount"`                 // 粉丝数量
-	ViolationCount   int              `gorm:"type:int;not null;default:0;index:idx_user_violation_count" json:"violationCount" form:"violationCount"` // 违规累计次数（智能风控拦截、工单违规确认、违禁词命中等）
-	Roles            string           `gorm:"type:text" json:"roles" form:"roles"`                                 // 角色
-	SpaceModulesConfig string         `gorm:"size:512;not null;default:''" json:"spaceModulesConfig" form:"spaceModulesConfig"` // 个人主页模块可见性配置（JSON：github/counts/badges/profile/fans/followed）
-	ForbiddenEndTime int64            `gorm:"not null;default:0" json:"forbiddenEndTime" form:"forbiddenEndTime"`  // 禁言结束时间
-	CreateTime       int64            `json:"createTime" form:"createTime"`                                        // 创建时间
-	UpdateTime       int64            `json:"updateTime" form:"updateTime"`                                        // 更新时间
+	Phone              sql.NullString   `gorm:"size:16;unique;" json:"phone" form:"phone"`                                                              // 电话
+	Username           sql.NullString   `gorm:"size:32;unique;" json:"username" form:"username"`                                                        // 用户名
+	Email              sql.NullString   `gorm:"size:128;unique;" json:"email" form:"email"`                                                             // 邮箱
+	EmailVerified      bool             `gorm:"not null;default:false" json:"emailVerified" form:"emailVerified"`                                       // 邮箱是否验证
+	Nickname           string           `gorm:"size:16;" json:"nickname" form:"nickname"`                                                               // 昵称
+	Avatar             string           `gorm:"type:text" json:"avatar" form:"avatar"`                                                                  // 头像
+	SmallAvatar        string           `gorm:"type:text" json:"smallAvatar" form:"smallAvatar"`                                                        // 小头像（73x73 WebP，用于列表和评论区）
+	Gender             constants.Gender `gorm:"size:16;default:''" json:"gender" form:"gender"`                                                         // 性别
+	Birthday           *time.Time       `json:"birthday" form:"birthday"`                                                                               // 生日
+	BackgroundImage    string           `gorm:"type:text" json:"backgroundImage" form:"backgroundImage"`                                                // 个人中心背景图片
+	Password           string           `gorm:"size:512" json:"password" form:"password"`                                                               // 密码
+	HomePage           string           `gorm:"size:1024" json:"homePage" form:"homePage"`                                                              // 个人主页
+	Description        string           `gorm:"type:text" json:"description" form:"description"`                                                        // 个人描述
+	Signature          string           `gorm:"type:text" json:"signature" form:"signature"`                                                            // 个性签名（Markdown 原文，展示时转 HTML 并严格消毒）
+	Score              int              `gorm:"type:int;not null;index:idx_user_score" json:"score" form:"score"`                                       // 积分
+	Exp                int              `gorm:"type:int;not null;default:0" json:"exp" form:"exp"`                                                      // 经验
+	Level              int              `gorm:"type:int;not null;default:1" json:"level" form:"level"`                                                  // 等级（从 1 开始）
+	Status             int              `gorm:"type:int;index:idx_user_status;not null" json:"status" form:"status"`                                    // 状态
+	TopicCount         int              `gorm:"type:int;not null" json:"topicCount" form:"topicCount"`                                                  // 帖子数量
+	CommentCount       int              `gorm:"type:int;not null" json:"commentCount" form:"commentCount"`                                              // 跟帖数量
+	FollowCount        int              `gorm:"type:int;not null" json:"followCount" form:"followCount"`                                                // 关注数量
+	FansCount          int              `gorm:"type:int;not null" json:"fansCount" form:"fansCount"`                                                    // 粉丝数量
+	ViolationCount     int              `gorm:"type:int;not null;default:0;index:idx_user_violation_count" json:"violationCount" form:"violationCount"` // 违规累计次数（智能风控拦截、工单违规确认、违禁词命中等）
+	Roles              string           `gorm:"type:text" json:"roles" form:"roles"`                                                                    // 角色
+	SpaceModulesConfig string           `gorm:"size:512;not null;default:''" json:"spaceModulesConfig" form:"spaceModulesConfig"`                       // 个人主页模块可见性配置（JSON：github/counts/badges/profile/fans/followed）
+	ForbiddenEndTime   int64            `gorm:"not null;default:0" json:"forbiddenEndTime" form:"forbiddenEndTime"`                                     // 禁言结束时间
+	CreateTime         int64            `json:"createTime" form:"createTime"`                                                                           // 创建时间
+	UpdateTime         int64            `json:"updateTime" form:"updateTime"`                                                                           // 更新时间
 }
 
 // SpaceModulesConfig 个人主页模块可见性配置
@@ -411,14 +411,42 @@ type TaskConfig struct {
 // TaskEventDef 任务事件定义（超管可配，发射点仍在代码）
 type TaskEventDef struct {
 	Model
-	Code      string `gorm:"size:64;not null;uniqueIndex:uk_task_event_def_code" json:"code" form:"code"` // 事件编码：如topic.create，与TaskConfig.eventType语义对应
-	NameZh    string `gorm:"size:64;not null" json:"nameZh" form:"nameZh"`                                 // 中文名：如发帖
-	NameEn    string `gorm:"size:64;not null" json:"nameEn" form:"nameEn"`                                 // 英文名：如Create topic
-	Producer  string `gorm:"size:128;not null;default:''" json:"producer" form:"producer"`                 // 发射点：如TopicService.Publish，便于定位无事件问题
-	Status    int    `gorm:"type:int;not null;default:0;index:idx_task_event_def_status" json:"status" form:"status"` // 状态：0启用、1禁用/删除（软删除）
-	SortNo    int    `gorm:"type:int;index:idx_task_event_def_sort_no" json:"sortNo" form:"sortNo"`         // 排序
-	CreateTime int64 `gorm:"type:bigint;not null" json:"createTime" form:"createTime"`                     // 创建时间
-	UpdateTime int64 `gorm:"type:bigint;not null" json:"updateTime" form:"updateTime"`                     // 更新时间
+	Code       string `gorm:"size:64;not null;uniqueIndex:uk_task_event_def_code" json:"code" form:"code"`             // 事件编码：如topic.create，与TaskConfig.eventType语义对应
+	NameZh     string `gorm:"size:64;not null" json:"nameZh" form:"nameZh"`                                            // 中文名：如发帖
+	NameEn     string `gorm:"size:64;not null" json:"nameEn" form:"nameEn"`                                            // 英文名：如Create topic
+	Producer   string `gorm:"size:128;not null;default:''" json:"producer" form:"producer"`                            // 发射点：如TopicService.Publish，便于定位无事件问题
+	Status     int    `gorm:"type:int;not null;default:0;index:idx_task_event_def_status" json:"status" form:"status"` // 状态：0启用、1禁用/删除（软删除）
+	SortNo     int    `gorm:"type:int;index:idx_task_event_def_sort_no" json:"sortNo" form:"sortNo"`                   // 排序
+	CreateTime int64  `gorm:"type:bigint;not null" json:"createTime" form:"createTime"`                                // 创建时间
+	UpdateTime int64  `gorm:"type:bigint;not null" json:"updateTime" form:"updateTime"`                                // 更新时间
+}
+
+// RewardTypeDef 奖励类型定义（超管可配行，执行逻辑靠 Go Granter 注册）
+type RewardTypeDef struct {
+	Model
+	Code       string `gorm:"size:32;not null;uniqueIndex:uk_reward_type_def_code" json:"code" form:"code"`             // 奖励编码：如score/exp/badge，与Granter注册键一致
+	NameZh     string `gorm:"size:64;not null" json:"nameZh" form:"nameZh"`                                             // 中文名：如积分
+	NameEn     string `gorm:"size:64;not null" json:"nameEn" form:"nameEn"`                                             // 英文名：如Score
+	Executor   string `gorm:"size:64;not null" json:"executor" form:"executor"`                                         // 执行器键：与Go注册表键一致，大小写敏感
+	Enabled    int    `gorm:"type:int;not null;default:1" json:"enabled" form:"enabled"`                                // 是否启用：1启用、0停用（停用后发放时跳过）
+	Status     int    `gorm:"type:int;not null;default:0;index:idx_reward_type_def_status" json:"status" form:"status"` // 状态：0正常、1删除（软删除）
+	SortNo     int    `gorm:"type:int;index:idx_reward_type_def_sort_no" json:"sortNo" form:"sortNo"`                   // 排序
+	CreateTime int64  `gorm:"type:bigint;not null" json:"createTime" form:"createTime"`                                 // 创建时间
+	UpdateTime int64  `gorm:"type:bigint;not null" json:"updateTime" form:"updateTime"`                                 // 更新时间
+}
+
+// TaskReward 任务奖励明细（一任务多奖励，替代 TaskConfig 固定三列）
+// Business Rule: 同一任务下 reward_code+ badge_id 组合由业务层保证唯一；发放按 sort_no 顺序执行。
+type TaskReward struct {
+	Model
+	TaskId     int64  `gorm:"type:bigint;not null;index:idx_task_reward_task" json:"taskId" form:"taskId"`          // 任务ID：归属t_task_config
+	RewardCode string `gorm:"size:32;not null;index:idx_task_reward_code" json:"rewardCode" form:"rewardCode"`      // 奖励编码：关联t_reward_type_def.code
+	Amount     int    `gorm:"type:int;not null;default:0" json:"amount" form:"amount"`                              // 数值奖励数量：积分/经验用，勋章类置0
+	BadgeId    int64  `gorm:"type:bigint;not null;default:0" json:"badgeId" form:"badgeId"`                         // 勋章ID：仅reward_code=badge时有效
+	SortNo     int    `gorm:"type:int;index:idx_task_reward_sort_no" json:"sortNo" form:"sortNo"`                   // 排序：按序发放
+	Status     int    `gorm:"type:int;not null;default:0;index:idx_task_reward_status" json:"status" form:"status"` // 状态：0正常、1删除（软删除）
+	CreateTime int64  `gorm:"type:bigint;not null" json:"createTime" form:"createTime"`                             // 创建时间
+	UpdateTime int64  `gorm:"type:bigint;not null" json:"updateTime" form:"updateTime"`                             // 更新时间
 }
 
 // UserTaskEvent 用户任务事件累计（UserId + PeriodKey + TaskId 唯一）
@@ -460,12 +488,12 @@ type Badge struct {
 	Status      int    `gorm:"type:int;not null;default:0;index:idx_badge_status" json:"status" form:"status"`
 
 	// 规则配置字段（自闭环中文注释）
-	GrantType   string `gorm:"size:32;not null;default:'manual'" json:"grantType" form:"grantType"` // 获得方式：manual(人工特赐/后台颁发)、auto(条件自动解锁)
-	RuleField   string `gorm:"size:64;not null;default:''" json:"ruleField" form:"ruleField"`       // 判定指标字段：topic_count(发帖数)、comment_count(回帖数)、consecutive_days(连续签到天数)、level(等级)、reg_days(站龄天数)、exp(经验值)、score(积分)、fans_count(粉丝数)
-	RuleValue   int    `gorm:"type:int;not null;default:0" json:"ruleValue" form:"ruleValue"`       // 达成阈值：达到或超过该数值时自动解锁授予
+	GrantType string `gorm:"size:32;not null;default:'manual'" json:"grantType" form:"grantType"` // 获得方式：manual(人工特赐/后台颁发)、auto(条件自动解锁)
+	RuleField string `gorm:"size:64;not null;default:''" json:"ruleField" form:"ruleField"`       // 判定指标字段：topic_count(发帖数)、comment_count(回帖数)、consecutive_days(连续签到天数)、level(等级)、reg_days(站龄天数)、exp(经验值)、score(积分)、fans_count(粉丝数)
+	RuleValue int    `gorm:"type:int;not null;default:0" json:"ruleValue" form:"ruleValue"`       // 达成阈值：达到或超过该数值时自动解锁授予
 
-	CreateTime  int64  `gorm:"type:bigint;not null" json:"createTime" form:"createTime"`
-	UpdateTime  int64  `gorm:"type:bigint;not null" json:"updateTime" form:"updateTime"`
+	CreateTime int64 `gorm:"type:bigint;not null" json:"createTime" form:"createTime"`
+	UpdateTime int64 `gorm:"type:bigint;not null" json:"updateTime" form:"updateTime"`
 }
 
 // UserBadge 用户勋章（避免重复授予：UserId + BadgeId 唯一）
@@ -645,15 +673,15 @@ type AttachmentDownloadLog struct {
 // AgentToken Agent 接入令牌。令牌明文只在创建时返回一次，库中仅存 sha256 哈希。
 type AgentToken struct {
 	Model
-	TokenHash     string `gorm:"size:64;unique;not null" json:"tokenHash" form:"tokenHash"`                                                                                  // 令牌哈希（sha256 hex）
-	Name          string `gorm:"size:64;not null" json:"name" form:"name"`                                                                                                   // 令牌名称
-	Remark        string `gorm:"size:256" json:"remark" form:"remark"`                                                                                                       // 备注
-	CreatorUserId int64  `gorm:"not null;index:idx_agent_token_creator_user_id" json:"creatorUserId" form:"creatorUserId"`                                                   // 创建人用户 ID
-	Status        int    `gorm:"type:int;not null;default:0;index:idx_agent_token_status" json:"status" form:"status"`                                                       // 状态（0 正常，1 已吊销）
-	ExpiredAt     int64  `gorm:"not null;default:0" json:"expiredAt" form:"expiredAt"`                                                                                       // 过期时间戳，0 表示永不过期
-	LastUsedAt    int64  `gorm:"not null;default:0" json:"lastUsedAt" form:"lastUsedAt"`                                                                                     // 最近调用时间
-	CreateTime    int64  `gorm:"not null;default:0" json:"createTime" form:"createTime"`                                                                                     // 创建时间
-	UpdateTime    int64  `gorm:"not null;default:0" json:"updateTime" form:"updateTime"`                                                                                     // 更新时间
+	TokenHash     string `gorm:"size:64;unique;not null" json:"tokenHash" form:"tokenHash"`                                // 令牌哈希（sha256 hex）
+	Name          string `gorm:"size:64;not null" json:"name" form:"name"`                                                 // 令牌名称
+	Remark        string `gorm:"size:256" json:"remark" form:"remark"`                                                     // 备注
+	CreatorUserId int64  `gorm:"not null;index:idx_agent_token_creator_user_id" json:"creatorUserId" form:"creatorUserId"` // 创建人用户 ID
+	Status        int    `gorm:"type:int;not null;default:0;index:idx_agent_token_status" json:"status" form:"status"`     // 状态（0 正常，1 已吊销）
+	ExpiredAt     int64  `gorm:"not null;default:0" json:"expiredAt" form:"expiredAt"`                                     // 过期时间戳，0 表示永不过期
+	LastUsedAt    int64  `gorm:"not null;default:0" json:"lastUsedAt" form:"lastUsedAt"`                                   // 最近调用时间
+	CreateTime    int64  `gorm:"not null;default:0" json:"createTime" form:"createTime"`                                   // 创建时间
+	UpdateTime    int64  `gorm:"not null;default:0" json:"updateTime" form:"updateTime"`                                   // 更新时间
 }
 
 // AgentTokenApi Agent 令牌的能力白名单（method + admin path，如 POST /api/admin/topic/list）。
@@ -662,39 +690,38 @@ type AgentTokenApi struct {
 	Model
 	TokenId    int64  `gorm:"not null;uniqueIndex:uk_agent_token_api;index:idx_agent_token_api_token_id" json:"tokenId" form:"tokenId"` // 令牌 ID
 	Method     string `gorm:"size:16;not null;uniqueIndex:uk_agent_token_api" json:"method" form:"method"`                              // HTTP 方法
-	Path       string `gorm:"size:256;not null;uniqueIndex:uk_agent_token_api" json:"path" form:"path"`                                  // 管理端路径（含参数模板，如 /api/admin/topic/:id）
-	CreateTime int64  `gorm:"not null;default:0" json:"createTime" form:"createTime"`                                                    // 授权时间
+	Path       string `gorm:"size:256;not null;uniqueIndex:uk_agent_token_api" json:"path" form:"path"`                                 // 管理端路径（含参数模板，如 /api/admin/topic/:id）
+	CreateTime int64  `gorm:"not null;default:0" json:"createTime" form:"createTime"`                                                   // 授权时间
 }
 
 // ModerationRecord 智能内容风控审核记录
 type ModerationRecord struct {
 	Model
-	EntityType         string  `gorm:"size:32;not null;index:idx_moderation_entity" json:"entityType" form:"entityType"`          // 实体类型：topic-话题、comment-评论、article-文章
-	EntityId           int64   `gorm:"not null;index:idx_moderation_entity" json:"entityId" form:"entityId"`                      // 被审核实体编号
-	UserId             int64   `gorm:"not null;index:idx_moderation_user" json:"userId" form:"userId"`                            // 作者用户编号
-	ContentSnapshot    string  `gorm:"type:text;not null" json:"contentSnapshot" form:"contentSnapshot"`                          // 送审内容文本快照
-	IsSpamProb         float64 `gorm:"type:decimal(5,4);not null;default:0" json:"isSpamProb" form:"isSpamProb"`                  // Jev Noul: 涉垃圾/广告概率值(0~1)
-	ToxicityScore      float64 `gorm:"type:decimal(4,2);not null;default:0" json:"toxicityScore" form:"toxicityScore"`            // Jev Score: 违规攻击性得分(0~2)
-	ToxicityConfidence float64 `gorm:"type:decimal(5,4);not null;default:0" json:"toxicityConfidence" form:"toxicityConfidence"`  // Jev Score: 判定置信度(0~1)
-	SuggestedAction    string  `gorm:"size:32;not null" json:"suggestedAction" form:"suggestedAction"`                            // Jev 建议动作：pass-放行, review-待审, reject-拒绝
-	FinalAction        string  `gorm:"size:32;not null;default:'pending';index:idx_moderation_final_action" json:"finalAction" form:"finalAction"`    // 最终处置：pass-放行, review-待审, reject-已拒绝
-	HitReasons         string  `gorm:"type:text" json:"hitReasons" form:"hitReasons"`                                             // 命中原因 JSON 数组（触发下架/待审的规则原因，表达当次生效策略）
-	DimensionResults   string  `gorm:"type:text" json:"dimensionResults" form:"dimensionResults"`                                 // 全维度评估快照 JSON 数组（当次配置的各维度 key/label/取值/判定，配置变更后仍可还原）
-	RawResponse        string  `gorm:"type:text" json:"rawResponse" form:"rawResponse"`                                           // Jev 原始完整 JSON 响应
-	CreateTime         int64   `gorm:"not null;default:0" json:"createTime" form:"createTime"`                                     // 创建时间戳(毫秒)
-	UpdateTime         int64   `gorm:"not null;default:0" json:"updateTime" form:"updateTime"`                                     // 更新时间戳(毫秒)
-	DeletedAt          *int64  `gorm:"index:idx_moderation_deleted_at" json:"deletedAt,omitempty"`                                // 软删除时间戳(为空未删除)
+	EntityType         string  `gorm:"size:32;not null;index:idx_moderation_entity" json:"entityType" form:"entityType"`                           // 实体类型：topic-话题、comment-评论、article-文章
+	EntityId           int64   `gorm:"not null;index:idx_moderation_entity" json:"entityId" form:"entityId"`                                       // 被审核实体编号
+	UserId             int64   `gorm:"not null;index:idx_moderation_user" json:"userId" form:"userId"`                                             // 作者用户编号
+	ContentSnapshot    string  `gorm:"type:text;not null" json:"contentSnapshot" form:"contentSnapshot"`                                           // 送审内容文本快照
+	IsSpamProb         float64 `gorm:"type:decimal(5,4);not null;default:0" json:"isSpamProb" form:"isSpamProb"`                                   // Jev Noul: 涉垃圾/广告概率值(0~1)
+	ToxicityScore      float64 `gorm:"type:decimal(4,2);not null;default:0" json:"toxicityScore" form:"toxicityScore"`                             // Jev Score: 违规攻击性得分(0~2)
+	ToxicityConfidence float64 `gorm:"type:decimal(5,4);not null;default:0" json:"toxicityConfidence" form:"toxicityConfidence"`                   // Jev Score: 判定置信度(0~1)
+	SuggestedAction    string  `gorm:"size:32;not null" json:"suggestedAction" form:"suggestedAction"`                                             // Jev 建议动作：pass-放行, review-待审, reject-拒绝
+	FinalAction        string  `gorm:"size:32;not null;default:'pending';index:idx_moderation_final_action" json:"finalAction" form:"finalAction"` // 最终处置：pass-放行, review-待审, reject-已拒绝
+	HitReasons         string  `gorm:"type:text" json:"hitReasons" form:"hitReasons"`                                                              // 命中原因 JSON 数组（触发下架/待审的规则原因，表达当次生效策略）
+	DimensionResults   string  `gorm:"type:text" json:"dimensionResults" form:"dimensionResults"`                                                  // 全维度评估快照 JSON 数组（当次配置的各维度 key/label/取值/判定，配置变更后仍可还原）
+	RawResponse        string  `gorm:"type:text" json:"rawResponse" form:"rawResponse"`                                                            // Jev 原始完整 JSON 响应
+	CreateTime         int64   `gorm:"not null;default:0" json:"createTime" form:"createTime"`                                                     // 创建时间戳(毫秒)
+	UpdateTime         int64   `gorm:"not null;default:0" json:"updateTime" form:"updateTime"`                                                     // 更新时间戳(毫秒)
+	DeletedAt          *int64  `gorm:"index:idx_moderation_deleted_at" json:"deletedAt,omitempty"`                                                 // 软删除时间戳(为空未删除)
 }
 
 // JevRuleHistory Jev 规则引擎编排配置历史版本快照
 type JevRuleHistory struct {
 	Model
-	Version       string `gorm:"size:32;not null;uniqueIndex:uk_jev_rule_version" json:"version" form:"version"` // 语义版本标识（如 v20260923.113000）
-	ConfigContent string `gorm:"type:text;not null" json:"configContent" form:"configContent"`                    // 完整规则配置 JSON 快照
-	Remark        string `gorm:"size:255;not null;default:''" json:"remark" form:"remark"`                         // 变更备注说明
-	OperatorId    int64  `gorm:"not null;default:0;index:idx_jev_rule_operator" json:"operatorId" form:"operatorId"` // 操作管理员用户编号
-	OperatorName  string `gorm:"size:64;not null;default:''" json:"operatorName" form:"operatorName"`             // 操作管理员用户名或昵称
-	IsActive      bool   `gorm:"not null;default:false;index:idx_jev_rule_is_active" json:"isActive" form:"isActive"` // 是否为当前生效版本
+	Version       string `gorm:"size:32;not null;uniqueIndex:uk_jev_rule_version" json:"version" form:"version"`                // 语义版本标识（如 v20260923.113000）
+	ConfigContent string `gorm:"type:text;not null" json:"configContent" form:"configContent"`                                  // 完整规则配置 JSON 快照
+	Remark        string `gorm:"size:255;not null;default:''" json:"remark" form:"remark"`                                      // 变更备注说明
+	OperatorId    int64  `gorm:"not null;default:0;index:idx_jev_rule_operator" json:"operatorId" form:"operatorId"`            // 操作管理员用户编号
+	OperatorName  string `gorm:"size:64;not null;default:''" json:"operatorName" form:"operatorName"`                           // 操作管理员用户名或昵称
+	IsActive      bool   `gorm:"not null;default:false;index:idx_jev_rule_is_active" json:"isActive" form:"isActive"`           // 是否为当前生效版本
 	CreateTime    int64  `gorm:"not null;default:0;index:idx_jev_rule_history_create_time" json:"createTime" form:"createTime"` // 存档时间戳(毫秒)
 }
-

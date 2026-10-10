@@ -192,6 +192,28 @@ func (s *taskEngineService) grantReward(ctx *sqls.TxContext, logRow *models.User
 		sourceId   = strconv.FormatInt(logRow.Id, 10)
 	)
 
+	// 优先走任务奖励明细（超管可配多奖励）；历史任务无明细行时回退旧三列，保证兼容。
+	// Business Rule: 未知奖励编码或已停用类型只跳过并发警告，不中断整个事务，避免单条脏配置卡死全部发奖。
+	rewards := repositories.TaskRewardRepository.FindEnabledByTaskId(ctx.Tx, logRow.TaskId)
+	if len(rewards) > 0 {
+		for i := range rewards {
+			reward := &rewards[i]
+			if !RewardTypeDefService.IsEnabled(reward.RewardCode) {
+				slog.Warn("skip disabled reward type", slog.String("rewardCode", reward.RewardCode), slog.Int64("taskId", logRow.TaskId))
+				continue
+			}
+			granter := GetRewardGranter(reward.RewardCode)
+			if granter == nil {
+				slog.Warn("skip unregistered reward type", slog.String("rewardCode", reward.RewardCode), slog.Int64("taskId", logRow.TaskId))
+				continue
+			}
+			if err := granter.Grant(ctx, logRow.UserId, *reward, sourceId); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
 	// 发放积分
 	if logRow.Score != 0 {
 		UserService.addScore(ctx, logRow.UserId, logRow.Score, sourceType, sourceId, "task reward")
