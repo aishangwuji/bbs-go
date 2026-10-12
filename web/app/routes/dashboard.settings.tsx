@@ -636,6 +636,7 @@ export default function DashboardSettingsRoute() {
                   articlePending: settings.articlePending,
                   topicPending: settings.topicPending,
                   userObserveSeconds: settings.userObserveSeconds,
+                  antiAbuseConfig: settings.antiAbuseConfig,
                   jevConfig: settings.jevConfig,
                 })
               }
@@ -1577,6 +1578,9 @@ function ChildrenTable({
 }
 
 function SpamSettings({ settings, saving, s, update, onSave }: SettingsProps) {
+  const antiAbuse = getObject(settings.antiAbuseConfig)
+  const userRateLimit = getObject(antiAbuse.user)
+  const ipRateLimit = getObject(antiAbuse.ip)
   const jev = getObject(settings.jevConfig)
   const isEnabled = Boolean(jev.enabled)
   const provider = getString(jev.provider) || "openrouter"
@@ -1670,6 +1674,22 @@ function SpamSettings({ settings, saving, s, update, onSave }: SettingsProps) {
           onChange={(value) => update("userObserveSeconds", value)}
         />
       </Field>
+      <SectionTitle>{s("spam.frequencyTitle")}</SectionTitle>
+      <FrequencyLimitCard
+        title={s("spam.userRateLimit")}
+        config={userRateLimit}
+        s={s}
+        showAction
+        onChange={(path, value) =>
+          update(`antiAbuseConfig.user.${path}`, value)
+        }
+      />
+      <FrequencyLimitCard
+        title={s("spam.ipRateLimit")}
+        config={ipRateLimit}
+        s={s}
+        onChange={(path, value) => update(`antiAbuseConfig.ip.${path}`, value)}
+      />
 
       <SectionTitle>智能内容风控（Jev / OpenRouter）</SectionTitle>
       <Field label="启用智能风控">
@@ -1810,6 +1830,103 @@ function SpamSettings({ settings, saving, s, update, onSave }: SettingsProps) {
         </>
       ) : null}
     </SettingsForm>
+  )
+}
+
+function FrequencyLimitCard({
+  title,
+  config,
+  s,
+  showAction = false,
+  onChange,
+}: {
+  title: string
+  config: SettingsState
+  s: SettingsProps["s"]
+  showAction?: boolean
+  onChange: (path: string, value: SettingValue) => void
+}) {
+  const contentTypes = ["topic", "article", "comment"] as const
+  return (
+    <Field label={title} wide>
+      <Card
+        size="sm"
+        className="w-full gap-4 bg-[var(--dashboard-panel-muted)]/40 shadow-none"
+      >
+        <CardContent className="grid gap-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <SwitchControl
+              checked={Boolean(config.enabled)}
+              onChange={(checked) => onChange("enabled", checked)}
+            />
+            <span className="text-sm text-muted-foreground">
+              {s("spam.frequencyHint")}
+            </span>
+            {showAction ? (
+              <DashboardSelect
+                value={getString(config.action) || "reject"}
+                options={[
+                  { label: s("spam.actionReject"), value: "reject" },
+                  { label: s("spam.actionReview"), value: "review" },
+                ]}
+                allowClear={false}
+                onValueChange={(value) => onChange("action", value || "reject")}
+              />
+            ) : null}
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {contentTypes.map((contentType) => {
+              const rule = getObject(config[contentType])
+              return (
+                <div
+                  key={contentType}
+                  className="grid gap-2 rounded-md border bg-background p-3"
+                >
+                  <div className="text-sm font-medium">
+                    {s(`spam.${contentType}`)}
+                  </div>
+                  <label className="grid gap-1 text-xs text-muted-foreground">
+                    {s("spam.durationMinutes")}
+                    <Input
+                      type="number"
+                      min={1}
+                      max={10080}
+                      value={getNumber(rule.durationMinutes) || 10}
+                      onChange={(event) =>
+                        onChange(
+                          `${contentType}.durationMinutes`,
+                          Number(event.target.value || 0)
+                        )
+                      }
+                    />
+                  </label>
+                  <label className="grid gap-1 text-xs text-muted-foreground">
+                    {s("spam.maxCount")}
+                    <Input
+                      type="number"
+                      min={0}
+                      max={10000}
+                      value={getNumber(rule.maxCount)}
+                      onChange={(event) =>
+                        onChange(
+                          `${contentType}.maxCount`,
+                          Number(event.target.value || 0)
+                        )
+                      }
+                    />
+                  </label>
+                </div>
+              )
+            })}
+          </div>
+          {showAction ? (
+            <p className="text-xs text-muted-foreground">
+              {s("spam.reviewHint")}
+            </p>
+          ) : null}
+        </CardContent>
+      </Card>
+    </Field>
   )
 }
 
@@ -2042,6 +2159,11 @@ function LoginSettings({ settings, saving, s, update, onSave }: SettingsProps) {
         </LoginCard>
       ))}
 
+      <OIDCProvidersEditor
+        value={getPathValue(login, "oidcProviders")}
+        onChange={(providers) => update("loginConfig.oidcProviders", providers)}
+      />
+
       <Field label={s("login.passwordLogin")}>
         <SwitchControl
           checked={Boolean(getPathValue(login, "passwordLogin.enabled"))}
@@ -2051,6 +2173,62 @@ function LoginSettings({ settings, saving, s, update, onSave }: SettingsProps) {
         />
       </Field>
     </SettingsForm>
+  )
+}
+
+type OIDCProviderRow = {
+  key: string
+  name: string
+  issuer: string
+  clientId: string
+  clientSecret: string
+  scopes: string[]
+  enabled: boolean
+  requireVerifiedEmail: boolean
+}
+
+function OIDCProvidersEditor({ value, onChange }: { value: SettingValue; onChange: (value: SettingValue[]) => void }) {
+  const providers = React.useMemo<OIDCProviderRow[]>(() => Array.isArray(value) ? value.map((item) => {
+    const provider = getObject(item)
+    return {
+      key: getString(provider.key), name: getString(provider.name), issuer: getString(provider.issuer),
+      clientId: getString(provider.clientId), clientSecret: getString(provider.clientSecret),
+      scopes: getStringArray(provider.scopes), enabled: Boolean(provider.enabled),
+      requireVerifiedEmail: Boolean(provider.requireVerifiedEmail),
+    }
+  }) : [], [value])
+  const commit = (next: OIDCProviderRow[]) => onChange(next as unknown as SettingValue[])
+  const updateProvider = (index: number, patch: Partial<OIDCProviderRow>) =>
+    commit(providers.map((provider, current) => current === index ? { ...provider, ...patch } : provider))
+  return (
+    <LoginCard title="OIDC / Single Sign-On">
+      <div className="space-y-5">
+        {providers.map((provider, index) => (
+          <div key={`${provider.key}-${index}`} className="space-y-4 rounded-lg border p-4">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-sm font-medium">Identity provider {index + 1}</span>
+              <Button type="button" size="sm" variant="outline" onClick={() => commit(providers.filter((_, current) => current !== index))}>
+                <Trash2Icon className="mr-1 size-4" /> Remove
+              </Button>
+            </div>
+            <Field label="Enable">
+              <SwitchControl checked={provider.enabled} onChange={(enabled) => updateProvider(index, { enabled })} />
+            </Field>
+            <Field label="Display name"><Input value={provider.name} placeholder="Company SSO" onChange={(event) => updateProvider(index, { name: event.target.value })} /></Field>
+            <Field label="Provider key"><Input value={provider.key} placeholder="company-sso" onChange={(event) => updateProvider(index, { key: event.target.value })} /></Field>
+            <Field label="Issuer URL"><Input value={provider.issuer} placeholder="https://sso.example.com/realms/community" onChange={(event) => updateProvider(index, { issuer: event.target.value })} /></Field>
+            <Field label="Client ID"><Input value={provider.clientId} onChange={(event) => updateProvider(index, { clientId: event.target.value })} /></Field>
+            <Field label="Client Secret"><Input type="password" value={provider.clientSecret} onChange={(event) => updateProvider(index, { clientSecret: event.target.value })} /></Field>
+            <Field label="Scopes (comma-separated)"><Input value={provider.scopes.join(", ")} placeholder="openid, profile, email" onChange={(event) => updateProvider(index, { scopes: event.target.value.split(",").map((scope) => scope.trim()).filter(Boolean) })} /></Field>
+            <Field label="Require verified email"><SwitchControl checked={provider.requireVerifiedEmail} onChange={(requireVerifiedEmail) => updateProvider(index, { requireVerifiedEmail })} /></Field>
+          </div>
+        ))}
+        <Button type="button" variant="outline" onClick={() => commit([...providers, { key: "", name: "", issuer: "", clientId: "", clientSecret: "", scopes: ["openid", "profile", "email"], enabled: false, requireVerifiedEmail: true }])}>
+          <PlusIcon className="mr-2 size-4" /> Add OIDC provider
+        </Button>
+        <p className="text-xs text-muted-foreground">The issuer must be an HTTPS OpenID Connect Discovery URL. Register the callback URL shown in the release notes with your identity provider.</p>
+      </div>
+    </LoginCard>
   )
 }
 

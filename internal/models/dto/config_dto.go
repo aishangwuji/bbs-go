@@ -22,6 +22,7 @@ type SysConfigAdminResponse struct {
 	ArticlePending             bool                        `json:"articlePending"`
 	TopicCaptcha               bool                        `json:"topicCaptcha"`
 	TopicPending               bool                        `json:"topicPending"`
+	AntiAbuseConfig            AntiAbuseConfig             `json:"antiAbuseConfig"`
 	UserObserveSeconds         int                         `json:"userObserveSeconds"`
 	TokenExpireDays            int                         `json:"tokenExpireDays"`
 	CreateTopicEmailVerified   bool                        `json:"createTopicEmailVerified"`
@@ -109,11 +110,12 @@ type FooterLink struct {
 }
 
 type OpenLoginConfig struct {
-	PasswordLogin EnabledConfig `json:"passwordLogin"` // 密码登录
-	WeixinLogin   EnabledConfig `json:"weixinLogin"`   // 微信登录
-	SmsLogin      EnabledConfig `json:"smsLogin"`      // 短信登录
-	GoogleLogin   OAuthConfig   `json:"googleLogin"`   // Google登录
-	GithubLogin   EnabledConfig `json:"githubLogin"`   // GitHub登录
+	PasswordLogin EnabledConfig            `json:"passwordLogin"` // 密码登录
+	WeixinLogin   EnabledConfig            `json:"weixinLogin"`   // 微信登录
+	SmsLogin      EnabledConfig            `json:"smsLogin"`      // 短信登录
+	GoogleLogin   OAuthConfig              `json:"googleLogin"`   // Google登录
+	GithubLogin   EnabledConfig            `json:"githubLogin"`   // GitHub登录
+	OIDCProviders []OpenOIDCProviderConfig `json:"oidcProviders"` // 通用 OIDC 登录
 }
 
 type EnabledConfig struct {
@@ -123,6 +125,25 @@ type EnabledConfig struct {
 type OAuthConfig struct {
 	Enabled  bool   `json:"enabled"`
 	ClientId string `json:"clientId,omitempty"`
+}
+
+// OIDCProviderConfig is a generic OpenID Connect relying-party configuration.
+// The secret is deliberately omitted from the public site configuration.
+type OIDCProviderConfig struct {
+	Key                  string   `json:"key"`
+	Name                 string   `json:"name"`
+	Issuer               string   `json:"issuer"`
+	ClientId             string   `json:"clientId"`
+	ClientSecret         string   `json:"clientSecret"`
+	Scopes               []string `json:"scopes"`
+	Enabled              bool     `json:"enabled"`
+	RequireVerifiedEmail bool     `json:"requireVerifiedEmail"`
+}
+
+type OpenOIDCProviderConfig struct {
+	Key     string `json:"key"`
+	Name    string `json:"name"`
+	Enabled bool   `json:"enabled"`
 }
 
 // NoticeTypeConfig 某类消息的站内信/邮件开关
@@ -175,6 +196,10 @@ type LoginConfig struct {
 		ClientId     string `json:"clientId"`
 		ClientSecret string `json:"clientSecret"`
 	} `json:"githubLogin"`
+
+	// OIDCProviders supports Keycloak, Authentik and any provider exposing
+	// standard OpenID Connect Discovery metadata.
+	OIDCProviders []OIDCProviderConfig `json:"oidcProviders"`
 }
 
 type AliyunSmsConfig struct {
@@ -186,7 +211,15 @@ type AliyunSmsConfig struct {
 
 // IsAllDisabled 是否禁用了所有登录方式
 func (c *LoginConfig) IsAllDisabled() bool {
-	return !c.PasswordLogin.Enabled && !c.WeixinLogin.Enabled && !c.SmsLogin.Enabled && !c.GoogleLogin.Enabled && !c.GithubLogin.Enabled
+	if c.PasswordLogin.Enabled || c.WeixinLogin.Enabled || c.SmsLogin.Enabled || c.GoogleLogin.Enabled || c.GithubLogin.Enabled {
+		return false
+	}
+	for _, provider := range c.OIDCProviders {
+		if provider.Enabled {
+			return false
+		}
+	}
+	return true
 }
 
 type UploadMethod string
@@ -244,10 +277,10 @@ type AwsS3UploadConfig struct {
 
 // S3UploadConfig 通用 S3 兼容存储配置，兼容 Cloudflare R2 / MinIO / RustFS 等。
 type S3UploadConfig struct {
-	Host            string `json:"host"`        // 对象访问的 URL 前缀，留空时按 Endpoint+Bucket 推导
-	Bucket          string `json:"bucket"`     // 桶名称
-	Endpoint        string `json:"endpoint"`   // S3 API Endpoint，如 https://xxx.r2.cloudflarestorage.com
-	Region          string `json:"region"`     // 区域，Cloudflare R2 使用 auto
+	Host            string `json:"host"`     // 对象访问的 URL 前缀，留空时按 Endpoint+Bucket 推导
+	Bucket          string `json:"bucket"`   // 桶名称
+	Endpoint        string `json:"endpoint"` // S3 API Endpoint，如 https://xxx.r2.cloudflarestorage.com
+	Region          string `json:"region"`   // 区域，Cloudflare R2 使用 auto
 	AccessKeyId     string `json:"accessKeyId"`
 	AccessKeySecret string `json:"accessKeySecret"`
 	PathStyle       bool   `json:"pathStyle"` // 是否使用 path-style 寻址（MinIO/RustFS 通常为 true，R2 为 false）

@@ -173,6 +173,7 @@ func (s *articleService) Publish(userId int64, form req.CreateArticleReq) (artic
 		ContentType: form.ContentType,
 		Status:      status,
 		SourceUrl:   form.SourceUrl,
+		Ip:          form.Ip,
 		CreateTime:  dates.NowTimestamp(),
 		UpdateTime:  dates.NowTimestamp(),
 	}
@@ -180,12 +181,16 @@ func (s *articleService) Publish(userId int64, form req.CreateArticleReq) (artic
 	if form.Cover != nil {
 		article.Cover = jsons.ToJsonStr(form.Cover)
 	}
-
 	err = sqls.DB().Transaction(func(tx *gorm.DB) error {
 		var (
 			tagIds []int64
 			err    error
 		)
+		if needReview, checkErr := AntiAbuseService.CheckArticle(tx, userId, form.Ip); checkErr != nil {
+			return checkErr
+		} else if needReview {
+			article.Status = constants.StatusReview
+		}
 		if tagIds, err = repositories.TagRepository.GetOrCreates(tx, form.Tags); err != nil {
 			return err
 		}

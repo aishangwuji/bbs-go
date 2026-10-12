@@ -10,7 +10,7 @@ var Models = []interface{}{
 	&Migration{},
 	&UserRole{}, &Role{}, &Permission{}, &RolePermission{}, &DictType{}, &Dict{},
 
-	&User{}, &UserToken{}, &ThirdUser{}, &Tag{}, &Article{}, &ArticleTag{}, &Comment{}, &Favorite{}, &Topic{}, &Category{},
+	&User{}, &UserToken{}, &ThirdUser{}, &OIDCIdentity{}, &Tag{}, &Article{}, &ArticleTag{}, &Comment{}, &Favorite{}, &Topic{}, &Category{},
 	&TopicTag{}, &UserLike{}, &Message{}, &SysConfig{}, &Link{},
 	&TaskConfig{}, &UserTaskEvent{}, &UserTaskLog{}, &TaskEventDef{}, &RewardTypeDef{}, &TaskReward{},
 	&Badge{}, &UserBadge{},
@@ -179,6 +179,21 @@ type ThirdUser struct {
 	UpdateTime int64  `json:"updateTime" form:"updateTime"`
 }
 
+// OIDCIdentity keeps the stable issuer + subject binding.  Tokens are never
+// stored; bbs-go creates its normal local session after a successful OIDC login.
+type OIDCIdentity struct {
+	Model
+	ProviderKey string `gorm:"size:64;not null;uniqueIndex:uk_oidc_issuer_subject" json:"providerKey"`
+	Issuer      string `gorm:"size:512;not null;uniqueIndex:uk_oidc_issuer_subject" json:"issuer"`
+	Subject     string `gorm:"size:512;not null;uniqueIndex:uk_oidc_issuer_subject" json:"subject"`
+	UserId      int64  `gorm:"not null;uniqueIndex:uk_oidc_user_provider" json:"userId"`
+	Email       string `gorm:"size:128" json:"email"`
+	Nickname    string `gorm:"size:64" json:"nickname"`
+	Avatar      string `gorm:"size:1024" json:"avatar"`
+	CreateTime  int64  `json:"createTime"`
+	UpdateTime  int64  `json:"updateTime"`
+}
+
 // 标签
 type Tag struct {
 	Model
@@ -200,6 +215,7 @@ type Article struct {
 	Cover        string                `gorm:"type:text;" json:"cover" form:"cover"`                            // 封面图
 	Status       int                   `gorm:"type:int;index:idx_article_status" json:"status" form:"status"`   // 状态
 	SourceUrl    string                `gorm:"type:text" json:"sourceUrl" form:"sourceUrl"`                     // 原文链接
+	Ip           string                `gorm:"size:128" json:"ip" form:"ip"`                                    // IP
 	ViewCount    int64                 `gorm:"not null;" json:"viewCount" form:"viewCount"`                     // 查看数量
 	CommentCount int64                 `gorm:"default:0" json:"commentCount" form:"commentCount"`               // 评论数量
 	LikeCount    int64                 `gorm:"default:0" json:"likeCount" form:"likeCount"`                     // 点赞数量

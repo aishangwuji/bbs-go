@@ -291,6 +291,7 @@ export interface SiteConfig {
     githubLogin?: { enabled?: boolean }
     googleLogin?: { enabled?: boolean; clientId?: string }
     weixinLogin?: { enabled?: boolean }
+    oidcProviders?: Array<{ key: string; name: string; enabled?: boolean }>
   }
   scriptInjections?: Array<{
     enabled?: boolean

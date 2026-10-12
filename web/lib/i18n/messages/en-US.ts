@@ -522,7 +522,7 @@ const enUS = {
         submit: "Submit",
       },
       spam: {
-        title: "Anti-Spam",
+        title: "Anti-Abuse & Content Governance",
         topicCaptcha: "Topic Captcha",
         topicCaptchaTooltip:
           "Whether to enable captcha verification when posting topics",
@@ -544,6 +544,19 @@ const enUS = {
         userObserveSeconds: "User Observation Period (seconds)",
         userObserveSecondsTooltip:
           "During the observation period, users cannot post topics, tweets, etc. Set to 0 for no observation period.",
+        frequencyTitle: "Publish Frequency Limits",
+        userRateLimit: "User Limits",
+        ipRateLimit: "IP Limits",
+        frequencyHint: "When enabled, each content type uses the limits below.",
+        topic: "Topic",
+        article: "Article",
+        comment: "Comment",
+        durationMinutes: "Window (minutes)",
+        maxCount: "Count (0 = unlimited)",
+        actionReject: "Reject on match",
+        actionReview: "Send to review on match",
+        reviewHint:
+          "Review applies to topics and articles only; matching comments are rejected.",
         submit: "Submit",
       },
       login: {
@@ -1748,6 +1761,11 @@ const enUS = {
           "Choose a default avatar. You can change it later in your profile.",
         usernameError: "Enter an admin username.",
         passwordError: "Enter an admin password.",
+        passwordHelp: "Password must be at least 6 characters long.",
+        passwordTooShortError:
+          "Administrator password must be at least 6 characters long.",
+        passwordTooLongError:
+          "Administrator password must be no more than 1024 characters long.",
         confirmPasswordError: "Please confirm admin password.",
         passwordMismatchError: "Passwords do not match.",
       },
@@ -1859,6 +1877,7 @@ const enUS = {
       githubLogin: "GitHub",
       githubLoginButton: "Sign in with GitHub",
       githubLoggingIn: "Signing in...",
+      oidcLoggingIn: "Signing in with single sign-on...",
       thirdPartyLogin: "Or continue with",
       missingAuthParams: "Missing authorization details. Please sign in again.",
       password: {

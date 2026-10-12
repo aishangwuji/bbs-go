@@ -10,6 +10,7 @@ import (
 	"bbs-go/internal/pkg/iplocator"
 	"bbs-go/internal/pkg/locales"
 	"bbs-go/internal/pkg/search"
+	"bbs-go/internal/pkg/validate"
 	"bbs-go/internal/scheduler"
 	"bbs-go/internal/services"
 	"bbs-go/migrations"
@@ -200,6 +201,12 @@ func TestDbConnection(ctx context.Context, req DbConfigReq) error {
 }
 
 func Install(req InstallReq) error {
+	// The initial administrator must follow the same password rules as other accounts.
+	// Reject invalid input before connecting to the database or writing configuration.
+	if err := validate.IsPassword(req.Password); err != nil {
+		return err
+	}
+
 	installMx.Lock()
 	defer installMx.Unlock()
 

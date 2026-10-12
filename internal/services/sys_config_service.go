@@ -6,6 +6,8 @@ import (
 	"bbs-go/internal/pkg/config"
 	"bbs-go/internal/pkg/locales"
 	"bbs-go/internal/pkg/msg"
+	"bbs-go/internal/pkg/oidc"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -109,6 +111,29 @@ func (s *sysConfigService) SetAll(configStr string) error {
 	if scriptInjections := json.Get(constants.SysConfigScriptInjections); scriptInjections.Exists() {
 		if err := validateScriptInjections(scriptInjections.String()); err != nil {
 			return err
+		}
+	}
+	if antiAbuseConfig := json.Get(constants.SysConfigAntiAbuseConfig); antiAbuseConfig.Exists() {
+		if err := validateAntiAbuseConfig(antiAbuseConfig.String()); err != nil {
+			return err
+		}
+	}
+	if loginConfig := json.Get(constants.SysConfigLoginConfig); loginConfig.Exists() {
+		var login dto.LoginConfig
+		if err := jsons.Parse(loginConfig.String(), &login); err != nil {
+			return errors.New("invalid login configuration")
+		}
+		seen := make(map[string]struct{})
+		for _, provider := range login.OIDCProviders {
+			if _, exists := seen[provider.Key]; exists {
+				return fmt.Errorf("duplicate OIDC provider key: %s", provider.Key)
+			}
+			seen[provider.Key] = struct{}{}
+			if provider.Enabled {
+				if err := oidc.ValidateProvider(provider); err != nil {
+					return err
+				}
+			}
 		}
 	}
 	return sqls.DB().Transaction(func(tx *gorm.DB) error {
@@ -217,6 +242,59 @@ func (s *sysConfigService) IsTopicPending() bool {
 
 func (s *sysConfigService) IsTopicCaptcha() bool {
 	return cache.SysConfigCache.GetBool(constants.SysConfigTopicCaptcha)
+}
+
+func (s *sysConfigService) GetAntiAbuseConfig() dto.AntiAbuseConfig {
+	return parseAntiAbuseConfig(cache.SysConfigCache.GetStr(constants.SysConfigAntiAbuseConfig))
+}
+
+// GetAntiAbuseConfigTx reads through the active write transaction. This avoids
+// a second SQLite connection attempting to load a just-invalidated cached
+// setting while content publishing holds the transaction open.
+func (s *sysConfigService) GetAntiAbuseConfigTx(tx *gorm.DB) dto.AntiAbuseConfig {
+	config := repositories.SysConfigRepository.GetByKey(tx, constants.SysConfigAntiAbuseConfig)
+	if config == nil {
+		return dto.DefaultAntiAbuseConfig()
+	}
+	return parseAntiAbuseConfig(config.Value)
+}
+
+func parseAntiAbuseConfig(raw string) dto.AntiAbuseConfig {
+	config := dto.DefaultAntiAbuseConfig()
+	if strs.IsBlank(raw) {
+		return config
+	}
+	if err := json.Unmarshal([]byte(raw), &config); err != nil {
+		slog.Warn("反作弊配置数据错误", slog.Any("err", err))
+		return dto.DefaultAntiAbuseConfig()
+	}
+	normalizeAntiAbuseConfig(&config)
+	return config
+}
+
+func validateAntiAbuseConfig(raw string) error {
+	config := dto.DefaultAntiAbuseConfig()
+	if err := json.Unmarshal([]byte(raw), &config); err != nil {
+		return errors.New(locales.Get("settings.invalid_format"))
+	}
+	for _, item := range []dto.PublishFrequencyConfig{config.User, config.IP} {
+		if item.Action != dto.AntiAbuseActionReject && item.Action != dto.AntiAbuseActionReview {
+			return errors.New(locales.Get("settings.invalid_format"))
+		}
+		for _, rule := range []dto.PublishRateLimit{item.Topic, item.Article, item.Comment} {
+			if rule.DurationMinutes < 1 || rule.DurationMinutes > 10080 || rule.MaxCount < 0 || rule.MaxCount > 10000 {
+				return errors.New(locales.Get("settings.invalid_format"))
+			}
+		}
+	}
+	return nil
+}
+
+func normalizeAntiAbuseConfig(config *dto.AntiAbuseConfig) {
+	if config.User.Action != dto.AntiAbuseActionReview {
+		config.User.Action = dto.AntiAbuseActionReject
+	}
+	config.IP.Action = dto.AntiAbuseActionReject
 }
 
 func (s *sysConfigService) GetDefaultCategoryId() int64 {

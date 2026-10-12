@@ -145,6 +145,9 @@ func registerAPIRoutes(group *gin.RouterGroup) {
 	loginGroup.POST("/github_login_submit", apiHandlers.LoginGithubLoginSubmit)
 	loginGroup.POST("/github_unbind", apiHandlers.LoginGithubUnbind)
 	loginGroup.POST("/oauth_resolve_conflict", apiHandlers.LoginOAuthResolveConflict)
+	loginGroup.GET("/oidc_login_config", apiHandlers.LoginOIDCLoginConfig)
+	loginGroup.POST("/oidc_login_submit", apiHandlers.LoginOIDCLoginSubmit)
+
 
 	userGroup := group.Group("/user")
 	userGroup.GET("/current", apiHandlers.UserCurrent)

@@ -2,11 +2,34 @@ package install
 
 import (
 	"bbs-go/internal/pkg/config"
+	"bbs-go/internal/pkg/validate"
 	"net/url"
 	"testing"
 
 	"gorm.io/gorm/logger"
 )
+
+func TestInstallRejectsShortAdminPasswordBeforeDatabaseInitialization(t *testing.T) {
+	previousConfig := config.Instance
+	t.Cleanup(func() {
+		config.Instance = previousConfig
+	})
+	config.Instance = &config.Config{Language: config.LanguageEnUS}
+
+	password := "admin"
+	want := validate.IsPassword(password)
+	if want == nil {
+		t.Fatal("expected the shared account password validator to reject a short password")
+	}
+
+	got := Install(InstallReq{Password: password})
+	if got == nil {
+		t.Fatal("expected installation to reject a short administrator password")
+	}
+	if got.Error() != want.Error() {
+		t.Fatalf("expected installation password error %q, got %q", want.Error(), got.Error())
+	}
+}
 
 func TestResolveGormLogLevel(t *testing.T) {
 	tests := []struct {

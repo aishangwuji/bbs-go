@@ -29,6 +29,8 @@ export type DbType = "mysql" | "postgresql" | "sqlite"
 
 const avatarCount = 128
 const avatarBase = "/res/images/avatars"
+const minPasswordLength = 6
+const maxPasswordLength = 1024
 const avatars = Array.from(
   { length: avatarCount },
   (_, index) => `${avatarBase}/${index}.png`
@@ -36,6 +38,15 @@ const avatars = Array.from(
 
 function randomAvatar() {
   return avatars[Math.floor(Math.random() * avatarCount)]
+}
+
+function passwordLength(password: string) {
+  return Array.from(password).length
+}
+
+function isPasswordValid(password: string) {
+  const length = passwordLength(password)
+  return length >= minPasswordLength && length <= maxPasswordLength
 }
 
 function defaultBaseURL() {
@@ -122,7 +133,9 @@ export function InstallWizard({
   const isAdminFormValid =
     Boolean(
       adminInfo.username && adminInfo.password && adminInfo.passwordConfirm
-    ) && adminInfo.password === adminInfo.passwordConfirm
+    ) &&
+    isPasswordValid(adminInfo.password) &&
+    adminInfo.password === adminInfo.passwordConfirm
 
   function updateDbConfig(values: Partial<typeof dbConfig>) {
     if (dockerBuiltinDb) return
@@ -185,6 +198,15 @@ export function InstallWizard({
     }
     if (!adminInfo.password) {
       setAdminError(t("pages.install.admin.passwordError"))
+      return false
+    }
+    const length = passwordLength(adminInfo.password)
+    if (length < minPasswordLength) {
+      setAdminError(t("pages.install.admin.passwordTooShortError"))
+      return false
+    }
+    if (length > maxPasswordLength) {
+      setAdminError(t("pages.install.admin.passwordTooLongError"))
       return false
     }
     if (!adminInfo.passwordConfirm) {
@@ -668,6 +690,7 @@ export function InstallWizard({
                 label={t("pages.install.admin.password")}
                 value={adminInfo.password}
                 placeholder={t("pages.install.admin.passwordPlaceholder")}
+                help={t("pages.install.admin.passwordHelp")}
                 onBlur={validateAdminForm}
                 onChange={(password) => {
                   setAdminInfo((current) => ({ ...current, password }))
