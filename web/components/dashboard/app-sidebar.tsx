@@ -154,6 +154,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             url: "/dashboard/task-event-defs",
             permission: PERMISSIONS.DASHBOARD_TASK_EVENT_VIEW,
           },
+          {
+            title: t("dashboard.nav.rewardTypes"),
+            url: "/dashboard/reward-type-defs",
+            permission: PERMISSIONS.DASHBOARD_REWARD_VIEW,
+          },
+          {
+            title: t("dashboard.nav.taskRewards"),
+            url: "/dashboard/task-rewards",
+            permission: PERMISSIONS.DASHBOARD_REWARD_VIEW,
+          },
         ],
       },
       {

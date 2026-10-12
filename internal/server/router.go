@@ -379,6 +379,7 @@ func registerAdminRoutes(group *gin.RouterGroup) {
 
 	taskConfigGroup := group.Group("/task-config")
 	taskConfigGroup.GET("/groups", adminHandlers.TaskConfigGroups)
+	taskConfigGroup.GET("/list", adminHandlers.TaskConfigList)
 	taskConfigGroup.POST("/list", adminHandlers.TaskConfigList)
 	taskConfigGroup.POST("/create", adminHandlers.TaskConfigCreate)
 	taskConfigGroup.POST("/update", adminHandlers.TaskConfigUpdate)
@@ -387,6 +388,7 @@ func registerAdminRoutes(group *gin.RouterGroup) {
 	taskConfigGroup.GET("/:id", adminHandlers.TaskConfigDetail)
 
 	taskEventDefGroup := group.Group("/task-event-def")
+	taskEventDefGroup.GET("/list", adminHandlers.TaskEventDefList)
 	taskEventDefGroup.POST("/list", adminHandlers.TaskEventDefList)
 	taskEventDefGroup.POST("/create", adminHandlers.TaskEventDefCreate)
 	taskEventDefGroup.POST("/update", adminHandlers.TaskEventDefUpdate)
@@ -395,6 +397,7 @@ func registerAdminRoutes(group *gin.RouterGroup) {
 	taskEventDefGroup.GET("/:id", adminHandlers.TaskEventDefDetail)
 
 	rewardTypeDefGroup := group.Group("/reward-type-def")
+	rewardTypeDefGroup.GET("/list", adminHandlers.RewardTypeDefList)
 	rewardTypeDefGroup.POST("/list", adminHandlers.RewardTypeDefList)
 	rewardTypeDefGroup.POST("/create", adminHandlers.RewardTypeDefCreate)
 	rewardTypeDefGroup.POST("/update", adminHandlers.RewardTypeDefUpdate)
@@ -403,6 +406,7 @@ func registerAdminRoutes(group *gin.RouterGroup) {
 	rewardTypeDefGroup.GET("/:id", adminHandlers.RewardTypeDefDetail)
 
 	taskRewardGroup := group.Group("/task-reward")
+	taskRewardGroup.GET("/list", adminHandlers.TaskRewardList)
 	taskRewardGroup.POST("/list", adminHandlers.TaskRewardList)
 	taskRewardGroup.POST("/create", adminHandlers.TaskRewardCreate)
 	taskRewardGroup.POST("/update", adminHandlers.TaskRewardUpdate)

@@ -49,6 +49,12 @@ const dedicatedRoutes = {
   "dashboard.tasks.tsx": {
     expectedDefaultExport: "DashboardTasksRoute",
   },
+  "dashboard.reward-type-defs.tsx": {
+    expectedDefaultExport: "DashboardRewardTypeDefsRoute",
+  },
+  "dashboard.task-rewards.tsx": {
+    expectedDefaultExport: "DashboardTaskRewardsRoute",
+  },
   "dashboard.roles.tsx": {
     expectedDefaultExport: "DashboardRolesRoute",
   },

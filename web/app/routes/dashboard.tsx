@@ -113,6 +113,14 @@ function dashboardBreadcrumbs(
           title: t("dashboard.nav.taskEventDefs"),
           url: "/dashboard/task-event-defs",
         },
+        "reward-type-defs": {
+          title: t("dashboard.nav.rewardTypes"),
+          url: "/dashboard/reward-type-defs",
+        },
+        "task-rewards": {
+          title: t("dashboard.nav.taskRewards"),
+          url: "/dashboard/task-rewards",
+        },
       },
     },
     {
