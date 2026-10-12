@@ -1,4 +1,4 @@
-"use client"
+import { useSearchParams } from "react-router"
 
 import {
   DashboardDataPage,
@@ -10,12 +10,19 @@ import { PERMISSIONS } from "@/lib/auth/permissions.generated"
 
 export default function DashboardTaskRewardsRoute() {
   const { t } = useI18n()
+  const [searchParams] = useSearchParams()
+  const taskIdParam = searchParams.get("taskId")
+  const defaultTaskId = taskIdParam ? Number(taskIdParam) : undefined
+
   const config: DashboardDataPageConfig = {
     title: dashboardData.title(t, "taskRewards"),
     description: dashboardData.desc(t, "taskRewards"),
     listEndpoint: "/api/admin/task-reward/list",
     viewPermission: PERMISSIONS.DASHBOARD_REWARD_VIEW,
-    defaultFilters: { status: 0 },
+    defaultFilters: {
+      status: 0,
+      ...(defaultTaskId ? { taskId: defaultTaskId } : {}),
+    },
     detailEndpoint: (id) => `/api/admin/task-reward/${id}`,
     createEndpoint: "/api/admin/task-reward/create",
     createPermission: PERMISSIONS.DASHBOARD_REWARD_CREATE,

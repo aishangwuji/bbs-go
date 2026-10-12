@@ -414,7 +414,19 @@ type TaskResponse struct {
 	StartTime      int64                 `json:"startTime"`
 	EndTime        int64                 `json:"endTime"`
 	Status         int                   `json:"status"`
+	Rewards        []TaskRewardResponse  `json:"rewards"` // 任务奖励明细列表（支持多奖励聚合）
 	UserProgress   *TaskProgressResponse `json:"userProgress,omitempty"`
+}
+
+// TaskRewardResponse 任务奖励明细响应实体
+type TaskRewardResponse struct {
+	Id         int64          `json:"id"`                  // 奖励明细ID
+	RewardCode string         `json:"rewardCode"`          // 奖励类型编码（如 score, exp, badge）
+	NameZh     string         `json:"nameZh"`              // 奖励类型中文名称
+	NameEn     string         `json:"nameEn"`              // 奖励类型英文名称
+	Amount     int            `json:"amount"`              // 奖励数值数量（积分/经验等）
+	BadgeId    int64          `json:"badgeId"`             // 勋章ID（勋章类型奖励生效）
+	Badge      *BadgeResponse `json:"badge,omitempty"`     // 关联勋章详情（若为勋章奖励）
 }
 
 // TaskProgressResponse 用户在某任务上的当前进度

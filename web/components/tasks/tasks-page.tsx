@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "@/components/common/link"
-import { ArrowRight, Medal, Sparkles, Target, Zap } from "lucide-react"
+import { ArrowRight, Gift, Medal, Sparkles, Target, Zap } from "lucide-react"
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { apiFetch } from "@/lib/api/client"
@@ -164,7 +164,7 @@ function TaskList({ tasks }: { tasks: TaskInfo[] }) {
 }
 
 function TaskCard({ task }: { task: TaskInfo }) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const user = useCurrentUser()
   const { msgSignIn } = useToastActions()
   const kind = statusKind(task)
@@ -254,21 +254,75 @@ function TaskCard({ task }: { task: TaskInfo }) {
             {task.description}
           </p>
           <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-            {task.score ? (
-              <RewardItem icon={<Target className="h-3.5 w-3.5" />}>
-                {t("user.tasks.reward.score", { score: task.score })}
-              </RewardItem>
-            ) : null}
-            {task.exp ? (
-              <RewardItem icon={<Zap className="h-3.5 w-3.5" />}>
-                {t("user.tasks.reward.exp", { exp: task.exp })}
-              </RewardItem>
-            ) : null}
-            {task.badgeId ? (
-              <RewardItem icon={<Medal className="h-3.5 w-3.5" />}>
-                {t("user.tasks.reward.badge")}
-              </RewardItem>
-            ) : null}
+            {task.rewards && task.rewards.length > 0 ? (
+              task.rewards.map((reward, idx) => {
+                if (reward.rewardCode === "score") {
+                  return (
+                    <RewardItem
+                      key={reward.id || `score-${idx}`}
+                      icon={<Target className="h-3.5 w-3.5" />}
+                    >
+                      {t("user.tasks.reward.score", {
+                        score: reward.amount ?? 0,
+                      })}
+                    </RewardItem>
+                  )
+                }
+                if (reward.rewardCode === "exp") {
+                  return (
+                    <RewardItem
+                      key={reward.id || `exp-${idx}`}
+                      icon={<Zap className="h-3.5 w-3.5" />}
+                    >
+                      {t("user.tasks.reward.exp", { exp: reward.amount ?? 0 })}
+                    </RewardItem>
+                  )
+                }
+                if (reward.rewardCode === "badge") {
+                  const badgeTitle =
+                    reward.badge?.title ||
+                    reward.badge?.name ||
+                    t("user.tasks.reward.badge")
+                  return (
+                    <RewardItem
+                      key={reward.id || `badge-${idx}`}
+                      icon={<Medal className="h-3.5 w-3.5" />}
+                    >
+                      {badgeTitle}
+                    </RewardItem>
+                  )
+                }
+                const name =
+                  (locale === "zh-CN" ? reward.nameZh : reward.nameEn) ||
+                  reward.rewardCode
+                return (
+                  <RewardItem
+                    key={reward.id || `reward-${idx}`}
+                    icon={<Gift className="h-3.5 w-3.5" />}
+                  >
+                    {name}: {reward.amount}
+                  </RewardItem>
+                )
+              })
+            ) : (
+              <>
+                {task.score ? (
+                  <RewardItem icon={<Target className="h-3.5 w-3.5" />}>
+                    {t("user.tasks.reward.score", { score: task.score })}
+                  </RewardItem>
+                ) : null}
+                {task.exp ? (
+                  <RewardItem icon={<Zap className="h-3.5 w-3.5" />}>
+                    {t("user.tasks.reward.exp", { exp: task.exp })}
+                  </RewardItem>
+                ) : null}
+                {task.badgeId ? (
+                  <RewardItem icon={<Medal className="h-3.5 w-3.5" />}>
+                    {t("user.tasks.reward.badge")}
+                  </RewardItem>
+                ) : null}
+              </>
+            )}
             {finishLabel() ? <span>{finishLabel()}</span> : null}
           </div>
         </div>

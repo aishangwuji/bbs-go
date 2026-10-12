@@ -3,7 +3,6 @@ package api
 import (
 	"bbs-go/internal/handlers/render"
 	"bbs-go/internal/models/constants"
-	"bbs-go/internal/models/resp"
 	"bbs-go/internal/pkg/common"
 	"bbs-go/internal/services"
 
@@ -29,29 +28,11 @@ func TaskTasks(ctx *gin.Context) {
 	}
 
 	taskConfigs := services.TaskConfigService.Find(cnd)
-
 	user := common.GetCurrentUser(ctx)
-	resp := make([]resp.TaskResponse, 0, len(taskConfigs))
-	for i := range taskConfigs {
-		cfg := taskConfigs[i]
 
-		// 时间窗口过滤
-		if cfg.StartTime > 0 && now < cfg.StartTime {
-			continue
-		}
-		if cfg.EndTime > 0 && now > cfg.EndTime {
-			continue
-		}
-
-		resp = append(resp, render.BuildTask(&cfg, user, now))
-	}
-
-	ginx.WriteJSON(ctx, resp)
-
+	ginx.WriteJSON(ctx, render.BuildTasks(taskConfigs, user, now))
 }
 
 func TaskGroups(ctx *gin.Context) {
-
 	ginx.WriteJSON(ctx, render.BuildTaskGroups())
-
 }

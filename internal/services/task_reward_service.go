@@ -43,6 +43,21 @@ func (s *taskRewardService) FindEnabledByTaskId(taskId int64) []models.TaskRewar
 	return repositories.TaskRewardRepository.FindEnabledByTaskId(sqls.DB(), taskId)
 }
 
+// FindEnabledByTaskIds 批量查询多个任务下启用的奖励明细
+func (s *taskRewardService) FindEnabledByTaskIds(taskIds []int64) []models.TaskReward {
+	return repositories.TaskRewardRepository.FindEnabledByTaskIds(sqls.DB(), taskIds)
+}
+
+// FindEnabledMapByTaskIds 批量查询并聚合为 map[taskId][]models.TaskReward，O(1) 获取
+func (s *taskRewardService) FindEnabledMapByTaskIds(taskIds []int64) map[int64][]models.TaskReward {
+	list := s.FindEnabledByTaskIds(taskIds)
+	res := make(map[int64][]models.TaskReward, len(taskIds))
+	for _, item := range list {
+		res[item.TaskId] = append(res[item.TaskId], item)
+	}
+	return res
+}
+
 func (s *taskRewardService) FindPageByParams(params *params.QueryParams) (list []models.TaskReward, paging *sqls.Paging) {
 	return repositories.TaskRewardRepository.FindPageByParams(sqls.DB(), params)
 }

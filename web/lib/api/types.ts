@@ -326,6 +326,16 @@ export interface TaskProgress {
   maxFinishCount?: number
 }
 
+export interface TaskRewardInfo {
+  id?: number
+  rewardCode: string
+  nameZh?: string
+  nameEn?: string
+  amount?: number
+  badgeId?: number
+  badge?: Badge | null
+}
+
 export interface TaskInfo {
   id: number
   groupName: string
@@ -344,6 +354,7 @@ export interface TaskInfo {
   startTime?: number
   endTime?: number
   status?: number
+  rewards?: TaskRewardInfo[]
   userProgress?: TaskProgress | null
 }
 

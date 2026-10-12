@@ -67,6 +67,18 @@ export default function DashboardTasksRoute() {
       { key: "score", label: dashboardData.label(t, "score") },
       { key: "exp", label: dashboardData.label(t, "exp") },
       { key: "badgeId", label: dashboardData.label(t, "badgeId") },
+      {
+        key: "rewards",
+        label: t("dashboard.nav.taskRewards"),
+        render: (record) => (
+          <a
+            href={`/dashboard/task-rewards?taskId=${record.id}`}
+            className="inline-flex items-center gap-1 rounded bg-muted/60 px-2 py-0.5 text-xs font-medium text-primary hover:bg-muted hover:underline"
+          >
+            {t("dashboard.pages.taskRewards.title")}
+          </a>
+        ),
+      },
       { key: "eventCount", label: dashboardData.label(t, "eventCount") },
       {
         key: "maxFinishCount",
