@@ -59,6 +59,7 @@ func SysConfigConfigs(ctx *gin.Context) {
 		AboutPageConfig:            services.SysConfigService.GetAboutPageConfig(),
 		FooterLinks:                services.SysConfigService.GetFooterLinks(),
 		LinkPageConfig:             services.SysConfigService.GetLinkPageConfig(),
+		ShowPoweredBy:              services.SysConfigService.IsShowPoweredBy(),
 		SignatureMinLevel:          services.SysConfigService.GetSignatureMinLevel(),
 		RecommendTags:              cache.SysConfigCache.GetStrArr(constants.SysConfigRecommendTags),
 		UrlRedirect:                services.SysConfigService.IsUrlRedirect(),

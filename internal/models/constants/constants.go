@@ -47,6 +47,7 @@ const (
 	SysConfigSiteNotification           = "siteNotification"           // 站点公告
 	SysConfigAboutPageConfig            = "aboutPageConfig"            // 关于页配置
 	SysConfigFooterLinks                = "footerLinks"                // 底部链接
+	SysConfigShowPoweredBy              = "showPoweredBy"              // 是否显示页脚 Powered by BBS-GO 标记
 	SysConfigRecommendTags              = "recommendTags"              // 推荐标签
 	SysConfigUrlRedirect                = "urlRedirect"                // 是否开启链接跳转
 	SysConfigDefaultCategoryId          = "defaultCategoryId"          // 发帖默认节点

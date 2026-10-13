@@ -575,6 +575,7 @@ export default function DashboardSettingsRoute() {
                   baseURL: settings.baseURL,
                   siteKeywords: settings.siteKeywords,
                   siteNotification: settings.siteNotification,
+                  showPoweredBy: settings.showPoweredBy !== false,
                 })
               }
             />
@@ -802,6 +803,13 @@ function CommonSettings({
           value={getString(settings.siteNotification)}
           placeholder={s("common.placeholder.siteNotification")}
           onChange={(event) => update("siteNotification", event.target.value)}
+        />
+      </Field>
+      <Field label={s("common.showPoweredBy")}>
+        <SwitchWithTooltip
+          checked={settings.showPoweredBy !== false}
+          tooltip={s("common.showPoweredByDescription")}
+          onChange={(checked) => update("showPoweredBy", checked)}
         />
       </Field>
     </SettingsForm>

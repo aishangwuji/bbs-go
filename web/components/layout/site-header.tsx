@@ -624,7 +624,8 @@ export function SiteHeader() {
   const { t } = useI18n()
   const fullPath = useCurrentFullPath()
   const navs = config?.siteNavs ?? []
-  // 去品牌化 2026-09-18：页头 Logo/标题已按需求隐藏（原 logo/title 兜底 "BBS-GO" 不再展示）
+  const logo = config?.siteLogo
+  const title = config?.siteTitle
   const showColorModeToggle = true
 
   return (
@@ -633,7 +634,11 @@ export function SiteHeader() {
         <div className="flex h-14 items-center justify-between">
           <div className="flex items-center space-x-8">
             <Link href="/" className="flex items-center space-x-2" aria-label="Home">
-              {/* Logo/标题已隐藏 */}
+              {logo ? (
+                <img src={logo} alt={title || "Logo"} className="h-8 w-auto" />
+              ) : title ? (
+                <span className="text-sm font-semibold">{title}</span>
+              ) : null}
             </Link>
 
             <DesktopNav navs={navs} />

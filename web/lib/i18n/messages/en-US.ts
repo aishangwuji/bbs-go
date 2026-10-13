@@ -405,6 +405,8 @@ const enUS = {
         baseURL: "Site URL",
         siteKeywords: "Site Keywords",
         siteNotification: "Site Notification",
+        showPoweredBy: "Show Powered By",
+        showPoweredByDescription: "Show 'Powered by BBS-GO' in the site footer",
         submit: "Submit",
         placeholder: {
           siteTitle: "Site Title",

@@ -515,6 +515,15 @@ func (s *sysConfigService) IsUrlRedirect() bool {
 	return cache.SysConfigCache.GetBool(constants.SysConfigUrlRedirect)
 }
 
+// IsShowPoweredBy 是否显示页脚 Powered by BBS-GO 标记（默认 true）
+func (s *sysConfigService) IsShowPoweredBy() bool {
+	str := cache.SysConfigCache.GetStr(constants.SysConfigShowPoweredBy)
+	if strs.IsBlank(str) {
+		return true
+	}
+	return strings.EqualFold(str, "true") || str == "1"
+}
+
 func (s *sysConfigService) GetLoginConfig() dto.LoginConfig {
 	str := cache.SysConfigCache.GetStr(constants.SysConfigLoginConfig)
 	var loginConfig dto.LoginConfig

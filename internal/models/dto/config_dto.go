@@ -14,6 +14,7 @@ type SysConfigAdminResponse struct {
 	AboutPageConfig            AboutPageConfig             `json:"aboutPageConfig"`
 	FooterLinks                []FooterLink                `json:"footerLinks"`
 	LinkPageConfig             LinkPageConfig              `json:"linkPageConfig"`
+	ShowPoweredBy              bool                        `json:"showPoweredBy"`              // 是否显示页脚 Powered by 标记
 	SignatureMinLevel          int                         `json:"signatureMinLevel"`
 	RecommendTags              []string                    `json:"recommendTags"`
 	UrlRedirect                bool                        `json:"urlRedirect"`
@@ -58,6 +59,7 @@ type SysConfigOpenResponse struct {
 	SiteNotification           string            `json:"siteNotification"`
 	FooterLinks                []FooterLink      `json:"footerLinks"`
 	LinkPageConfig             LinkPageConfig    `json:"linkPageConfig"`
+	ShowPoweredBy              bool              `json:"showPoweredBy"` // 是否显示页脚 Powered by 标记
 	SignatureMinLevel          int               `json:"signatureMinLevel"`
 	RecommendTags              []string          `json:"recommendTags"`
 	UrlRedirect                bool              `json:"urlRedirect"`

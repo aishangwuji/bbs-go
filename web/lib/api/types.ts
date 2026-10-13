@@ -251,6 +251,7 @@ export interface SiteConfig {
   siteKeywords?: string[]
   baseURL?: string
   siteLogo?: string
+  showPoweredBy?: boolean
   siteNavs?: SiteNav[]
   siteNotification?: string
   recommendTags?: string[]

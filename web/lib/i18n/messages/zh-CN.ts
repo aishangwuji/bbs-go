@@ -403,6 +403,8 @@ const zhCN = {
         baseURL: "网站URL",
         siteKeywords: "网站关键字",
         siteNotification: "网站公告",
+        showPoweredBy: "显示 Powered by 标识",
+        showPoweredByDescription: "在网站页脚显示 Powered by BBS-GO 开源标识",
         submit: "提交",
         placeholder: {
           siteTitle: "网站名称",
