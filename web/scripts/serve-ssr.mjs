@@ -97,7 +97,6 @@ createServer(async (req, res) => {
           req.method === "GET" || req.method === "HEAD" ? undefined : req,
         duplex: "half",
         signal: AbortSignal.timeout(30000),
-        redirect: "manual",
       })
 
       res.statusCode = response.status
@@ -107,12 +106,6 @@ createServer(async (req, res) => {
         }
         res.setHeader(key, value)
       })
-      if (typeof response.headers.getSetCookie === "function") {
-        const cookies = response.headers.getSetCookie()
-        if (cookies && cookies.length > 0) {
-          res.setHeader("set-cookie", cookies)
-        }
-      }
       if (response.body) {
         for await (const chunk of response.body) {
           res.write(chunk)

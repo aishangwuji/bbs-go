@@ -148,10 +148,6 @@ func registerAPIRoutes(group *gin.RouterGroup) {
 	loginGroup.GET("/oidc_login_config", apiHandlers.LoginOIDCLoginConfig)
 	loginGroup.POST("/oidc_login_submit", apiHandlers.LoginOIDCLoginSubmit)
 
-	oauthGroup := group.Group("/oauth")
-	oauthGroup.GET("/authorize", apiHandlers.OAuthAuthorize)
-	oauthGroup.POST("/token", apiHandlers.OAuthToken)
-	oauthGroup.GET("/userinfo", apiHandlers.OAuthUserInfo)
 
 	userGroup := group.Group("/user")
 	userGroup.GET("/current", apiHandlers.UserCurrent)

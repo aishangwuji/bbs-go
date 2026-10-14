@@ -24,7 +24,6 @@ var Models = []interface{}{
 	&UserGithubProfile{},
 	&ModerationRecord{},
 	&JevRuleHistory{},
-	&OAuthClient{}, &OAuthToken{},
 }
 
 type Model struct {
