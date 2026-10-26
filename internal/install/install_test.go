@@ -9,12 +9,46 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-func TestInstallRejectsShortAdminPasswordBeforeDatabaseInitialization(t *testing.T) {
+// TestInstallRejectsMissingSetupToken 覆盖安装接口的一次性令牌闸门：
+// 未携带令牌的调用必须在触碰密码校验与数据库之前就被拒绝，
+// 否则暴露在公网的全新实例会被任意网络请求抢先抢占 owner 账号。
+func TestInstallRejectsMissingSetupToken(t *testing.T) {
+	t.Chdir(t.TempDir())
+
 	previousConfig := config.Instance
 	t.Cleanup(func() {
 		config.Instance = previousConfig
 	})
 	config.Instance = &config.Config{Language: config.LanguageEnUS}
+
+	if _, err := EnsureSetupToken(); err != nil {
+		t.Fatalf("ensure setup token: %v", err)
+	}
+
+	// 密码本身合法，唯一的拒绝原因应当是缺失令牌。
+	if got := Install(InstallReq{Password: "admin123456"}); got == nil {
+		t.Fatal("expected installation to reject a caller without setup token")
+	}
+	if VerifySetupToken("") {
+		t.Fatal("empty token must not verify against the generated setup token")
+	}
+}
+
+func TestInstallRejectsShortAdminPasswordBeforeDatabaseInitialization(t *testing.T) {
+	// 安装接口现在要求一次性 setup token（见 EnsureSetupToken），
+	// 这里把配置目录切到临时目录，避免在仓库根目录留下 setup-token.txt 脏文件。
+	t.Chdir(t.TempDir())
+
+	previousConfig := config.Instance
+	t.Cleanup(func() {
+		config.Instance = previousConfig
+	})
+	config.Instance = &config.Config{Language: config.LanguageEnUS}
+
+	token, err := EnsureSetupToken()
+	if err != nil {
+		t.Fatalf("ensure setup token: %v", err)
+	}
 
 	password := "admin"
 	want := validate.IsPassword(password)
@@ -22,7 +56,7 @@ func TestInstallRejectsShortAdminPasswordBeforeDatabaseInitialization(t *testing
 		t.Fatal("expected the shared account password validator to reject a short password")
 	}
 
-	got := Install(InstallReq{Password: password})
+	got := Install(InstallReq{Password: password, SetupToken: token})
 	if got == nil {
 		t.Fatal("expected installation to reject a short administrator password")
 	}
