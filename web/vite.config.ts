@@ -3,7 +3,9 @@ import { reactRouter } from "@react-router/dev/vite"
 import { defineConfig, loadEnv, type Plugin } from "vite"
 
 function stripSpaRouteLoaders(): Plugin {
-  const appRoutesDir = `${path.sep}app${path.sep}routes${path.sep}`
+  // Vite 的模块 id 在 Windows 上也统一为正斜杠，若用 path.sep 拼字符串，
+  // Windows 下永远匹配不到路由文件，SPA 模式会因 loader 导出直接构建失败。
+  const appRoutesPattern = /[/\\]app[/\\]routes[/\\]/
 
   return {
     name: "bbsgo-strip-spa-route-loaders",
@@ -11,7 +13,7 @@ function stripSpaRouteLoaders(): Plugin {
     transform(code, id) {
       if (
         process.env.BBSGO_WEB_SPA !== "true" ||
-        !id.includes(appRoutesDir)
+        !appRoutesPattern.test(id)
       ) {
         return null
       }
