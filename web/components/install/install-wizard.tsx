@@ -11,6 +11,7 @@ import {
   Database,
   Download,
   Globe,
+  KeyRound,
   Loader2,
   Settings,
   Shuffle,
@@ -24,7 +25,14 @@ import { Textarea } from "@/components/ui/textarea"
 import { ApiError, apiFetch } from "@/lib/api/client"
 import { createT, type Locale } from "@/lib/i18n"
 
-type Step = "welcome" | "database" | "site" | "admin" | "install" | "complete"
+type Step =
+  | "welcome"
+  | "token"
+  | "database"
+  | "site"
+  | "admin"
+  | "install"
+  | "complete"
 export type DbType = "mysql" | "postgresql" | "sqlite"
 
 const avatarCount = 128
@@ -100,6 +108,10 @@ export function InstallWizard({
     passwordConfirm: "",
   })
   const [avatar, setAvatar] = React.useState(randomAvatar)
+  // setupToken 是服务端首次启动时生成的一次性安装令牌，用于防止未安装实例被
+  // 网络上其他人抢先完成安装并取得站长账号；前端只做非空校验，权威校验在服务端。
+  const [setupToken, setSetupToken] = React.useState("")
+  const [tokenError, setTokenError] = React.useState("")
   const [dbError, setDbError] = React.useState("")
   const [dbSuccess, setDbSuccess] = React.useState("")
   const [siteError, setSiteError] = React.useState("")
@@ -114,6 +126,7 @@ export function InstallWizard({
 
   const steps: Array<{ key: Step; title: string }> = [
     { key: "welcome", title: t("pages.install.step.welcome") },
+    { key: "token", title: t("pages.install.step.token") },
     { key: "database", title: t("pages.install.step.database") },
     { key: "site", title: t("pages.install.step.site") },
     { key: "admin", title: t("pages.install.step.admin") },
@@ -156,6 +169,15 @@ export function InstallWizard({
       return next
     })
     setDbSuccess("")
+  }
+
+  function validateTokenForm() {
+    if (setupToken.trim()) {
+      setTokenError("")
+      return true
+    }
+    setTokenError(t("pages.install.token.validationError"))
+    return false
   }
 
   function validateDbForm() {
@@ -265,6 +287,9 @@ export function InstallWizard({
 
   async function gotoStep(next: Step) {
     if (pageBlocking) return
+    if (next === "database" && step === "token" && !validateTokenForm()) {
+      return
+    }
     if (next === "site" && step === "database") {
       await testDbConnection("site")
       return
@@ -276,6 +301,10 @@ export function InstallWizard({
   }
 
   async function confirmInstall() {
+    if (!validateTokenForm()) {
+      setStep("token")
+      return
+    }
     if (!validateAdminForm()) {
       return
     }
@@ -300,6 +329,8 @@ export function InstallWizard({
           siteTitle: siteInfo.title,
           siteDescription: siteInfo.description,
           baseURL: siteInfo.baseURL.trim() || "/",
+          // 服务端会以常数时间比对磁盘上的一次性令牌，缺失或错误直接拒绝安装。
+          setupToken: setupToken.trim(),
           dbConfig: {
             type: dbConfig.type,
             host: dbConfig.host,
@@ -425,8 +456,56 @@ export function InstallWizard({
                 right={
                   <NextButton
                     size="lg"
+                    onClick={() => gotoStep("token")}
+                    label={t("pages.install.buttons.next")}
+                  />
+                }
+              />
+            </div>
+          ) : null}
+
+          {step === "token" ? (
+            <div className="space-y-3">
+              <SectionTitle
+                title={t("pages.install.step.token")}
+                description={t("pages.install.token.description")}
+              />
+              <Alert className="border-blue-200 bg-blue-50">
+                <div className="flex gap-2">
+                  <KeyRound className="mt-1 h-4 w-4 shrink-0 text-blue-700" />
+                  <AlertDescription className="text-blue-800">
+                    {t("pages.install.token.hint")}
+                  </AlertDescription>
+                </div>
+              </Alert>
+              <FormField
+                required
+                id="setup-token"
+                label={t("pages.install.token.label")}
+                value={setupToken}
+                placeholder={t("pages.install.token.placeholder")}
+                help={t("pages.install.token.help")}
+                onBlur={validateTokenForm}
+                onChange={(value) => {
+                  setSetupToken(value)
+                  if (value.trim()) setTokenError("")
+                }}
+              />
+              <Feedback error={tokenError} />
+              <FooterActions
+                left={
+                  <BackButton
+                    size="lg"
+                    onClick={() => gotoStep("welcome")}
+                    label={t("pages.install.buttons.previous")}
+                  />
+                }
+                right={
+                  <NextButton
+                    size="lg"
                     onClick={() => gotoStep("database")}
                     label={t("pages.install.buttons.next")}
+                    disabled={!setupToken.trim()}
                   />
                 }
               />
@@ -771,7 +850,7 @@ export function InstallWizard({
                   <Button
                     type="button"
                     size="lg"
-                    disabled={!isAdminFormValid}
+                    disabled={!isAdminFormValid || !setupToken.trim()}
                     onClick={() => void confirmInstall()}
                   >
                     <Download className="mr-2 h-4 w-4" />
@@ -820,6 +899,19 @@ export function InstallWizard({
                   </AlertDescription>
                 </div>
               </Alert>
+              {/* 安装步骤是终态视图，失败时必须留一条回到前面步骤的退路，
+                  否则令牌填错或数据库配错后用户会被卡死在进度页。 */}
+              {installFailed ? (
+                <FooterActions
+                  left={
+                    <BackButton
+                      size="lg"
+                      onClick={() => gotoStep("token")}
+                      label={t("pages.install.buttons.previous")}
+                    />
+                  }
+                />
+              ) : null}
             </div>
           ) : null}
 

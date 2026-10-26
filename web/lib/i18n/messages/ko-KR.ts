@@ -1624,6 +1624,7 @@ const koKR = {
       title: "BBS-GO 설치 안내",
       step: {
         welcome: "환영합니다",
+        token: "액세스 토큰",
         database: "데이터베이스 설정",
         site: "사이트 정보",
         admin: "관리자 설정",
@@ -1639,7 +1640,17 @@ const koKR = {
             "MySQL(5.7+), PostgreSQL 또는 SQLite 데이터베이스(운영 환경은 MySQL 또는 PostgreSQL 권장)",
           site: "커뮤니티 이름과 설명을 미리 정함",
           admin: "관리자 계정과 비밀번호 준비",
+          token: "서버 시작 로그에 출력되는 일회용 액세스 토큰",
         },
+      },
+      token: {
+        description:
+          "이 인스턴스는 아직 설치되지 않았습니다. 네트워크의 다른 사람이 먼저 관리자 계정을 차지하는 것을 막기 위해, 설치 시 서버가 생성한 일회용 액세스 토큰을 확인합니다.",
+        hint: "토큰은 서버가 처음 시작될 때 생성되어 시작 로그에 출력됩니다. 설정 디렉터리(bbs-go.yaml 과 같은 위치)의 setup-token.txt 파일에서도 확인할 수 있습니다.",
+        label: "설치 토큰",
+        placeholder: "시작 시 생성된 토큰을 붙여넣으세요",
+        help: "일회용: 설치가 완료되면 서버가 자동으로 삭제합니다.",
+        validationError: "설치 토큰을 입력하세요.",
       },
       language: {
         title: "언어",

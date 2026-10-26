@@ -1675,6 +1675,7 @@ const frFR = {
       title: "Assistant d'installation BBS-GO",
       step: {
         welcome: "Bienvenue",
+        token: "Jeton d'accès",
         database: "Configuration de la base de données",
         site: "Informations du site",
         admin: "Paramètres de l'administrateur",
@@ -1690,7 +1691,17 @@ const frFR = {
             "Base de données MySQL (5.7+), PostgreSQL ou SQLite (MySQL ou PostgreSQL recommandé en production)",
           site: "Nom et description de la communauté déjà définis",
           admin: "Compte et mot de passe administrateur prêts",
+          token: "Le jeton d'accès à usage unique affiché dans les journaux de démarrage du serveur",
         },
+      },
+      token: {
+        description:
+          "Cette instance n'est pas encore installée. Pour éviter que quelqu'un sur le réseau ne revendique le compte administrateur avant vous, l'installation exige le jeton d'accès à usage unique généré par le serveur.",
+        hint: "Le jeton est généré au premier démarrage du serveur et affiché dans les journaux de démarrage. Vous pouvez aussi consulter le fichier setup-token.txt dans le répertoire de configuration (à côté de bbs-go.yaml).",
+        label: "Jeton d'installation",
+        placeholder: "Collez le jeton généré au démarrage",
+        help: "Usage unique : le serveur supprime le jeton automatiquement une fois l'installation réussie.",
+        validationError: "Veuillez saisir le jeton d'installation.",
       },
       language: {
         title: "Langue",

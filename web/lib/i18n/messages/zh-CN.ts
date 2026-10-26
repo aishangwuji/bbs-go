@@ -1644,6 +1644,7 @@ const zhCN = {
       title: "BBS-GO 安装引导",
       step: {
         welcome: "欢迎使用",
+        token: "访问令牌",
         database: "数据库配置",
         site: "站点信息",
         admin: "管理员设置",
@@ -1659,7 +1660,17 @@ const zhCN = {
             "MySQL（5.7+）、PostgreSQL 或 SQLite 数据库（生产环境建议使用 MySQL 或 PostgreSQL）",
           site: "已经规划好社区名称和描述",
           admin: "已准备好管理员账号和密码",
+          token: "服务端启动日志中输出的一次性访问令牌",
         },
+      },
+      token: {
+        description:
+          "当前实例尚未安装。为防止网络上其他人抢在您之前完成安装并取得站长账号，安装需要校验服务端生成的一次性访问令牌。",
+        hint: "令牌在服务端首次启动时生成，并打印在启动日志中；也可以直接查看配置目录（与 bbs-go.yaml 同级）下的 setup-token.txt 文件。",
+        label: "安装令牌",
+        placeholder: "粘贴启动时生成的一次性令牌",
+        help: "一次性使用：安装成功后服务端会自动删除该令牌。",
+        validationError: "请输入安装令牌",
       },
       language: {
         title: "语言",

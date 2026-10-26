@@ -1680,6 +1680,7 @@ const deDE = {
       title: "BBS-GO Installationsassistent",
       step: {
         welcome: "Willkommen",
+        token: "Zugriffstoken",
         database: "Datenbankkonfiguration",
         site: "Website-Informationen",
         admin: "Administratoreinstellungen",
@@ -1695,7 +1696,17 @@ const deDE = {
             "MySQL (5.7+), PostgreSQL oder SQLite-Datenbank (für Produktionsumgebungen werden MySQL oder PostgreSQL empfohlen)",
           site: "Community-Name und Beschreibung sind bereits geplant",
           admin: "Administratorkonto und Passwort sind vorbereitet",
+          token: "Das einmalige Zugriffstoken aus dem Startprotokoll des Servers",
         },
+      },
+      token: {
+        description:
+          "Diese Instanz ist noch nicht installiert. Damit niemand im Netzwerk vor Ihnen das Administrator-Konto übernehmen kann, erfordert die Installation ein einmaliges Zugriffstoken, das der Server erzeugt.",
+        hint: "Das Token wird beim ersten Start des Servers erzeugt und im Startprotokoll ausgegeben. Alternativ finden Sie es in der Datei setup-token.txt im Konfigurationsverzeichnis (neben bbs-go.yaml).",
+        label: "Installations-Token",
+        placeholder: "Das beim Start erzeugte Token einfügen",
+        help: "Einmalig: Nach erfolgreicher Installation löscht der Server das Token automatisch.",
+        validationError: "Bitte geben Sie das Installations-Token ein.",
       },
       language: {
         title: "Sprache",
