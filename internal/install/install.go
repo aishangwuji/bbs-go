@@ -350,7 +350,9 @@ func InitDB() error {
 		dialector = postgres.Open(conf.Url)
 	case config.DbTypeSQLite:
 		dsn := conf.Url
-		dsn = buildSqliteDSN()
+		if strs.IsBlank(dsn) {
+			dsn = buildSqliteDSN()
+		}
 		dialector = sqlite.Open(dsn)
 	default:
 		dialector = mysql.Open(conf.Url)

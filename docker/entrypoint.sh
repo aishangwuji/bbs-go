@@ -8,6 +8,10 @@ if [ ! -f /app/data/bbs-go.yaml ]; then
 	cp /app/defaults/bbs-go.yaml /app/data/bbs-go.yaml
 fi
 
+if [ -f /app/data/bbs-go.db ]; then
+	ln -sf /app/data/bbs-go.db /app/bbs-go.db
+fi
+
 ./bbs-go &
 api_pid=$!
 
