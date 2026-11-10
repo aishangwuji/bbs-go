@@ -19,6 +19,7 @@ import {
 } from "@/components/install/install-required-fallback"
 import { LayoutChrome } from "@/components/layout/layout-chrome"
 import { ThemeProvider } from "@/components/theme-provider"
+import { TopProgressBar } from "@/components/common/top-progress-bar"
 import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { apiFetch } from "@/lib/api/client"
@@ -236,6 +237,7 @@ export default function Root() {
           <TooltipProvider>
             <RuntimeScriptInjections />
             <GoogleOneTapGate />
+            <TopProgressBar />
             <LayoutChrome>
               <Outlet />
             </LayoutChrome>

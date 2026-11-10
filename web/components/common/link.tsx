@@ -1,8 +1,9 @@
-import RouterLink from "@/lib/router/link"
-import type * as React from "react"
+import RouterLink, { type PrefetchOption } from "@/lib/router/link"
 
-type AppLinkProps = React.ComponentProps<typeof RouterLink>
+type AppLinkProps = Omit<React.ComponentProps<typeof RouterLink>, "prefetch"> & {
+  prefetch?: boolean | PrefetchOption
+}
 
-export default function Link({ prefetch = false, ...props }: AppLinkProps) {
+export default function Link({ prefetch = "intent", ...props }: AppLinkProps) {
   return <RouterLink prefetch={prefetch} {...props} />
 }
