@@ -540,6 +540,21 @@ const jaJP = {
         signName: "SMS 署名",
         templateCode: "SMS テンプレート",
         submit: "送信",
+        callbackUrl: "コールバック URL",
+        callbackUrlBind: "連携用コールバック URL",
+        callbackUrlBindTip: "アカウント連携時に使用します。ログイン用と連携用の両方の URL を Google Cloud Console の「承認済みリダイレクト URI」に追加してください。",
+        callbackUrlTip: {
+          googleLogin: "Google Cloud Console → API とサービス → 認証情報 → OAuth クライアント ID → 承認済みリダイレクト URI に、上記 2 つの URL を追加してください。",
+          githubLogin: "GitHub → Settings → Developer settings → OAuth Apps → Authorization callback URL に上記の URL を入力してください。",
+        },
+        callbackCopied: "コールバック URL をクリップボードにコピーしました",
+        callbackCopyFailed: "コピーに失敗しました。テキストを選択して手動でコピーしてください",
+        copy: "コピー",
+        copied: "コピー済み",
+        oidc: {
+          callbackUrlTip: "すべての OIDC プロバイダーがこのコールバック URL を共有します。プロバイダー側のリダイレクト URI 一覧に登録してください。",
+          issuerTip: "Issuer は HTTPS の OpenID Connect Discovery URL である必要があります。上記のコールバック URL もプロバイダーに登録してください。",
+        },
       },
       upload: {
         title: "アップロード設定",

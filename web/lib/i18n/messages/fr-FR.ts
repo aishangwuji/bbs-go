@@ -556,6 +556,21 @@ const frFR = {
         signName: "Signature SMS",
         templateCode: "Modèle SMS",
         submit: "Soumettre",
+        callbackUrl: "URL de rappel",
+        callbackUrlBind: "URL de rappel (liaison)",
+        callbackUrlBindTip: "Utilisée lors de la liaison d'un compte. Ajoutez cette URL et celle de connexion aux URI de redirection autorisées dans Google Cloud Console.",
+        callbackUrlTip: {
+          googleLogin: "Google Cloud Console → API et services → Identifiants → ID client OAuth → URI de redirection autorisées : ajoutez les deux URL ci-dessus.",
+          githubLogin: "GitHub → Settings → Developer settings → OAuth Apps → Authorization callback URL : collez l'URL ci-dessus.",
+        },
+        callbackCopied: "URL de rappel copiée dans le presse-papiers",
+        callbackCopyFailed: "Échec de la copie, sélectionnez le texte manuellement",
+        copy: "Copier",
+        copied: "Copié",
+        oidc: {
+          callbackUrlTip: "Tous les fournisseurs OIDC partagent cette URL de rappel. Enregistrez-la dans la liste des URI de redirection du fournisseur.",
+          issuerTip: "L'émetteur doit être une URL HTTPS de découverte OpenID Connect. Enregistrez l'URL de rappel ci-dessus auprès du fournisseur d'identité.",
+        },
       },
       upload: {
         title: "Configuration du téléversement",

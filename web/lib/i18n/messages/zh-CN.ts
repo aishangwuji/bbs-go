@@ -561,6 +561,21 @@ const zhCN = {
         signName: "短信签名",
         templateCode: "短信模版",
         submit: "提交",
+        callbackUrl: "回调地址",
+        callbackUrlBind: "绑定回调地址",
+        callbackUrlBindTip: "账号绑定流程使用此地址，请与上方登录回调地址一并加入 Google 控制台的「已获授权的重定向 URI」。",
+        callbackUrlTip: {
+          googleLogin: "在 Google Cloud 控制台 → API 和服务 → 凭据 → OAuth 客户端 ID → 已获授权的重定向 URI 中，添加上方地址（登录与绑定两个地址都需要）。",
+          githubLogin: "在 GitHub → Settings → Developer settings → OAuth Apps → Authorization callback URL 中填入上方地址。",
+        },
+        callbackCopied: "回调地址已复制到剪贴板",
+        callbackCopyFailed: "复制失败，请手动选中文本复制",
+        copy: "复制",
+        copied: "已复制",
+        oidc: {
+          callbackUrlTip: "所有 OIDC 身份提供商共用此回调地址，请将其登记到提供商后台的 Redirect URI 列表。",
+          issuerTip: "Issuer 必须是 HTTPS 的 OpenID Connect Discovery 地址，并把上方回调地址登记到身份提供商后台。",
+        },
       },
       upload: {
         title: "上传配置",

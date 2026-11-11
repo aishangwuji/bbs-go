@@ -4,6 +4,7 @@ import * as React from "react"
 import {
   CheckIcon,
   ChevronDownIcon,
+  CopyIcon,
   GripVerticalIcon,
   PlusIcon,
   RefreshCwIcon,
@@ -2070,8 +2071,43 @@ function NotificationSettings({
   )
 }
 
+// 与后端 bbsurls.AbsUrl 保持一致：站点地址来自系统配置 baseURL，
+// OAuth 平台后台登记的回调地址必须与服务端发起授权时使用的 redirect_uri 完全一致。
+const OAUTH_CALLBACK_PATHS: Record<
+  "googleLogin" | "githubLogin",
+  { login: string; bind?: string }
+> = {
+  googleLogin: {
+    login: "/user/signin/callback/google",
+    bind: "/user/signin/callback/google_bind",
+  },
+  githubLogin: {
+    login: "/user/signin/callback/github",
+  },
+}
+
+const OIDC_CALLBACK_PATH = "/user/signin/callback/oidc"
+
+function useSiteBase(baseURL: SettingValue) {
+  const configured = getString(baseURL).trim().replace(/\/+$/, "")
+  const [origin, setOrigin] = React.useState("")
+
+  // 站点地址未配置时退回当前访问域名。放在 effect 里读取 window，
+  // 保证 SSR 与客户端首帧输出一致，避免 hydration 不一致。
+  React.useEffect(() => {
+    if (typeof window !== "undefined") setOrigin(window.location.origin)
+  }, [])
+
+  return configured || origin
+}
+
+function buildCallbackUrl(siteBase: string, path: string) {
+  return `${siteBase}${path}`
+}
+
 function LoginSettings({ settings, saving, s, update, onSave }: SettingsProps) {
   const login = getObject(settings.loginConfig)
+  const siteBase = useSiteBase(settings.baseURL)
 
   return (
     <SettingsForm
@@ -2134,42 +2170,63 @@ function LoginSettings({ settings, saving, s, update, onSave }: SettingsProps) {
         ))}
       </LoginCard>
 
-      {(["googleLogin", "githubLogin"] as const).map((provider) => (
-        <LoginCard key={provider} title={s(`login.${provider}`)}>
-          <Field label={s("login.enabled")}>
-            <SwitchControl
-              checked={Boolean(getPathValue(login, `${provider}.enabled`))}
-              onChange={(checked) =>
-                update(`loginConfig.${provider}.enabled`, checked)
-              }
+      {(["googleLogin", "githubLogin"] as const).map((provider) => {
+        const paths = OAUTH_CALLBACK_PATHS[provider]
+        return (
+          <LoginCard key={provider} title={s(`login.${provider}`)}>
+            <OAuthCallbackField
+              label={s("login.callbackUrl")}
+              value={buildCallbackUrl(siteBase, paths.login)}
+              hint={s(`login.callbackUrlTip.${provider}`)}
+              s={s}
             />
-          </Field>
-          <Field label={s("login.clientId")}>
-            <Input
-              value={getString(getPathValue(login, `${provider}.clientId`))}
-              onChange={(event) =>
-                update(`loginConfig.${provider}.clientId`, event.target.value)
-              }
-            />
-          </Field>
-          <Field label={s("login.clientSecret")}>
-            <Input
-              type="password"
-              value={getString(getPathValue(login, `${provider}.clientSecret`))}
-              onChange={(event) =>
-                update(
-                  `loginConfig.${provider}.clientSecret`,
-                  event.target.value
-                )
-              }
-            />
-          </Field>
-        </LoginCard>
-      ))}
+            {paths.bind ? (
+              <OAuthCallbackField
+                label={s("login.callbackUrlBind")}
+                value={buildCallbackUrl(siteBase, paths.bind)}
+                hint={s("login.callbackUrlBindTip")}
+                s={s}
+              />
+            ) : null}
+            <Field label={s("login.enabled")}>
+              <SwitchControl
+                checked={Boolean(getPathValue(login, `${provider}.enabled`))}
+                onChange={(checked) =>
+                  update(`loginConfig.${provider}.enabled`, checked)
+                }
+              />
+            </Field>
+            <Field label={s("login.clientId")}>
+              <Input
+                value={getString(getPathValue(login, `${provider}.clientId`))}
+                onChange={(event) =>
+                  update(`loginConfig.${provider}.clientId`, event.target.value)
+                }
+              />
+            </Field>
+            <Field label={s("login.clientSecret")}>
+              <Input
+                type="password"
+                value={getString(
+                  getPathValue(login, `${provider}.clientSecret`)
+                )}
+                onChange={(event) =>
+                  update(
+                    `loginConfig.${provider}.clientSecret`,
+                    event.target.value
+                  )
+                }
+              />
+            </Field>
+          </LoginCard>
+        )
+      })}
 
       <OIDCProvidersEditor
         value={getPathValue(login, "oidcProviders")}
         onChange={(providers) => update("loginConfig.oidcProviders", providers)}
+        callbackUrl={buildCallbackUrl(siteBase, OIDC_CALLBACK_PATH)}
+        s={s}
       />
 
       <Field label={s("login.passwordLogin")}>
@@ -2184,6 +2241,73 @@ function LoginSettings({ settings, saving, s, update, onSave }: SettingsProps) {
   )
 }
 
+function OAuthCallbackField({
+  label,
+  value,
+  hint,
+  s,
+}: {
+  label: string
+  value: string
+  hint: string
+  s: (key: string, params?: Record<string, string | number>) => string
+}) {
+  const [copied, setCopied] = React.useState(false)
+  const resetTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  React.useEffect(
+    () => () => {
+      if (resetTimer.current) clearTimeout(resetTimer.current)
+    },
+    []
+  )
+
+  const handleCopy = async () => {
+    if (!value) return
+    try {
+      await navigator.clipboard.writeText(value)
+      setCopied(true)
+      msgSuccess(s("login.callbackCopied"))
+      if (resetTimer.current) clearTimeout(resetTimer.current)
+      resetTimer.current = setTimeout(() => setCopied(false), 2000)
+    } catch {
+      msgError(s("login.callbackCopyFailed"))
+    }
+  }
+
+  return (
+    <Field label={label} wide>
+      <div className="grid w-full min-w-0 gap-1.5">
+        <div className="flex min-w-0 items-center gap-2">
+          <Input
+            readOnly
+            value={value}
+            onFocus={(event) => event.currentTarget.select()}
+            className="min-w-0 flex-1 font-mono text-xs"
+            aria-label={label}
+          />
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="shrink-0"
+            disabled={!value}
+            onClick={() => void handleCopy()}
+          >
+            {copied ? (
+              <CheckIcon className="mr-1 size-3.5 text-emerald-500" />
+            ) : (
+              <CopyIcon className="mr-1 size-3.5" />
+            )}
+            {copied ? s("login.copied") : s("login.copy")}
+          </Button>
+        </div>
+        <p className="text-xs leading-relaxed text-muted-foreground">{hint}</p>
+      </div>
+    </Field>
+  )
+}
+
 type OIDCProviderRow = {
   key: string
   name: string
@@ -2195,7 +2319,17 @@ type OIDCProviderRow = {
   requireVerifiedEmail: boolean
 }
 
-function OIDCProvidersEditor({ value, onChange }: { value: SettingValue; onChange: (value: SettingValue[]) => void }) {
+function OIDCProvidersEditor({
+  value,
+  onChange,
+  callbackUrl,
+  s,
+}: {
+  value: SettingValue
+  onChange: (value: SettingValue[]) => void
+  callbackUrl: string
+  s: (key: string, params?: Record<string, string | number>) => string
+}) {
   const providers = React.useMemo<OIDCProviderRow[]>(() => Array.isArray(value) ? value.map((item) => {
     const provider = getObject(item)
     return {
@@ -2211,6 +2345,12 @@ function OIDCProvidersEditor({ value, onChange }: { value: SettingValue; onChang
   return (
     <LoginCard title="OIDC / Single Sign-On">
       <div className="space-y-5">
+        <OAuthCallbackField
+          label={s("login.callbackUrl")}
+          value={callbackUrl}
+          hint={s("login.oidc.callbackUrlTip")}
+          s={s}
+        />
         {providers.map((provider, index) => (
           <div key={`${provider.key}-${index}`} className="space-y-4 rounded-lg border p-4">
             <div className="flex items-center justify-between gap-3">
@@ -2234,7 +2374,7 @@ function OIDCProvidersEditor({ value, onChange }: { value: SettingValue; onChang
         <Button type="button" variant="outline" onClick={() => commit([...providers, { key: "", name: "", issuer: "", clientId: "", clientSecret: "", scopes: ["openid", "profile", "email"], enabled: false, requireVerifiedEmail: true }])}>
           <PlusIcon className="mr-2 size-4" /> Add OIDC provider
         </Button>
-        <p className="text-xs text-muted-foreground">The issuer must be an HTTPS OpenID Connect Discovery URL. Register the callback URL shown in the release notes with your identity provider.</p>
+        <p className="text-xs text-muted-foreground">{s("login.oidc.issuerTip")}</p>
       </div>
     </LoginCard>
   )

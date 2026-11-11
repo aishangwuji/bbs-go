@@ -578,6 +578,21 @@ const enUS = {
         signName: "SMS Signature",
         templateCode: "SMS Template",
         submit: "Submit",
+        callbackUrl: "Callback URL",
+        callbackUrlBind: "Bind callback URL",
+        callbackUrlBindTip: "Used when binding an account. Add both this URL and the login callback above to the Authorized redirect URIs in Google Cloud Console.",
+        callbackUrlTip: {
+          googleLogin: "Google Cloud Console → APIs & Services → Credentials → OAuth client ID → Authorized redirect URIs: add the URLs above (both login and bind).",
+          githubLogin: "GitHub → Settings → Developer settings → OAuth Apps → Authorization callback URL: paste the URL above.",
+        },
+        callbackCopied: "Callback URL copied to clipboard",
+        callbackCopyFailed: "Copy failed, please select the text manually",
+        copy: "Copy",
+        copied: "Copied",
+        oidc: {
+          callbackUrlTip: "All OIDC providers share this callback URL. Register it in the Redirect URI list of your identity provider.",
+          issuerTip: "The issuer must be an HTTPS OpenID Connect Discovery URL. Register the callback URL above with your identity provider.",
+        },
       },
       upload: {
         title: "Upload",

@@ -534,6 +534,21 @@ const koKR = {
         signName: "SMS 서명",
         templateCode: "SMS 템플릿",
         submit: "제출",
+        callbackUrl: "콜백 URL",
+        callbackUrlBind: "계정 연동 콜백 URL",
+        callbackUrlBindTip: "계정 연동 시 사용됩니다. 로그인 URL과 함께 Google Cloud Console의 승인된 리디렉션 URI에 모두 추가하세요.",
+        callbackUrlTip: {
+          googleLogin: "Google Cloud Console → API 및 서비스 → 사용자 인증 정보 → OAuth 클라이언트 ID → 승인된 리디렉션 URI에 위 두 URL을 추가하세요.",
+          githubLogin: "GitHub → Settings → Developer settings → OAuth Apps → Authorization callback URL에 위 URL을 입력하세요.",
+        },
+        callbackCopied: "콜백 URL을 클립보드에 복사했습니다",
+        callbackCopyFailed: "복사에 실패했습니다. 텍스트를 선택해 직접 복사하세요",
+        copy: "복사",
+        copied: "복사됨",
+        oidc: {
+          callbackUrlTip: "모든 OIDC 공급자가 이 콜백 URL을 공유합니다. 공급자의 리디렉션 URI 목록에 등록하세요.",
+          issuerTip: "Issuer는 HTTPS OpenID Connect Discovery URL이어야 합니다. 위 콜백 URL도 공급자에 등록하세요.",
+        },
       },
       upload: {
         title: "업로드 설정",

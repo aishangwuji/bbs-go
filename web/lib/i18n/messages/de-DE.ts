@@ -562,6 +562,21 @@ const deDE = {
         signName: "SMS-Signatur",
         templateCode: "SMS-Vorlage",
         submit: "Absenden",
+        callbackUrl: "Callback-URL",
+        callbackUrlBind: "Callback-URL für Verknüpfung",
+        callbackUrlBindTip: "Wird beim Verknüpfen eines Kontos verwendet. Trage diese und die Anmelde-URL in die autorisierten Weiterleitungs-URIs der Google Cloud Console ein.",
+        callbackUrlTip: {
+          googleLogin: "Google Cloud Console → APIs & Dienste → Anmeldedaten → OAuth-Client-ID → Autorisierte Weiterleitungs-URIs: beide obenstehenden URLs eintragen.",
+          githubLogin: "GitHub → Settings → Developer settings → OAuth Apps → Authorization callback URL: die obenstehende URL eintragen.",
+        },
+        callbackCopied: "Callback-URL in die Zwischenablage kopiert",
+        callbackCopyFailed: "Kopieren fehlgeschlagen, bitte Text manuell markieren",
+        copy: "Kopieren",
+        copied: "Kopiert",
+        oidc: {
+          callbackUrlTip: "Alle OIDC-Anbieter teilen diese Callback-URL. Trage sie in die Redirect-URI-Liste des Identitätsanbieters ein.",
+          issuerTip: "Der Issuer muss eine HTTPS OpenID Connect Discovery URL sein. Trage die obige Callback-URL beim Identitätsanbieter ein.",
+        },
       },
       upload: {
         title: "Upload-Konfiguration",

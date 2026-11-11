@@ -547,6 +547,21 @@ const ruRU = {
         signName: "Подпись SMS",
         templateCode: "Шаблон SMS",
         submit: "Отправить",
+        callbackUrl: "URL обратного вызова",
+        callbackUrlBind: "URL обратного вызова для привязки",
+        callbackUrlBindTip: "Используется при привязке аккаунта. Добавьте этот URL и URL для входа в разрешённые URI перенаправления в Google Cloud Console.",
+        callbackUrlTip: {
+          googleLogin: "Google Cloud Console → API и сервисы → Учётные данные → Идентификатор клиента OAuth → Разрешённые URI перенаправления: добавьте оба URL выше.",
+          githubLogin: "GitHub → Settings → Developer settings → OAuth Apps → Authorization callback URL: вставьте URL выше.",
+        },
+        callbackCopied: "URL обратного вызова скопирован в буфер обмена",
+        callbackCopyFailed: "Не удалось скопировать, выделите текст вручную",
+        copy: "Копировать",
+        copied: "Скопировано",
+        oidc: {
+          callbackUrlTip: "Все OIDC-провайдеры используют этот URL обратного вызова. Зарегистрируйте его в списке Redirect URI провайдера.",
+          issuerTip: "Issuer должен быть HTTPS URL обнаружения OpenID Connect. Зарегистрируйте указанный выше URL обратного вызова у провайдера.",
+        },
       },
       upload: {
         title: "Настройки загрузки",
