@@ -64,6 +64,15 @@ async function loadRootData(request: Request): Promise<RootLoaderData> {
     ),
   ])
 
+  // 未读数与登录态在同一处下发：token 存放在 HttpOnly Cookie 里，服务端本就
+  // 能读到，没必要让浏览器再为了一个数字单独跑一趟。原先客户端是先拉 current、
+  // 拿到用户后才发 msg_recent，两次串行跨洋，在 400ms RTT 下白等近一秒。
+  const unreadMessageCount = currentUser
+    ? await apiFetch<{ count?: number }>("/api/user/msg_recent", requestOptions)
+        .then((data) => data.count || 0)
+        .catch(() => 0)
+    : 0
+
   return {
     config,
     currentUser,
@@ -75,7 +84,7 @@ async function loadRootData(request: Request): Promise<RootLoaderData> {
       acceptLanguageHeader: request.headers.get("accept-language"),
       siteLanguage: config?.language,
     }),
-    unreadMessageCount: 0,
+    unreadMessageCount,
   }
 }
 
