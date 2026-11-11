@@ -55,10 +55,25 @@ function resolveStaticFile(pathname) {
   }
 
   try {
-    return statSync(filePath).isFile() ? filePath : null
+    const stat = statSync(filePath)
+    return stat.isFile() ? { filePath, size: stat.size } : null
   } catch {
     return null
   }
+}
+
+// 缓存分级：/assets/ 下全部是 Vite 产物，文件名带 8 位内容哈希，
+// 内容一变文件名就变，所以可以永久缓存（immutable 让浏览器连条件请求都省掉）；
+// 根级文件（favicon / logo / robots.txt）文件名不带哈希，只能短缓存，
+// 否则管理员换 Logo 后老访客一年都看不到新图。
+// 之前这里完全没设 Cache-Control，Cloudflare 会回落到默认的 max-age=14400，
+// 边缘节点每一轮都要跨洋回源取几十个 2KB 的 chunk。
+const IMMUTABLE_CACHE = "public, max-age=31536000, immutable"
+const SHORT_CACHE = "public, max-age=3600"
+const HTML_CACHE = "no-cache"
+
+function cacheControlFor(pathname) {
+  return pathname.startsWith("/assets/") ? IMMUTABLE_CACHE : SHORT_CACHE
 }
 
 function shouldProxyToServer(pathname) {
@@ -119,15 +134,18 @@ createServer(async (req, res) => {
     return
   }
 
-  const filePath = url.pathname === "/" ? null : resolveStaticFile(url.pathname)
+  const staticFile = url.pathname === "/" ? null : resolveStaticFile(url.pathname)
 
-  if (filePath) {
-    res.setHeader("Content-Type", contentType(filePath))
+  if (staticFile) {
+    res.setHeader("Content-Type", contentType(staticFile.filePath))
+    res.setHeader("Cache-Control", cacheControlFor(url.pathname))
+    // 显式给出长度：Cloudflare 与浏览器都能据此判断完整性，也避免 chunked 编码开销
+    res.setHeader("Content-Length", String(staticFile.size))
     if (req.method === "HEAD") {
       res.end()
       return
     }
-    createReadStream(filePath)
+    createReadStream(staticFile.filePath)
       .on("error", (error) => {
         if (!res.headersSent) {
           res.statusCode = 500
@@ -137,6 +155,10 @@ createServer(async (req, res) => {
       .pipe(res)
     return
   }
+
+  // SSR 出来的 HTML 必须每次回源校验：里面嵌着当前登录用户的资料与脚本注入配置，
+  // 一旦被中间层缓存就会串号。这里显式声明，不依赖 Cloudflare 的默认判断。
+  res.setHeader("Cache-Control", HTML_CACHE)
 
   try {
     await frameworkRequestListener(req, res)
